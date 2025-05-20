@@ -1,96 +1,231 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./assets/logo-DUjmY-0p.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LiteOFD</title>
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiteOfd - 轻量级OFD文件处理库</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
-      @font-face {
-        font-family: 'Times-Bold';
-        src: url('./assets/Times-Bold-SsrNQBCi.otf');
-      }
-      @font-face {
-        font-family: 'NSimSun';
-        src: url('./assets/Nsimsun-cXRvCkmd.ttf');
-      }
-      @font-face {
-        font-family: 'FangSong_GB2312';
-        src: url('./assets/FangSong_GB2312-CpBdDyuD.otf');
-      }
-      @font-face {
-        font-family: 'SimFang';
-        src: url('./assets/SIMFANG-CwNyEwdc.TTF');
-      }
-      @font-face {
-        font-family: 'ArialMT';
-        src: url('./assets/ArialMT-DyOflV0j.ttf');
-      }
+        :root {
+            --primary-color: #0066cc;
+            --secondary-color: #6c757d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color), #004999);
+            color: white;
+            padding: 4rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .feature-box {
+            padding: 2rem;
+            border-radius: 8px;
+            background: #f8f9fa;
+            margin-bottom: 1.5rem;
+            transition: transform 0.2s;
+        }
+
+        .feature-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .api-section {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .demo-image {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin: 1rem 0;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
     </style>
-		<script type="module" crossorigin src="./assets/index-Bnhl8MCu.js"></script>
-		<link rel="stylesheet" crossorigin href="./assets/index-DP76rKlg.css">
-	</head>
-  <body>
-    <div id="app" class="app-container">
-      <div class="tool-bar">
-        <div class="tool-bar-group">
-          <input type="file" id="fileInput" accept=".ofd" style="display: none;" onchange="handleFileChange(event)">
-          <button class="tool-bar-btn upload-icon" onclick="uploadFile()">
-            上传
-          </button>
-          <span id="selectedFileName" class="selected-file-name"></span>
-          <button class="tool-bar-btn btn-save" onclick="handleSaveOFD()">
-            保存
-          </button>
-        </div>
+</head>
 
-        <div class="tool-bar-group">
-          <button class="tool-bar-btn" onclick="minus()">缩小</button>
-          <button class="tool-bar-btn" onclick="plus()">放大</button>
-          <button class="tool-bar-btn" onclick="resetZoom()">还原</button>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">LiteOfd</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">特性</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#installation">安装</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#api">API</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#demo">演示</a>
+                    </li>
+                </ul>
+            </div>
         </div>
+    </nav>
 
-        <div class="tool-bar-group">
-          <button class="tool-bar-btn" onclick="firstPage()">
-            <i class="fas fa-step-backward">第一页</i>
-          </button>
-          <button class="tool-bar-btn" onclick="prePage()">
-            <i class="fas fa-caret-left">上一页</i>
-          </button>
-          <span class="page-info"></span>
-          <button class="tool-bar-btn" onclick="nextPage()">
-            <i class="fas fa-caret-right">下一页</i>
-          </button>
-          <button class="tool-bar-btn" onclick="lastPage()">
-            <i class="fas fa-step-forward">最后页</i>
-          </button>
+    <section class="hero">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h1 class="display-4">LiteOfd</h1>
+                    <p class="lead">轻量级OFD文件处理库</p>
+                    <p>版本：0.2.5</p>
+                    <div class="mt-4">
+                        <a href="./demo.html" class="btn btn-light me-2">在线演示</a>
+                        <a href="https://github.com/SignitDoc/liteofd" class="btn btn-outline-light">GitHub</a>
+                    </div>
+                </div>
+            </div>
         </div>
+    </section>
 
-        <div class="tool-bar-group search-container">
-          <input type="text" id="searchInput" placeholder="输入搜索关键词">
-          <button class="tool-bar-btn search-btn" id="searchButton" onclick="searchKeyword()">
-            搜索
-          </button>
+    <main class="container">
+        <section id="features" class="my-5">
+            <h2 class="text-center mb-4">特性</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="feature-box">
+                        <h3>轻量级</h3>
+                        <p>专注于核心功能，保持库的轻量化，确保快速加载和高效运行。</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-box">
+                        <h3>易于使用</h3>
+                        <p>简单直观的API设计，让开发者能够快速上手并集成到项目中。</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-box">
+                        <h3>功能完善</h3>
+                        <p>支持OFD文档的解析、渲染和操作，满足各种应用场景需求。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="installation" class="my-5">
+            <h2 class="mb-4">安装使用</h2>
+            <div class="api-section">
+                <h4>使用npm安装</h4>
+                <pre><code>npm install liteofd</code></pre>
+
+                <div class="alert alert-warning mt-3">
+                    注意：目前打包遇到问题，发布到npm之后字体文件因为无法正确加载导致渲染字体可能出现问题，所以建议源码引入。
+                </div>
+
+                <h4 class="mt-4">基础使用示例</h4>
+                <pre><code>import { LiteOfd } from 'liteofd'
+
+function parseOfdFile(file: File) {
+    const liteOfd = new LiteOfd()
+    let appContent = getElementById("ofd-content")
+    appContent.innerHTML = ''
+    liteOfd.parse(file).then((data: OfdDocument) => {
+        console.log('解析OFD文件成功:', data);
+        let ofdDiv = liteOfd.render(undefined, 'background-color: white; margin-top: 12px;')
+        appContent.appendChild(ofdDiv)
+    }).catch((error) => {
+        console.error('解析OFD文件失败:', error);
+    });
+}</code></pre>
+            </div>
+        </section>
+
+        <section id="demo" class="my-5">
+            <h2 class="mb-4">演示效果</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <img src="./demo1.png" alt="文档渲染示例" class="demo-image">
+                    <p class="text-center">文档渲染</p>
+                </div>
+                <div class="col-md-6">
+                    <img src="./demo2.png" alt="发票渲染示例" class="demo-image">
+                    <p class="text-center">发票渲染</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="api" class="my-5">
+            <h2 class="mb-4">API文档</h2>
+            <div class="api-section">
+                <h4>主要方法</h4>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <h5>parse(file: string | File | ArrayBuffer)</h5>
+                        <p>解析上传的OFD文件，返回Promise&lt;OfdDocument&gt;</p>
+                    </li>
+                    <li class="list-group-item">
+                        <h5>render(container?: HTMLDivElement, pageWrapStyle?: string)</h5>
+                        <p>渲染OFD文档，返回HTMLDivElement</p>
+                    </li>
+                    <li class="list-group-item">
+                        <h5>getCurrentPageIndex()</h5>
+                        <p>获取当前页面索引</p>
+                    </li>
+                    <li class="list-group-item">
+                        <h5>getTotalPages()</h5>
+                        <p>获取文档总页数</p>
+                    </li>
+                </ul>
+                <div class="text-center mt-4">
+                    <a href="https://github.com/xxss0903/liteofd#2-使用方法" class="btn btn-primary">查看完整API文档</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>LiteOfd</h5>
+                    <p>一个用于处理OFD（Open Fixed-layout Document）文件的轻量级库</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>使用 Apache License 2.0 许可证</p>
+                    <p>Copyright 2025 LiteOfd By 易企签</p>
+                </div>
+            </div>
         </div>
+    </footer>
 
-        <div class="tool-bar-group">
-          <button class="tool-bar-btn" onclick="toggleOutlines()">
-            显示/隐藏大纲
-          </button>
-          <!-- 在工具栏中的适当位置添加这个按钮 -->
-<!--          <button class="tool-bar-btn" onclick="openToolsMenu()" title="工具">-->
-<!--            <i class="fas fa-tools"></i> 工具-->
-<!--          </button>-->
-        </div>
-      </div>
-      <div class="content-wrapper">
-        <div id="outlines" class="outlines"></div>
-        <div id="content" class="content"></div>
-<!--        <iframe id="ofdtools" class="ofdtools" src="tools.html" style="display: none; width: 1200px; border: none;"></iframe>-->
-      </div>
-      <div id="overlay" class="overlay"></div>
-      <div id="signature-details" class="signature-details"></div>
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 
-  </body>
 </html>

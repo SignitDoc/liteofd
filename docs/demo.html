@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="./assets/logo-DUjmY-0p.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiteOFD</title>
+  <style>
+    @font-face {
+      font-family: 'Times-Bold';
+      src: url('./assets/Times-Bold.otf');
+    }
+
+    @font-face {
+      font-family: 'NSimSun';
+      src: url('./assets/Nsimsun.ttf');
+    }
+
+    @font-face {
+      font-family: 'FangSong_GB2312';
+      src: url('./assets/FangSong_GB2312.otf');
+    }
+
+    @font-face {
+      font-family: 'SimFang';
+      src: url('./assets/SIMFANG.TTF');
+    }
+
+    @font-face {
+      font-family: 'ArialMT';
+      src: url('./assets/ArialMT.ttf');
+    }
+  </style>
+  <script type="module" crossorigin src="./assets/index-Bnhl8MCu.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DP76rKlg.css">
+</head>
+
+<body>
+  <div id="app" class="app-container">
+    <div class="tool-bar">
+      <div class="tool-bar-group">
+        <input type="file" id="fileInput" accept=".ofd" style="display: none;" onchange="handleFileChange(event)">
+        <button class="tool-bar-btn upload-icon" onclick="uploadFile()">
+          打开
+        </button>
+        <span id="selectedFileName" class="selected-file-name"></span>
+      </div>
+
+      <div class="tool-bar-group">
+        <button class="tool-bar-btn" onclick="minus()">缩小</button>
+        <button class="tool-bar-btn" onclick="plus()">放大</button>
+        <button class="tool-bar-btn" onclick="resetZoom()">还原</button>
+      </div>
+
+      <div class="tool-bar-group">
+        <button class="tool-bar-btn" onclick="firstPage()">
+          <i class="fas fa-step-backward">第一页</i>
+        </button>
+        <button class="tool-bar-btn" onclick="prePage()">
+          <i class="fas fa-caret-left">上一页</i>
+        </button>
+        <span class="page-info"></span>
+        <button class="tool-bar-btn" onclick="nextPage()">
+          <i class="fas fa-caret-right">下一页</i>
+        </button>
+        <button class="tool-bar-btn" onclick="lastPage()">
+          <i class="fas fa-step-forward">最后页</i>
+        </button>
+      </div>
+
+      <div class="tool-bar-group">
+        <button class="tool-bar-btn" onclick="toggleOutlines()">
+          显示/隐藏大纲
+        </button>
+      </div>
+    </div>
+    <div class="content-wrapper">
+      <div id="outlines" class="outlines"></div>
+      <div id="content" class="content"></div>
+    </div>
+    <div id="overlay" class="overlay"></div>
+    <div id="signature-details" class="signature-details"></div>
+  </div>
+
+  <script>
+    window.addEventListener('load', async function () {
+      try {
+        const response = await fetch('./assets/test.ofd');
+        const blob = await response.blob();
+        const file = new File([blob], 'test.ofd', { type: 'application/ofd' });
+
+        // 更新选中文件名显示
+        document.getElementById('selectedFileName').textContent = 'test.ofd';
+
+        // 触发文件处理函数
+        const event = { target: { files: [file] } };
+        handleFileChange(event);
+      } catch (error) {
+        console.error('加载默认OFD文件失败:', error);
+      }
+    });
+  </script>
+</body>
+
+</html>
