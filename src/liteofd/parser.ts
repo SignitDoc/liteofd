@@ -373,6 +373,40 @@ export const findNodeByAttributeKeyValue = (targetValue: any, attrKey: string, n
 	}
 }
 
+/**
+ * 根据id查找节点，可能是单节点，可能多节点，从列表里面面查找
+ */
+export const findNodeByAttributeKeyValueInList = (targetValue: any, attrKey: string, nodeList: XmlData[]): XmlData | undefined => {
+	for (let i = 0; i < nodeList.length; i++) {
+		let tempNode = nodeList[i]
+		let res = findNodeByAttributeKeyValue(targetValue, attrKey, tempNode)
+		if (res) {
+			return res
+		}
+	}
+}
+
+/**
+ * 根据tagName来查找具体的targetValue值，因为像ofd:Fonts可能存在多个节点，需要再publiicRes中去查找对应的值
+ */
+export const findNodeByAttributeKeyValueWithTagName = (targetValue: any, attrKey: string, node: XmlData, tagName: string): XmlData | undefined => {
+	let nodeID = findFirstAttributeValueByKey(node, attrKey)
+	if (nodeID === targetValue) {
+		return node
+	} else {
+		for (let i = 0; i < node.children.length; i++) {
+			let tempNode = node.children[i]
+			// 让tagName相同的情况
+			if (tempNode.tagName === tagName) {
+				let res = findNodeByAttributeKeyValue(targetValue, attrKey, tempNode)
+				if (res) {
+					return res
+				}
+			}
+		}
+	}
+}
+
 
 export const parseOFDFile = (file: string | File | ArrayBuffer): PromiseCapability<OfdDocument> => {
 	try {
@@ -447,7 +481,7 @@ const  processOfdData = async (data: ArrayBuffer): Promise<OfdDocument> => {
 // 	// 注释的文件路径
 // 	let annotsPath = annotData.value
 // 	let files = ofdDocument.files
-	
+
 
 //     const annotationsFilePath = findAttributeValueByKey(annotations, AttributeKey.FileLoc)
 //     if (!annotationsFilePath) {
