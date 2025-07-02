@@ -1,6 +1,6 @@
 # LiteOfd 类方法说明文档
 
-版本：0.2.5
+版本：0.2.6
 
 ## 1. 简介
 
@@ -275,34 +275,12 @@ appContent.addEventListener('signature-element-click', (event: CustomEvent) => {
 | annots | XmlData \| null | 注释数据列表，包含ofd:Annotations |
 
 
-
-
 ## 4. 注意事项
 
 - 在使用 LiteOfd 类的方法之前，请确保已经成功解析了 OFD 文件。
 - 某些方法（如 nextPage、prevPage 等）可能会触发 ofdPageChange 事件，请根据需要添加相应的事件监听器。
 - 对于大型 OFD 文件，解析和渲染可能需要一些时间，建议添加适当的加载提示。
 
-
-## 5. 许可证
-
-LiteOfd 使用 Apache License 2.0 许可证。
-
-## 6. 许可证详情
-
-Copyright 2024 LiteOfd Contributors
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
 
 ## Star
 [![Stargazers over time](https://starchart.cc/xxss0903/liteofd.svg?variant=adaptive)](https://starchart.cc/xxss0903/liteofd)

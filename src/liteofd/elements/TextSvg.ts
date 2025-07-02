@@ -52,9 +52,15 @@ export class TextSvg extends BaseSvg {
 		// 查找textobject的字体的id
 		let fontID = parser.findAttributeValueByKey(node, AttributeKey.FONT)
 		if (fontID) {
-			let ofdFontList = parser.findValueByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
+			// let ofdFontList = parser.findValueByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
+			let allFontList = parser.findAllNodesByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
+			// console.log("find public res ofd list", ofdFontList)
+			console.log("find public res allFontList", allFontList)
 			// 根据字体id查找对应publicres的font数据
-			let findedFont = parser.findNodeByAttributeKeyValue(fontID, AttributeKey.ID, ofdFontList!!)
+			// let findedFont = parser.findNodeByAttributeKeyValue(fontID, AttributeKey.ID, ofdFontList!!)
+			// 从字体列表中查找字体
+			let findedFont = parser.findNodeByAttributeKeyValueInList(fontID, AttributeKey.ID, allFontList!!)
+			parser.findNodeByAttributeKeyValueWithTagName(fontID, AttributeKey.ID, this.ofdDocument.publicRes, OFD_KEY.Font)
 			console.log("find text font ", findedFont)
 			if (findedFont) {
 				// 添加字体内容
@@ -126,7 +132,7 @@ export class TextSvg extends BaseSvg {
 			this.textStyle += `stroke-width: 0;`
 		}
 
-	
+
 	}
 
 	#addStrokeColor(nodeData: XmlData) {

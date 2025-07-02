@@ -196,8 +196,8 @@ const loadAnnots = async (ofdFiles: any, ofdDocument: OfdDocument, annoteRes: Xm
 
 /**
  * 将非标准字体转换为标准字体
- * @param fontName 
- * @returns 
+ * @param fontName
+ * @returns
  */
 export const convertNonStandardFont = (fontName: string): string => {
 	// 处理带有前缀的字体名称
@@ -221,20 +221,39 @@ export const convertNonStandardFont = (fontName: string): string => {
 		// 'ArialUnicodeMS-BoldItalic': 'Helvetica-BoldOblique',
 		// 'ArialUnicodeMS Italic': 'Helvetica-Oblique',
 		// 'ArialUnicodeMS-Italic': 'Helvetica-Oblique'
+		'KaiTi_GB2312': 'KaiTi',
+		'KaiTi_GB2312-Bold': 'KaiTi-Bold',
+		'KaiTi_GB2312-BoldItalic': 'KaiTi-BoldItalic',
+		'KaiTi_GB2312-Italic': 'KaiTi-Italic'
 	};
 
 	// 将非标准字体转换为标准字体
 	if (fontMapping[fontName]) {
 		fontName = fontMapping[fontName];
 	}
+	
+
+	// 循环检查fontMapping中的key，查找包含fontName的匹配项
+	for (const key in fontMapping) {
+		// 检查key是否以fontName开头，并且后面跟着特殊符号（-或_）
+		const pattern = new RegExp(`^${fontName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[-_].*$`);
+		if (pattern.test(key)) {
+			return fontMapping[key];
+		}
+		
+		// 也检查fontName是否包含key（反向匹配）
+		if (fontName.includes(key)) {
+			return fontMapping[key];
+		}
+	}	
 	return fontName;
 }
 
 
 /**
  * 将字体名称规整化
- * @param fontName 
- * @returns 
+ * @param fontName
+ * @returns
  */
 export const normalizeFontName = (fontName: string): string => {
 	const prefixMatch = fontName.match(/^[A-Z]+\+(.+)$/);
@@ -251,7 +270,7 @@ export const normalizeFontName = (fontName: string): string => {
 	if (fontName.includes(';')) {
 		fontName = fontName.split(';')[0].trim();
 	}
-	
+
 
 	// 定义标准字体名称列表
 	const standardFonts = [
