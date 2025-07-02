@@ -393,6 +393,10 @@ export const loadLocalDefaultFont = async (fontName: string, fontPath: string) =
  */
 export async function loadOTFFont(fontName: string, fontPath: string) {
 	try {
+	  // 检查字体文件是否已加载
+	  if (document.fonts.check(`1em ${fontName}`)) {
+	        return;
+	  }
 	  // 加载字体文件
 	  const response = await fetch(fontPath);
 	  if (!response.ok) {
