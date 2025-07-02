@@ -30,6 +30,11 @@ export const parseXmlByXmlString = async (xmlStr: string, fileName: string) => {
 		attributesGroupName: false,
 		trimValues: false,
 		attributeNamePrefix: '@_', // you have assign this so use this to access the attribute
+		numberParseOptions: {
+			leadingZeros: true,
+			hex: true,
+			skipLike: /\.0+$|^[0-9]+\.[0-9]*0+$/,
+		}
 	})
 	let xmlObj = xmlParser.parse(xmlStr)
 	return convertToOFDData(xmlObj, fileName)
