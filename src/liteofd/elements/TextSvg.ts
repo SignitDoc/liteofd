@@ -124,7 +124,7 @@ export class TextSvg extends BaseSvg {
 		this.#addStrokeColor(nodeData)
 		// 添加斜体等
 		let fontItalic = parser.findAttributeValueByKey(nodeData, AttributeKey.Italic)
-		if (fontItalic) {
+		if (fontItalic && JSON.parse(fontItalic)) {
 			this.textStyle += `font-style: italic;`
 		}
 
