@@ -122,6 +122,11 @@ export class TextSvg extends BaseSvg {
 		this.#addFillColor(nodeData)
 		// 添加stroke颜色
 		this.#addStrokeColor(nodeData)
+		// 添加斜体等
+		let fontItalic = parser.findAttributeValueByKey(nodeData, AttributeKey.Italic)
+		if (fontItalic) {
+			this.textStyle += `font-style: italic;`
+		}
 
 		// stroke宽度
 		let lineWidth = parser.findAttributeValueByKey(nodeData, AttributeKey.LineWidth)
@@ -131,8 +136,6 @@ export class TextSvg extends BaseSvg {
 		} else {
 			this.textStyle += `stroke-width: 0;`
 		}
-
-
 	}
 
 	#addStrokeColor(nodeData: XmlData) {
