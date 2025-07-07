@@ -4,7 +4,7 @@ import { getOFDFilePath } from "./elementUtils"
 import { RootDocPath } from "../parser"
 import { OfdDocument } from "../ofdDocument"
 import { XmlData } from "../ofdData"
-import { isDefaultFont, loadDefaultFont, loadedFonts, loadSingleFont } from "../ofdFont"
+import { isDefaultFont, loadDefaultFont, loadedFonts, loadSingleFont, opentypeFonts } from "../ofdFont"
 
 const fontDefaultDir = "/Doc_0/Res"
 /**
@@ -26,7 +26,7 @@ const loadOFDFonts = async (files: any, fonts: XmlData) => {
 				let nativeFontFile = files[realFilePath]
 				if (nativeFontFile) {
 					let fontRes = await loadSingleFont(nativeFontFile, fontData)
-					// console.log("font res", fontRes)
+					console.log("font res", opentypeFonts)
 				}
 			} else {
 				let realFontName = fontName || familyName
@@ -231,7 +231,7 @@ export const convertNonStandardFont = (fontName: string): string => {
 	if (fontMapping[fontName]) {
 		fontName = fontMapping[fontName];
 	}
-	
+
 
 	// 循环检查fontMapping中的key，查找包含fontName的匹配项
 	for (const key in fontMapping) {
@@ -240,12 +240,12 @@ export const convertNonStandardFont = (fontName: string): string => {
 		if (pattern.test(key)) {
 			return fontMapping[key];
 		}
-		
+
 		// 也检查fontName是否包含key（反向匹配）
 		if (fontName.includes(key)) {
 			return fontMapping[key];
 		}
-	}	
+	}
 	return fontName;
 }
 

@@ -11,9 +11,12 @@ import { XmlData } from "./ofdData"
 import * as parser from "./parser"
 import { AttributeKey } from "./attrType"
 import { normalizeFontName } from "./utils/ofdUtils"
+import opentype from '../opentype/index.js'
 
 // 全局变量，表示已经加载的字体
 export const loadedFonts = new Map()
+// ofd文件中的字体文件数据进行加载，加载出来的数据
+export const opentypeFonts = new Map()
 
 /**
  * 判断是否为衬线字体
@@ -200,21 +203,28 @@ const loadFontByArrayBuffer = async (fontName: string, fontBytes: any) => {
  * @param fontData 字体数据
  */
 export const loadSingleFont = async (fontFile: any, fontData: XmlData) => {
+	let fontName = parser.findAttributeValueByKey(fontData, AttributeKey.FontName);
 	try {
-		let fontName = parser.findAttributeValueByKey(fontData, AttributeKey.FontName);
 		// 规整字体名称
-		fontName = normalizeFontName(fontName);
+		// fontName = normalizeFontName(fontName);
 		console.log("规整后的字体名称", fontName);
 
 		if (isDefaultFont(fontName)) {
 			await loadDefaultFont(fontName);
 		} else {
 			let fontBytes = await fontFile.async("uint8array");
+			// 使用opentype进行加载完成的字体对象，这个对象要用来进行绘制字体字形灯内容
+			let fontData = opentype.parse(fontBytes.buffer, null)
+			opentypeFonts.set(fontName, fontData)
+			console.log("opentype load font", fontData)
+			// opentype.load(fontFile.name, (err, font) => {
+			// 	console.log("opentype load font", font, err)
+			// }, null)
 			await loadFontByArrayBuffer(fontName, fontBytes);
 			loadedFonts.set(fontName, true)
 		}
 	} catch (e) {
-		console.error("加载字体出错", e);
+		console.error("加载字体出错", fontName, e);
 	}
 }
 

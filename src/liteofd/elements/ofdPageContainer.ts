@@ -12,6 +12,7 @@ import { getNodeAttributeMaxAndMinID } from "../utils/elementUtils"
 import { RootDocPath } from "../parser"
 import { SignatureElement } from "../elements/SignatureElement"
 import { OfdAnnotationElement } from "./ofdAnnotationElement"
+import { CanvasContentLayer } from "../canvasContentLayer"
 
 /**
  * OFD的页面渲染容器，里面有一个pageRender用来调用页面的渲染功能进行 内容的渲染
@@ -21,6 +22,8 @@ export class OfdPageContainer {
 	private ofdDocument: OfdDocument // ofd的文档数据
 	private pageData: XmlData // 当前页面的数据
 	private contentLayer: ContentLayer // 渲染的内容层，包含textcode和模板等
+	private canvasContentLayer: CanvasContentLayer // 使用canvas渲染的渲染的内容层，包含textcode和模板等
+	private isCanvasRender: Boolean = true // 默认使用canvas渲染
 
 	/**
 	 * 初始化页面
@@ -41,6 +44,12 @@ export class OfdPageContainer {
 		} else {
 			this.contentLayer.render(pageData, pageContainer)
 		}
+	}
+
+	// 渲染内容层
+	#renderCanvasContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
+		this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument)
+		this.canvasContentLayer.render(pageData, pageContainer)
 	}
 
 	// 渲染模板层，模板层也是内容层，所以拿去到模板数据之后直接用内容层去渲染
@@ -80,7 +89,11 @@ export class OfdPageContainer {
 							if (templateFileData && templateFileData instanceof XmlData) {
 								// 根据模板页面的数据拿到Page，其他就跟普通的页面一样的渲染了
 								let pageData = parser.findValueByTagName(templateFileData, OFD_KEY.Page)
-								pageData && this.#renderContentLayer(pageData, pageContainer, zOrderValue)
+								if (this.isCanvasRender) {
+									pageData && this.#renderCanvasContentLayer(pageData, pageContainer, zOrderValue)
+								} else {
+									pageData && this.#renderContentLayer(pageData, pageContainer, zOrderValue)
+								}
 								console.log("template file data", templateFileData, templatePath, this.ofdDocument.files)
 							}
 						}

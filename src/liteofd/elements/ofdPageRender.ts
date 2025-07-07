@@ -74,6 +74,7 @@ export class OfdPageRender {
 	 * 渲染页面
 	 */
 	#renderLayers(pageData: XmlData, pageContainer: HTMLDivElement) {
+		console.log("content render type", this.isCanvasRender, pageData, pageContainer)
 		// 渲染内容层
 		if (this.isCanvasRender) {
 			this.#renderCanvasContentLayer(pageData, pageContainer)
