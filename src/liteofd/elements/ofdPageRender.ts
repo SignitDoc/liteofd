@@ -3,17 +3,20 @@ import { XmlData } from "../ofdData"
 import PromiseCapability from "../promiseCapability"
 import { OFD_KEY } from "../attrType"
 import { OfdDocument } from "../ofdDocument"
+import { CanvasContentLayer } from "../canvasContentLayer"
 
 
 /**
  * ofd的页面渲染，包含内容，模板层，签名层等
  */
 export class OfdPageRender {
-	private contentLayer: ContentLayer // 内容层
+	private contentLayer: ContentLayer // 使用svg进行绘制内容层
+	private canvasContentLayer: CanvasContentLayer // 使用canvas进行绘制内容层
 	private ofdPage: XmlData // 页面数据，包含签名数据
 	private readonly renderPromise: PromiseCapability
 	private ofdDocument: OfdDocument
 	private pageContainer: HTMLDivElement
+	private isCanvasRender: boolean = true // 是否使用canvas进行绘制内容
 
 
 	constructor(ofdDocument: OfdDocument, ofdPage: XmlData) {
@@ -31,6 +34,12 @@ export class OfdPageRender {
 		} else {
 			this.contentLayer.render(pageData, pageContainer)
 		}
+	}
+
+	// 使用canvas进行绘制渲染
+	#renderCanvasContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
+		this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument)
+		this.canvasContentLayer.render(pageData, pageContainer)
 	}
 
 	render(container: HTMLDivElement) {
@@ -66,6 +75,10 @@ export class OfdPageRender {
 	 */
 	#renderLayers(pageData: XmlData, pageContainer: HTMLDivElement) {
 		// 渲染内容层
-		this.#renderContentLayer(pageData, pageContainer)
+		if (this.isCanvasRender) {
+			this.#renderCanvasContentLayer(pageData, pageContainer)
+		} else {
+			this.#renderContentLayer(pageData, pageContainer)
+		}
 	}
 }
