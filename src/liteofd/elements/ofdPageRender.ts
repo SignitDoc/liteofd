@@ -38,6 +38,7 @@ export class OfdPageRender {
 
 	// 使用canvas进行绘制渲染
 	#renderCanvasContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
+		console.log("create canvas content layer 1")
 		this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument)
 		this.canvasContentLayer.render(pageData, pageContainer)
 	}

@@ -13,6 +13,7 @@ import { RootDocPath } from "../parser"
 import { SignatureElement } from "../elements/SignatureElement"
 import { OfdAnnotationElement } from "./ofdAnnotationElement"
 import { CanvasContentLayer } from "../canvasContentLayer"
+import { createOFDCanvas } from "../ofdCanvas"
 
 /**
  * OFD的页面渲染容器，里面有一个pageRender用来调用页面的渲染功能进行 内容的渲染
@@ -48,6 +49,7 @@ export class OfdPageContainer {
 
 	// 渲染内容层
 	#renderCanvasContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
+		console.log("create canvas content layer 2")
 		this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument)
 		this.canvasContentLayer.render(pageData, pageContainer)
 	}
@@ -124,6 +126,24 @@ export class OfdPageContainer {
 		return pageContainer
 	}
 
+	// 创建绘制文本的canvas
+	#createPageCanvas(pageData: XmlData): HTMLCanvasElement{
+		let pageCanvas = document.createElement("canvas")
+
+		pageCanvas.setAttribute("class", "page-canvas")
+		let physicsBoxObj = parser.findValueByTagName(pageData, OFD_KEY.PhysicalBox)
+		// 如果页面的宽度为空，那么使用整体的页面布局
+		if (!physicsBoxObj) {
+			physicsBoxObj = parser.findValueByTagName(this.ofdDocument.documentData, OFD_KEY.PhysicalBox)
+		}
+
+		let physicBox = convertToBox(physicsBoxObj!!.value)
+		pageCanvas.width = physicBox.width
+		pageCanvas.height = physicBox.height
+
+		return pageCanvas
+	}
+
 	/**
 	 * 异步渲染页面内容
 	 * @param pageData
@@ -155,6 +175,8 @@ export class OfdPageContainer {
 	getPageElement(): HTMLDivElement {
 		// 首先添加div，然后页面的内容使用也不进行渲染
 		let pageContainer = this.#createPageContainer(this.pageData)
+		let pageCanvas = this.#createPageCanvas(this.pageData)
+		pageContainer.appendChild(pageCanvas)
 		this.#renderPageAsync(this.pageData, pageContainer)
 
 		return pageContainer

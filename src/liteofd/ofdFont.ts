@@ -17,6 +17,8 @@ import opentype from '../opentype/index.js'
 export const loadedFonts = new Map()
 // ofd文件中的字体文件数据进行加载，加载出来的数据
 export const opentypeFonts = new Map()
+// 字体的id和字体名字的对应值
+export const fontIdWithName = new Map()
 
 /**
  * 判断是否为衬线字体
@@ -216,12 +218,13 @@ export const loadSingleFont = async (fontFile: any, fontData: XmlData) => {
 			// 使用opentype进行加载完成的字体对象，这个对象要用来进行绘制字体字形灯内容
 			let fontData = opentype.parse(fontBytes.buffer, null)
 			opentypeFonts.set(fontName, fontData)
-			console.log("opentype load font", fontData)
+			console.log("opentype load font", fontName, fontData)
 			// opentype.load(fontFile.name, (err, font) => {
 			// 	console.log("opentype load font", font, err)
 			// }, null)
 			await loadFontByArrayBuffer(fontName, fontBytes);
 			loadedFonts.set(fontName, true)
+			// fontIdWithName.set()
 		}
 	} catch (e) {
 		console.error("加载字体出错", fontName, e);

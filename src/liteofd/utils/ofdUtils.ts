@@ -4,7 +4,7 @@ import { getOFDFilePath } from "./elementUtils"
 import { RootDocPath } from "../parser"
 import { OfdDocument } from "../ofdDocument"
 import { XmlData } from "../ofdData"
-import { isDefaultFont, loadDefaultFont, loadedFonts, loadSingleFont, opentypeFonts } from "../ofdFont"
+import { fontIdWithName, isDefaultFont, loadDefaultFont, loadedFonts, loadSingleFont, opentypeFonts } from "../ofdFont"
 
 const fontDefaultDir = "/Doc_0/Res"
 /**
@@ -18,7 +18,11 @@ const loadOFDFonts = async (files: any, fonts: XmlData) => {
 			let fontData = fonts.children[i]
 			let fontName = parser.findAttributeValueByKey(fontData, AttributeKey.FontName)
 			let familyName = parser.findAttributeValueByKey(fontData, AttributeKey.FamilyName)
+			let fontId = parser.findAttributeValueByKey(fontData, AttributeKey.ID)
 			let fontFile = parser.findValueByTagName(fontData, OFD_KEY.FontFile)
+			// 将字体的id和name进行匹配
+			fontIdWithName.set(fontId, fontName)
+			console.log("load font res 11", fontIdWithName)
 			if (fontFile && fontFile.value) {
 				let fileName = fontFile.value
 				let fontFilePath = fontDefaultDir + "/" + fileName
@@ -26,7 +30,6 @@ const loadOFDFonts = async (files: any, fonts: XmlData) => {
 				let nativeFontFile = files[realFilePath]
 				if (nativeFontFile) {
 					let fontRes = await loadSingleFont(nativeFontFile, fontData)
-					console.log("font res", opentypeFonts)
 				}
 			} else {
 				let realFontName = fontName || familyName
