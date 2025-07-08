@@ -33,7 +33,7 @@ export const parseXmlByXmlString = async (xmlStr: string, fileName: string) => {
 		numberParseOptions: {
 			leadingZeros: true,
 			hex: true,
-			skipLike: /\.0+$|^[0-9]+\.[0-9]*0+$/,
+			skipLike: /[0-9]*/,
 		}
 	})
 	let xmlObj = xmlParser.parse(xmlStr)
