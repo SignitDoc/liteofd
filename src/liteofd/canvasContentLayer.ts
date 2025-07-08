@@ -7,6 +7,7 @@ import { fontIdWithName, opentypeFonts } from "./ofdFont"
 import { findAttributeValueByKey } from "./parser"
 import { getFontSize, getCTM, parseColor } from "./utils/elementUtils"
 import { convertToBox, convertToDpi } from "./utils/utils"
+import opentype from "../opentype"
 
 // 使用canvas进行绘制界面
 export class CanvasContentLayer extends Layer {
@@ -51,95 +52,79 @@ export class CanvasContentLayer extends Layer {
 			 boundaryBox = convertToBox(boundaryStr)
 		}
 
-		// if (boundaryBox) {
-		// 	let text = textCode?.value || ""
-		// 	// 设置字体
-		// 	// this.#setCanvasFont(this.pageCanvasCtx, nodeData, fontId)
-		// 	// 设置文本颜色
-		// 	// this.#setCanvasTextColor(this.pageCanvasCtx, nodeData)
-		// 	// 应用CTM变换
-		// 	// this.#applyCTMTransform(this.pageCanvasCtx, nodeData)
-		// 	if (text == 3) {
-		// 		console.log("Canvas绘制文本 1：", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
-		// 		this.pageCanvasCtx.fillText(text, 0, 0 + boundaryBox.height, boundaryBox.width)
-		// 	} else {
-		// 		console.log("Canvas绘制文本 2：", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
-		// 		// 绘制文本
-		// 		this.pageCanvasCtx.fillText(text, boundaryBox.x, boundaryBox.y, boundaryBox.width)
-		// 	}
-		//
-		// }
-	}
+		if (boundaryBox) {
+			let text = textCode?.value || ""
 
-	#testCanvasDraw(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement){
-		//绘制中心线
-		ctx.moveTo(0,canvas.height/2)
-		ctx.lineTo(canvas.width,canvas.height/2)
-		//绘制虚线
-		ctx.setLineDash([5,10])
-		//描边
-		ctx.stroke()
-		//开启路径
-		ctx.beginPath()
-		ctx.moveTo(canvas.width/2,0)
-		ctx.lineTo(canvas.width/2,canvas.height)
-		//绘制虚线
-		ctx.setLineDash([5,10])
-		//描边
-		ctx.stroke()
-
-		//以正中央为基点绘制文本)
-		//文本颜色就是描边的颜色
-		ctx.strokeStyle = "black"
-		//设置字体大小和字体类型
-		ctx.font = "1px"
-		//取消虚线绘制
-		ctx.setLineDash([1,0])
-		ctx.fillText("hello world", 0, 1)
-		//绘制文本
-		// ctx.strokeText("你好世界",canvas.width/2,canvas.height/2)
+			// 设置字体
+			let opentypeFont = this.#setCanvasFont(this.pageCanvasCtx, nodeData, fontId)
+			// 设置文本颜色
+			this.#setCanvasTextColor(this.pageCanvasCtx, nodeData)
+			// 应用CTM变换
+			this.#applyCTMTransform(this.pageCanvasCtx, nodeData)
+			if (opentypeFont) {
+				let options = {
+					kerning: true,
+					hinting: false,
+					features: {
+						liga: true,
+						rlig: true
+					}
+				}
+				console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode, options)
+				const fontSize = getFontSize(nodeData)
+				opentypeFont.draw(this.pageCanvasCtx, text + "", boundaryBox.x, boundaryBox.y, fontSize)
+			} else {
+				console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
+				// 绘制文本
+				this.pageCanvasCtx.fillText(text, boundaryBox.x, boundaryBox.y, boundaryBox.width)
+			}
+		}
 	}
 
 	// 设置canvas字体
 	#setCanvasFont(ctx: CanvasRenderingContext2D, nodeData: XmlData, fontId: string) {
 		// 获取字体大小
 		const fontSize = getFontSize(nodeData)
-		// let fontStyle = fontSize ? `${fontSize}px` : '12px'
-		let fontStyle = '12px simsun'
+		let fontStyle = fontSize ? `${fontSize}px` : '12px'
 		console.log("canvas draw text fontsize", fontSize)
 		// 获取字体名称
 		if (fontId) {
 			let fontName = fontIdWithName.get(fontId)
-			// 根据fontName来将opentype中保存的字体进行绘制
+			let opentypeFont = opentypeFonts.get(fontName)
+			if (opentypeFont) {
+				// 有opentype加载成功的字体数据，需要通过opentype的字体数据进行绘制
+				return opentypeFont
+			} else {
+				// 使用默认的进行绘制
+				// 根据fontName来将opentype中保存的字体进行绘制
+				const allFontList = parser.findAllNodesByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
+				const foundFont = parser.findNodeByAttributeKeyValueInList(fontId, AttributeKey.ID, allFontList)
 
-			// const allFontList = parser.findAllNodesByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
-			// const foundFont = parser.findNodeByAttributeKeyValueInList(fontId, AttributeKey.ID, allFontList)
-			//
-			// if (foundFont) {
-			// 	const fontName = parser.findAttributeValueByKey(foundFont, AttributeKey.FontName)
-			// 	const fontFamily = parser.findAttributeValueByKey(foundFont, AttributeKey.FamilyName)
-			//
-			// 	if (fontName) {
-			// 		fontStyle = `${fontSize || 12}px "${fontName}"`
-			// 	} else if (fontFamily) {
-			// 		fontStyle = `${fontSize || 12}px "${fontFamily}"`
-			// 	}
-			//
-			// 	// 设置字体粗细
-			// 	const fontWeight = parser.findAttributeValueByKey(foundFont, AttributeKey.Weight)
-			// 	if (fontWeight) {
-			// 		fontStyle = `${fontWeight} ${fontStyle}`
-			// 	}
-			//
-			// 	// 设置字体样式
-			// 	const fontItalic = parser.findAttributeValueByKey(foundFont, AttributeKey.Italic)
-			// 	if (fontItalic) {
-			// 		fontStyle = `italic ${fontStyle}`
-			// 	}
-			// }
+				if (foundFont) {
+					const fontName = parser.findAttributeValueByKey(foundFont, AttributeKey.FontName)
+					const fontFamily = parser.findAttributeValueByKey(foundFont, AttributeKey.FamilyName)
+
+					if (fontName) {
+						fontStyle = `${fontSize || 12}px "${fontName}"`
+					} else if (fontFamily) {
+						fontStyle = `${fontSize || 12}px "${fontFamily}"`
+					}
+
+					// 设置字体粗细
+					const fontWeight = parser.findAttributeValueByKey(foundFont, AttributeKey.Weight)
+					if (fontWeight) {
+						fontStyle = `${fontWeight} ${fontStyle}`
+					}
+
+					// 设置字体样式
+					const fontItalic = parser.findAttributeValueByKey(foundFont, AttributeKey.Italic)
+					if (fontItalic) {
+						fontStyle = `italic ${fontStyle}`
+					}
+				}
+			}
+			ctx.font = fontStyle
 		}
-
-		ctx.font = fontStyle
 	}
 
 	// 设置canvas文本颜色
@@ -186,8 +171,6 @@ export class CanvasContentLayer extends Layer {
 			let nodeData = nodeObjs.children[i]
 			this.#renderSingleTextObject(nodeData, pageContainer)
 		}
-
-		this.#testCanvasDraw(this.pageCanvasCtx, this.pageCanvas)
 	}
 
 	#renderLayerDataObject(dataObj: XmlData, pageContainer: Element) {
