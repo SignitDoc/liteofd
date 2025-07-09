@@ -34,6 +34,11 @@ export class PathRenderer {
 	 * @param pageContainer 页面容器
 	 */
 	private renderSinglePathObject(nodeData: XmlData, pageContainer: Element) {
+		let id = parser.findAttributeValueByKey(nodeData, AttributeKey.ID)
+		// if (id === "7") {
+		// 	return
+		// }
+
 		let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
 		let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
 		if (boundaryStr) {
@@ -302,10 +307,7 @@ export class PathRenderer {
 			}
 		}
 
-		// 填充和描边
-		if (ctx.fillStyle !== 'none') {
-			ctx.fill()
-		}
+		// 只进行描边，不进行填充
 		ctx.stroke()
 	}
 
