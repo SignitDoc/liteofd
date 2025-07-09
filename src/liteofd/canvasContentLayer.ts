@@ -56,7 +56,11 @@ export class CanvasContentLayer extends Layer {
 		}
 
 		if (boundaryBox) {
+			// 绘制文本的boundaryBox边框，用于调试
 			let text = textCode?.value || ""
+			// if (text == 3) {
+			// 	this.#drawTextBoundaryBox(boundaryBox)
+			// }
 
 			// 设置字体
 			let opentypeFont = this.#setCanvasFont(this.pageCanvasCtx, nodeData, fontId)
@@ -75,11 +79,11 @@ export class CanvasContentLayer extends Layer {
 				}
 				console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode, options)
 				const fontSize = getFontSize(nodeData)
-				opentypeFont.draw(this.pageCanvasCtx, text + "", boundaryBox.x, boundaryBox.y, fontSize)
+				opentypeFont.draw(this.pageCanvasCtx, text + "", boundaryBox.x, boundaryBox.y + boundaryBox.height, fontSize)
 			} else {
 				console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
 				// 绘制文本
-				this.pageCanvasCtx.fillText(text, boundaryBox.x, boundaryBox.y, boundaryBox.width)
+				this.pageCanvasCtx.fillText(text, boundaryBox.x, boundaryBox.y + boundaryBox.height, boundaryBox.width)
 			}
 		}
 	}
@@ -206,6 +210,11 @@ export class CanvasContentLayer extends Layer {
 		if (boundaryStr) {
 			boundaryBox = convertToBox(boundaryStr)
 		}
+
+		// 绘制路径的boundaryBox边框，用于调试
+		// if (boundaryBox) {
+		// 	this.#drawPathBoundaryBox(boundaryBox)
+		// }
 
 		// 获取路径数据
 		let abbreviatedData = parser.findValueByTagNameOfFirstNode(nodeData, OFD_KEY.AbbreviatedData)
@@ -509,6 +518,73 @@ export class CanvasContentLayer extends Layer {
 			console.log("render page content error", e, pageData)
 			return null
 		}
+	}
+
+	// 绘制文本的boundaryBox边框，用于调试
+	#drawTextBoundaryBox(boundaryBox: { x: number; y: number; width: number; height: number; }) {
+		const ctx = this.pageCanvasCtx
+
+		// 保存当前的绘制状态
+		ctx.save()
+
+		// 设置边框样式
+		ctx.strokeStyle = 'red' // 红色边框
+		ctx.lineWidth = 1
+		ctx.setLineDash([2, 2]) // 虚线边框
+
+		// 绘制矩形边框
+		ctx.strokeRect(boundaryBox.x, boundaryBox.y, boundaryBox.width, boundaryBox.height)
+
+		// 绘制对角线，帮助定位
+		ctx.strokeStyle = 'blue' // 蓝色对角线
+		ctx.setLineDash([]) // 实线
+		ctx.beginPath()
+		ctx.moveTo(boundaryBox.x, boundaryBox.y)
+		ctx.lineTo(boundaryBox.x + boundaryBox.width, boundaryBox.y + boundaryBox.height)
+		ctx.moveTo(boundaryBox.x + boundaryBox.width, boundaryBox.y)
+		ctx.lineTo(boundaryBox.x, boundaryBox.y + boundaryBox.height)
+		ctx.stroke()
+
+		// 绘制中心点
+		ctx.fillStyle = 'green'
+		ctx.beginPath()
+		ctx.arc(boundaryBox.x + boundaryBox.width / 2, boundaryBox.y + boundaryBox.height / 2, 2, 0, 2 * Math.PI)
+		ctx.fill()
+
+		// 恢复绘制状态
+		ctx.restore()
+
+		console.log("绘制文本边界框:", boundaryBox)
+	}
+
+	// 绘制路径的boundaryBox边框，用于调试
+	#drawPathBoundaryBox(boundaryBox: { x: number; y: number; width: number; height: number; }) {
+		const ctx = this.pageCanvasCtx
+
+		// 保存当前的绘制状态
+		ctx.save()
+
+		// 设置边框样式
+		ctx.strokeStyle = 'orange' // 橙色边框
+		ctx.lineWidth = 1
+		ctx.setLineDash([3, 3]) // 虚线边框
+
+		// 绘制矩形边框
+		ctx.strokeRect(boundaryBox.x, boundaryBox.y, boundaryBox.width, boundaryBox.height)
+
+		// 绘制四个角点
+		ctx.fillStyle = 'purple'
+		ctx.beginPath()
+		ctx.arc(boundaryBox.x, boundaryBox.y, 3, 0, 2 * Math.PI) // 左上角
+		ctx.arc(boundaryBox.x + boundaryBox.width, boundaryBox.y, 3, 0, 2 * Math.PI) // 右上角
+		ctx.arc(boundaryBox.x, boundaryBox.y + boundaryBox.height, 3, 0, 2 * Math.PI) // 左下角
+		ctx.arc(boundaryBox.x + boundaryBox.width, boundaryBox.y + boundaryBox.height, 3, 0, 2 * Math.PI) // 右下角
+		ctx.fill()
+
+		// 恢复绘制状态
+		ctx.restore()
+
+		console.log("绘制路径边界框:", boundaryBox)
 	}
 
 }
