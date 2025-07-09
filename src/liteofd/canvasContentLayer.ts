@@ -7,6 +7,7 @@ import { findAttributeValueByKey } from "./parser"
 import { getCTM, parseColor } from "./utils/elementUtils"
 import { TextRenderer } from "./textRenderer"
 import { PathRenderer } from "./pathRenderer"
+import { ImageRenderer } from "./imageRenderer"
 
 // 使用canvas进行绘制界面
 export class CanvasContentLayer extends Layer {
@@ -18,6 +19,7 @@ export class CanvasContentLayer extends Layer {
 	private pageCanvasCtx!: CanvasRenderingContext2D // 绘制的界面canvas的上下文
 	private textRenderer!: TextRenderer // 文本渲染器
 	private pathRenderer!: PathRenderer // 路径渲染器
+	private imageRenderer!: ImageRenderer // 图片渲染器
 
 	constructor(ofdDocument: OfdDocument) {
 		super()
@@ -39,9 +41,9 @@ export class CanvasContentLayer extends Layer {
 			case OFD_KEY.PathObject:
 				this.pathRenderer.renderPathObject(dataObj, pageContainer)
 				break
-			// case OFD_KEY.ImageObject:
-			// 	this.#renderImageObject(dataObj, pageContainer)
-			// 	break
+			case OFD_KEY.ImageObject:
+				this.imageRenderer.renderImageObject(dataObj, pageContainer)
+				break
 			// case OFD_KEY.PageBlock:
 			// 	this.#renderPageBlock(dataObj, pageContainer)
 			// 	break
@@ -87,6 +89,8 @@ export class CanvasContentLayer extends Layer {
 				this.textRenderer = new TextRenderer(this.ofdDocument, this.pageCanvasCtx)
 				// 初始化路径渲染器
 				this.pathRenderer = new PathRenderer(this.ofdDocument, this.pageCanvasCtx)
+				// 初始化图片渲染器
+				this.imageRenderer = new ImageRenderer(this.ofdDocument, this.pageCanvasCtx)
 				// 渲染内容层
 				this.#initPageContainer()
 				this.#renderPageContent(contentData, pageContainer)

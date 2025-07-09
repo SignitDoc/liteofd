@@ -74,11 +74,11 @@ export class TextRenderer {
 						rlig: true
 					}
 				}
-				console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode, options)
+				// console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode, options)
 				const fontSize = getFontSize(nodeData)
 				opentypeFont.draw(this.pageCanvasCtx, text + "", boundaryBox.x, boundaryBox.y + boundaryBox.height, fontSize)
 			} else {
-				console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
+				// console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
 				// 绘制文本
 				this.pageCanvasCtx.fillText(text, boundaryBox.x, boundaryBox.y + boundaryBox.height, boundaryBox.width)
 			}
@@ -95,7 +95,6 @@ export class TextRenderer {
 		// 获取字体大小
 		const fontSize = getFontSize(nodeData)
 		let fontStyle = fontSize ? `${fontSize}px` : '12px'
-		console.log("canvas draw text fontsize", fontSize)
 		// 获取字体名称
 		if (fontId) {
 			let fontName = fontIdWithName.get(fontId)
@@ -145,7 +144,7 @@ export class TextRenderer {
 		// 获取填充颜色
 		const fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
 		const fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
-		
+
 		if (fillColorStr) {
 			const fillColor = parseColor(fillColorStr)
 			this.pageCanvasCtx.fillStyle = fillColor
@@ -169,7 +168,7 @@ export class TextRenderer {
 				const d = parseFloat(ctms[3])
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
-				
+
 				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
 			}
 		}
@@ -181,18 +180,18 @@ export class TextRenderer {
 	 */
 	private drawTextBoundaryBox(boundaryBox: { x: number; y: number; width: number; height: number; }) {
 		const ctx = this.pageCanvasCtx
-		
+
 		// 保存当前的绘制状态
 		ctx.save()
-		
+
 		// 设置边框样式
 		ctx.strokeStyle = 'red' // 红色边框
 		ctx.lineWidth = 1
 		ctx.setLineDash([2, 2]) // 虚线边框
-		
+
 		// 绘制矩形边框
 		ctx.strokeRect(boundaryBox.x, boundaryBox.y, boundaryBox.width, boundaryBox.height)
-		
+
 		// 绘制对角线，帮助定位
 		ctx.strokeStyle = 'blue' // 蓝色对角线
 		ctx.setLineDash([]) // 实线
@@ -202,16 +201,16 @@ export class TextRenderer {
 		ctx.moveTo(boundaryBox.x + boundaryBox.width, boundaryBox.y)
 		ctx.lineTo(boundaryBox.x, boundaryBox.y + boundaryBox.height)
 		ctx.stroke()
-		
+
 		// 绘制中心点
 		ctx.fillStyle = 'green'
 		ctx.beginPath()
 		ctx.arc(boundaryBox.x + boundaryBox.width / 2, boundaryBox.y + boundaryBox.height / 2, 2, 0, 2 * Math.PI)
 		ctx.fill()
-		
+
 		// 恢复绘制状态
 		ctx.restore()
-		
+
 		console.log("绘制文本边界框:", boundaryBox)
 	}
-} 
+}

@@ -53,7 +53,7 @@ export class PathRenderer {
 		this.setCanvasPathStyle(nodeData)
 		// 绘制路径 - 在boundaryBox位置绘制
 		this.drawCanvasPath(points, boundaryBox)
-		console.log("Canvas绘制路径:", nodeData, "点数:", points.length, "boundaryBox:", boundaryBox)
+		// console.log("Canvas绘制路径:", nodeData, "点数:", points.length, "boundaryBox:", boundaryBox)
 	}
 
 	/**
