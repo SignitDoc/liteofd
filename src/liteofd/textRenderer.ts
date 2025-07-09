@@ -65,6 +65,8 @@ export class TextRenderer {
 			this.setCanvasTextColor(nodeData)
 			// 应用CTM变换
 			this.applyCTMTransform(nodeData)
+			// 添加绘制param
+			this.#addDrawParam(nodeData)
 			if (opentypeFont) {
 				let options = {
 					kerning: true,
@@ -81,6 +83,54 @@ export class TextRenderer {
 				// console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
 				// 绘制文本
 				this.pageCanvasCtx.fillText(text, boundaryBox.x, boundaryBox.y + boundaryBox.height, boundaryBox.width)
+			}
+		}
+	}
+
+	#addStrokeColor(nodeData: XmlData) {
+		let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
+		let strokeColorStr = strokeColorObj && parser.findAttributeValueByKey(strokeColorObj, AttributeKey.Value)
+		if (strokeColorStr) {
+			let strokeColor = parseColor(strokeColorStr)
+			this.pageCanvasCtx.strokeStyle = strokeColor
+		}
+	}
+
+	#addFillColor(nodeData: XmlData) {
+		let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
+		let fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
+		if (fillColorStr) {
+			let fillColor = parseColor(fillColorStr)
+			this.pageCanvasCtx.fillStyle = fillColor
+		}
+	}
+
+	// 字体文件中暂时去掉drawParam的渲染
+	#addDrawParam(nodeData: XmlData) {
+		let drawParamID = parser.findAttributeValueByKey(nodeData, AttributeKey.DrawParam)
+		console.log("add text draw params", drawParamID)
+		if (drawParamID) {
+			let drawParamNode = parser.findNodeByAttributeKeyValue(drawParamID, AttributeKey.ID, this.ofdDocument.publicRes)
+			if (drawParamNode) {
+				// 填充颜色
+				this.#addFillColor(drawParamNode)
+				// 添加线宽度和线条颜色
+				this.#addStrokeColor(drawParamNode)
+				console.log("textsvg drawParamNode", drawParamNode)
+				// 添加字体粗细
+				let fontWeight = parser.findAttributeValueByKey(drawParamNode, AttributeKey.Weight)
+				if (fontWeight) {
+					this.pageCanvasCtx.font += ` ${fontWeight} `
+				}
+				let fontBold = parser.findAttributeValueByKey(drawParamNode, AttributeKey.Bold)
+				if (fontBold) {
+					this.pageCanvasCtx.font += ` bold `
+				}
+				// 添加字体斜体
+				let fontItalic = parser.findAttributeValueByKey(drawParamNode, AttributeKey.Italic)
+				if (fontItalic) {
+					this.pageCanvasCtx.font += ` italic `
+				}
 			}
 		}
 	}
