@@ -78,7 +78,13 @@ export class TextRenderer {
 				}
 				// console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode, options)
 				const fontSize = getFontSize(nodeData)
-				opentypeFont.draw(this.pageCanvasCtx, text + "", boundaryBox.x, boundaryBox.y + boundaryBox.height, fontSize)
+				// 获取当前canvas的fillStyle
+				const currentFillStyle = this.pageCanvasCtx.fillStyle
+				// 获取Path对象并设置正确的fill颜色
+				const path = opentypeFont.getPath(text + "", boundaryBox.x, boundaryBox.y + boundaryBox.height, fontSize, options)
+				path.fill = currentFillStyle
+				// 绘制Path
+				path.draw(this.pageCanvasCtx)
 			} else {
 				console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
 				// 绘制文本
