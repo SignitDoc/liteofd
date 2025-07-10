@@ -342,6 +342,11 @@ export const loadLocalDefaultFonts = async () => {
 			await loadLocalDefaultFont("ArialMT", fontPath)
 			loadedFonts.set("ArialMT", true)
 		}
+		if(!loadedFonts.has("小标宋体")) {
+			const fontPath = `/assets/fonts/xiaobiaosongti.ttf`;
+			await loadLocalDefaultFont("小标宋体", fontPath)
+			loadedFonts.set("小标宋体", true)
+		}
 	} catch (e) {
 		console.error("加载本地字体出错", e);
 	}
