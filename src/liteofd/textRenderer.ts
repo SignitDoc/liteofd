@@ -66,7 +66,7 @@ export class TextRenderer {
 				// 设置文本颜色
 				this.setCanvasTextColor(nodeData)
 				// 应用CTM变换
-				this.applyCTMTransform(nodeData)
+				this.applyCTMTransform(nodeData, boundaryBox)
 				// 添加绘制param
 				this.#addDrawParam(nodeData)
 				if (opentypeFont) {
@@ -93,8 +93,6 @@ export class TextRenderer {
 
 					// 计算每个字符的位置（基于boundaryBox的坐标系统）
 					const charList = extractTextToCharArray(text, deltaX, deltaY, originX, originY)
-
-
 
 					// 如果存在缩放属性，应用matrix变换
 					if (hScale || vScale) {
@@ -315,8 +313,9 @@ export class TextRenderer {
 	/**
 	 * 应用CTM变换
 	 * @param nodeData 节点数据
+	 * @param boundaryBox 文本位置
 	 */
-	private applyCTMTransform(nodeData: XmlData) {
+	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; }) {
 		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
 		if (ctmStr) {
 			console.log("text ctm text", ctmStr)
@@ -329,8 +328,89 @@ export class TextRenderer {
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
 
-				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
+				console.log("CTM矩阵:", { a, b, c, d, e, f })
+
+				// 检查CTM矩阵是否为单位矩阵（无变换）
+				const isIdentity = Math.abs(a - 1) < 0.001 && Math.abs(b) < 0.001 &&
+								 Math.abs(c) < 0.001 && Math.abs(d - 1) < 0.001 &&
+								 Math.abs(e) < 0.001 && Math.abs(f) < 0.001
+
+				if (!isIdentity) {
+					console.log("应用CTM变换")
+
+					// 检查是否为纯缩放矩阵（b和c为0）
+					const isPureScale = Math.abs(b) < 0.001 && Math.abs(c) < 0.001
+
+					if (isPureScale) {
+						// 纯缩放矩阵，可以分解为缩放和平移
+						const scaleX = a
+						const scaleY = d
+						const translateX = e
+						const translateY = f
+
+						console.log("纯缩放矩阵 - 缩放:", scaleX, scaleY, "平移:", translateX, translateY)
+
+						// 先应用平移，再应用缩放
+						this.pageCanvasCtx.translate(translateX, translateY)
+						this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
+						this.pageCanvasCtx.scale(scaleX, scaleY)
+						this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
+					} else {
+						// 复杂变换矩阵，包含旋转或倾斜
+						console.log("复杂变换矩阵，包含旋转或倾斜")
+
+						// 分解CTM矩阵
+						const decomposed = this.decomposeCTM(a, b, c, d, e, f)
+						console.log("分解后的变换:", decomposed)
+
+						// 保存当前状态
+						this.pageCanvasCtx.save()
+
+						try {
+							// 按顺序应用变换：平移 -> 旋转 -> 缩放
+							this.pageCanvasCtx.translate(decomposed.translateX, decomposed.translateY)
+							this.pageCanvasCtx.rotate(decomposed.rotation)
+							this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
+							this.pageCanvasCtx.scale(decomposed.scaleX, decomposed.scaleY)
+							this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
+						} catch (error) {
+							console.error("CTM变换应用失败:", error)
+							// 恢复状态
+							this.pageCanvasCtx.restore()
+							// 尝试只应用平移
+							this.pageCanvasCtx.translate(e, f)
+						}
+					}
+				} else {
+					console.log("CTM为单位矩阵，跳过变换")
+				}
 			}
+		}
+	}
+
+	/**
+	 * 分解CTM矩阵为缩放、旋转和平移
+	 * @param a b c d e f CTM矩阵参数
+	 * @returns 分解后的变换参数
+	 */
+	private decomposeCTM(a: number, b: number, c: number, d: number, e: number, f: number) {
+		// 计算缩放因子
+		const scaleX = Math.sqrt(a * a + b * b)
+		const scaleY = Math.sqrt(c * c + d * d)
+
+		// 计算旋转角度（弧度）
+		const rotation = Math.atan2(b, a)
+
+		// 平移量
+		const translateX = e
+		const translateY = f
+
+		return {
+			scaleX,
+			scaleY,
+			rotation,
+			translateX,
+			translateY
 		}
 	}
 
