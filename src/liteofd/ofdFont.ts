@@ -347,6 +347,11 @@ export const loadLocalDefaultFonts = async () => {
 			await loadLocalDefaultFont("小标宋体", fontPath)
 			loadedFonts.set("小标宋体", true)
 		}
+		if(!loadedFonts.has("仿宋")) {
+			const fontPath = `/assets/fonts/FangSong.ttf`;
+			await loadLocalDefaultFont("仿宋", fontPath)
+			loadedFonts.set("仿宋", true)
+		}
 	} catch (e) {
 		console.error("加载本地字体出错", e);
 	}
@@ -454,7 +459,6 @@ export async function loadOTFFont(fontName: string, fontPath: string) {
 	  	const fontBuffer = await response.arrayBuffer();
 	  	let fontData = opentype.parse(fontBuffer, null)
 		opentypeFonts.set(fontName, fontData)
-		console.log("opentype set fonts", opentypeFonts)
 	} catch (error) {
 	  console.error(`加载字体 ${fontName} 时出错:`, error);
 	  throw error;
