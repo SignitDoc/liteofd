@@ -36,156 +36,163 @@ export class TextRenderer {
 	 * @param pageContainer 页面容器
 	 */
 	private renderSingleTextObject(nodeData: XmlData, pageContainer: Element) {
-		let fontId = parser.findAttributeValueByKey(nodeData, AttributeKey.FONT)
-		let textCode = parser.findValueByTagName(nodeData, OFD_KEY.TextCode)
-		// 检查textCode是否存在
-		if (!textCode) {
-			console.error("textCode不存在")
-			return
-		}
+		try {
+			// 保存当前canvas状态
+			this.pageCanvasCtx.save()
 
-		// 获取文本位置
-		let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
-		let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
-		if (boundaryStr) {
-			boundaryBox = convertToBox(boundaryStr)
-		}
-
-		if (boundaryBox) {
-			// 绘制文本的boundaryBox边框，用于调试
-			// this.drawTextBoundaryBox(boundaryBox)
-			let text = textCode?.value || ""
-			// if (text == 3) {
-			// 	this.drawTextBoundaryBox(boundaryBox)
-			// }
-
-			// 设置字体
-			let opentypeFont = this.setCanvasFont(nodeData, fontId)
-			// 设置文本颜色
-			this.setCanvasTextColor(nodeData)
-			// 应用CTM变换
-			this.applyCTMTransform(nodeData)
-			// 添加绘制param
-			this.#addDrawParam(nodeData)
-			if (opentypeFont) {
-				let options: any = {
-					kerning: true,
-					hinting: false,
-					features: {
-						liga: true,
-						rlig: true
-					}
-				}
-
-				// 获取HScale和VScale属性
-				const hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale)
-				const vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale)
-
-				// 获取DeltaX和DeltaY属性
-				const deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
-				const deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
-
-				// 获取文本的起始位置（相对于boundaryBox）
-				const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
-				const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
-
-				// 计算每个字符的位置（基于boundaryBox的坐标系统）
-				const charList = extractTextToCharArray(text, deltaX, deltaY, originX, originY)
-
-				// 保存当前canvas状态
-				this.pageCanvasCtx.save()
-
-				// 如果存在缩放属性，应用matrix变换
-				if (hScale || vScale) {
-					const hScaleValue = hScale ? parseFloat(hScale) : 1
-					const vScaleValue = vScale ? parseFloat(vScale) : 1
-
-					// 在文本绘制位置应用缩放变换
-					this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
-					this.pageCanvasCtx.scale(hScaleValue, vScaleValue)
-					this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
-				}
-
-				const fontSize = getFontSize(nodeData)
-				// 获取当前canvas的fillStyle
-				const currentFillStyle = this.pageCanvasCtx.fillStyle
-				// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
-				let currentX = boundaryBox.x + parseFloat(originX)
-				let currentY = boundaryBox.y + boundaryBox.height - parseFloat(originY)
-
-				for (let i = 0; i < text.length; i++) {
-					const charText = text[i]
-
-					// 绘制当前字符
-					const path = opentypeFont.getPath(charText, currentX, currentY, fontSize, options)
-					path.fill = currentFillStyle
-					path.draw(this.pageCanvasCtx)
-
-					// 计算下一个字符的位置
-					if (i < text.length - 1) {
-						// 获取DeltaX值（如果存在）
-						let deltaXValue = 0
-						if (deltaX.length > i) {
-							deltaXValue = deltaX[i]
-						}
-						
-						// 获取DeltaY值（如果存在）
-						let deltaYValue = 0
-						if (deltaY.length > i) {
-							deltaYValue = deltaY[i]
-						}
-						
-						// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
-						currentX += convertToDpi(deltaXValue)
-						currentY += convertToDpi(deltaYValue)
-					}
-				}
-
-				// 恢复canvas状态
-				this.pageCanvasCtx.restore()
-				console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "textobject:", nodeData, options)
-			} else {
-				// 普通字体也需要使用DeltaX来设置字符位置
-				// 获取DeltaX和DeltaY属性
-				const deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
-				const deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
-				
-				// 获取文本的起始位置（相对于boundaryBox）
-				const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
-				const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
-				
-				// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
-				let currentX = boundaryBox.x + parseFloat(originX)
-				let currentY = boundaryBox.y + boundaryBox.height - parseFloat(originY)
-				
-				for (let i = 0; i < text.length; i++) {
-					const charText = text[i]
-					
-					// 绘制当前字符
-					this.pageCanvasCtx.fillText(charText, currentX, currentY)
-					
-					// 计算下一个字符的位置
-					if (i < text.length - 1) {
-						// 获取DeltaX值（如果存在）
-						let deltaXValue = 0
-						if (deltaX.length > i) {
-							deltaXValue = deltaX[i]
-						}
-						
-						// 获取DeltaY值（如果存在）
-						let deltaYValue = 0
-						if (deltaY.length > i) {
-							deltaYValue = deltaY[i]
-						}
-						
-						// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
-						currentX += convertToDpi(deltaXValue)
-						currentY += convertToDpi(deltaYValue)
-					}
-				}
-				
-				console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
+			let fontId = parser.findAttributeValueByKey(nodeData, AttributeKey.FONT)
+			let textCode = parser.findValueByTagName(nodeData, OFD_KEY.TextCode)
+			// 检查textCode是否存在
+			if (!textCode) {
+				console.error("textCode不存在")
+				return
 			}
+
+			// 获取文本位置
+			let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
+			let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
+			if (boundaryStr) {
+				boundaryBox = convertToBox(boundaryStr)
+			}
+
+			if (boundaryBox) {
+				// 绘制文本的boundaryBox边框，用于调试
+				// this.drawTextBoundaryBox(boundaryBox)
+				let text = textCode?.value || ""
+				this.drawTextBoundaryBox(boundaryBox)
+
+				// 设置字体
+				let opentypeFont = this.setCanvasFont(nodeData, fontId)
+				// 设置文本颜色
+				this.setCanvasTextColor(nodeData)
+				// 应用CTM变换
+				this.applyCTMTransform(nodeData)
+				// 添加绘制param
+				this.#addDrawParam(nodeData)
+				if (opentypeFont) {
+					let options: any = {
+						kerning: true,
+						hinting: false,
+						features: {
+							liga: true,
+							rlig: true
+						}
+					}
+
+					// 获取HScale和VScale属性
+					const hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale)
+					const vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale)
+
+					// 获取DeltaX和DeltaY属性
+					const deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
+					const deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
+
+					// 获取文本的起始位置（相对于boundaryBox）
+					const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
+					const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
+
+					// 计算每个字符的位置（基于boundaryBox的坐标系统）
+					const charList = extractTextToCharArray(text, deltaX, deltaY, originX, originY)
+
+
+
+					// 如果存在缩放属性，应用matrix变换
+					if (hScale || vScale) {
+						const hScaleValue = hScale ? parseFloat(hScale) : 1
+						const vScaleValue = vScale ? parseFloat(vScale) : 1
+
+						// 在文本绘制位置应用缩放变换
+						this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
+						this.pageCanvasCtx.scale(hScaleValue, vScaleValue)
+						this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
+					}
+
+					const fontSize = getFontSize(nodeData)
+					// 获取当前canvas的fillStyle
+					const currentFillStyle = this.pageCanvasCtx.fillStyle
+					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
+					let currentX = boundaryBox.x + parseFloat(originX)
+					let currentY = boundaryBox.y + boundaryBox.height - parseFloat(originY)
+
+					for (let i = 0; i < text.length; i++) {
+						const charText = text[i]
+
+						// 绘制当前字符
+						const path = opentypeFont.getPath(charText, currentX, currentY, fontSize, options)
+						path.fill = currentFillStyle
+						path.draw(this.pageCanvasCtx)
+
+						// 计算下一个字符的位置
+						if (i < text.length - 1) {
+							// 获取DeltaX值（如果存在）
+							let deltaXValue = 0
+							if (deltaX.length > i) {
+								deltaXValue = deltaX[i]
+							}
+
+							// 获取DeltaY值（如果存在）
+							let deltaYValue = 0
+							if (deltaY.length > i) {
+								deltaYValue = deltaY[i]
+							}
+
+							// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
+							currentX += convertToDpi(deltaXValue)
+							currentY += convertToDpi(deltaYValue)
+						}
+					}
+
+
+					console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "textobject:", nodeData, boundaryBox)
+				} else {
+					// 普通字体也需要使用DeltaX来设置字符位置
+					// 获取DeltaX和DeltaY属性
+					const deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
+					const deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
+
+					// 获取文本的起始位置（相对于boundaryBox）
+					const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
+					const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
+
+					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
+					let currentX = boundaryBox.x + parseFloat(originX)
+					let currentY = boundaryBox.y + boundaryBox.height - parseFloat(originY)
+
+					for (let i = 0; i < text.length; i++) {
+						const charText = text[i]
+
+						// 绘制当前字符
+						this.pageCanvasCtx.fillText(charText, currentX, currentY)
+
+						// 计算下一个字符的位置
+						if (i < text.length - 1) {
+							// 获取DeltaX值（如果存在）
+							let deltaXValue = 0
+							if (deltaX.length > i) {
+								deltaXValue = deltaX[i]
+							}
+
+							// 获取DeltaY值（如果存在）
+							let deltaYValue = 0
+							if (deltaY.length > i) {
+								deltaYValue = deltaY[i]
+							}
+
+							// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
+							currentX += convertToDpi(deltaXValue)
+							currentY += convertToDpi(deltaYValue)
+						}
+					}
+
+					console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
+				}
+			}
+			// 恢复canvas状态
+			this.pageCanvasCtx.restore()
+		} catch (e) {
+			console.error("render text error", e)
+			// 恢复canvas状态
+			this.pageCanvasCtx.restore()
 		}
 	}
 
@@ -310,7 +317,6 @@ export class TextRenderer {
 	 * @param nodeData 节点数据
 	 */
 	private applyCTMTransform(nodeData: XmlData) {
-		debugger
 		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
 		if (ctmStr) {
 			console.log("text ctm text", ctmStr)
