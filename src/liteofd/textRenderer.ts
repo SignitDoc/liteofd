@@ -109,7 +109,7 @@ export class TextRenderer {
 				const fontSize = getFontSize(nodeData)
 				// 获取当前canvas的fillStyle
 				const currentFillStyle = this.pageCanvasCtx.fillStyle
-				// 逐个绘制每个字符，DeltaX表示每个字符的整体宽度
+				// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
 				let currentX = boundaryBox.x + parseFloat(originX)
 				let currentY = boundaryBox.y + boundaryBox.height - parseFloat(originY)
 
@@ -128,8 +128,16 @@ export class TextRenderer {
 						if (deltaX.length > i) {
 							deltaXValue = deltaX[i]
 						}
-						// 下一个字符位置 = 当前字符位置 + DeltaX值（包含字符宽度和间隙）
+						
+						// 获取DeltaY值（如果存在）
+						let deltaYValue = 0
+						if (deltaY.length > i) {
+							deltaYValue = deltaY[i]
+						}
+						
+						// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
 						currentX += convertToDpi(deltaXValue)
+						currentY += convertToDpi(deltaYValue)
 					}
 				}
 
@@ -137,8 +145,45 @@ export class TextRenderer {
 				this.pageCanvasCtx.restore()
 				console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "textobject:", nodeData, options)
 			} else {
-				// 绘制文本
-				this.pageCanvasCtx.fillText(text, boundaryBox.x, boundaryBox.y + boundaryBox.height, boundaryBox.width)
+				// 普通字体也需要使用DeltaX来设置字符位置
+				// 获取DeltaX和DeltaY属性
+				const deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
+				const deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
+				
+				// 获取文本的起始位置（相对于boundaryBox）
+				const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
+				const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
+				
+				// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
+				let currentX = boundaryBox.x + parseFloat(originX)
+				let currentY = boundaryBox.y + boundaryBox.height - parseFloat(originY)
+				
+				for (let i = 0; i < text.length; i++) {
+					const charText = text[i]
+					
+					// 绘制当前字符
+					this.pageCanvasCtx.fillText(charText, currentX, currentY)
+					
+					// 计算下一个字符的位置
+					if (i < text.length - 1) {
+						// 获取DeltaX值（如果存在）
+						let deltaXValue = 0
+						if (deltaX.length > i) {
+							deltaXValue = deltaX[i]
+						}
+						
+						// 获取DeltaY值（如果存在）
+						let deltaYValue = 0
+						if (deltaY.length > i) {
+							deltaYValue = deltaY[i]
+						}
+						
+						// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
+						currentX += convertToDpi(deltaXValue)
+						currentY += convertToDpi(deltaYValue)
+					}
+				}
+				
 				console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
 			}
 		}
