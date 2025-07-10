@@ -229,6 +229,10 @@ export function toggleOutlines() {
   }
 }
 
+export function toggleConfigUI() {
+  liteOfd.toggleConfigUI()
+}
+
 // 添加新的函数来处理工具按钮点击
 export function openToolsMenu() {
   console.log('切换工具菜单');
@@ -279,4 +283,5 @@ Object.assign(window, {
   lastPage,
   toggleOutlines,  // 添加 toggleOutlines 到这里
   openToolsMenu,
+  toggleConfigUI
 });

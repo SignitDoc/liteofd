@@ -6,15 +6,18 @@ import { fontIdWithName, opentypeFonts } from "./ofdFont"
 import { getFontSize, parseColor, getDeltaList, extractTextToCharArray } from "./utils/elementUtils"
 import { convertToBox, convertToDpi } from "./utils/utils"
 import opentype from "../opentype"
+import { ConfigManager } from "../config/configManager"
 
 // 文本渲染器类
 export class TextRenderer {
 	private ofdDocument: OfdDocument
 	private pageCanvasCtx: CanvasRenderingContext2D
+	private configManager: ConfigManager
 
 	constructor(ofdDocument: OfdDocument, pageCanvasCtx: CanvasRenderingContext2D) {
 		this.ofdDocument = ofdDocument
 		this.pageCanvasCtx = pageCanvasCtx
+		this.configManager = ConfigManager.getInstance()
 	}
 
 	/**
@@ -56,11 +59,12 @@ export class TextRenderer {
 			}
 
 			if (boundaryBox) {
-				// 绘制文本的boundaryBox边框，用于调试
-				// this.drawTextBoundaryBox(boundaryBox)
 				let text = textCode?.value || ""
-				this.drawTextBoundaryBox(boundaryBox)
 
+				// 根据配置决定是否绘制文本边界框
+				if (this.configManager.shouldDrawTextBoundaryBox()) {
+					this.drawTextBoundaryBox(boundaryBox)
+				}
 				// 设置字体
 				let opentypeFont = this.setCanvasFont(nodeData, fontId)
 				// 设置文本颜色
@@ -141,7 +145,9 @@ export class TextRenderer {
 					}
 
 
-					console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "textobject:", nodeData, boundaryBox)
+					if (this.configManager.shouldLogTextRendering()) {
+						console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "textobject:", nodeData, boundaryBox)
+					}
 				} else {
 					// 普通字体也需要使用DeltaX来设置字符位置
 					// 获取DeltaX和DeltaY属性
@@ -182,7 +188,9 @@ export class TextRenderer {
 						}
 					}
 
-					console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
+					if (this.configManager.shouldLogTextRendering()) {
+						console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
+					}
 				}
 			}
 			// 恢复canvas状态
@@ -318,7 +326,9 @@ export class TextRenderer {
 	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; }) {
 		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
 		if (ctmStr) {
-			console.log("text ctm text", ctmStr)
+			if (this.configManager.shouldLogCTMTransform()) {
+				console.log("text ctm text", ctmStr)
+			}
 			const ctms = ctmStr.split(' ')
 			if (ctms.length >= 6) {
 				const a = parseFloat(ctms[0])
@@ -328,40 +338,50 @@ export class TextRenderer {
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
 
-				console.log("CTM矩阵:", { a, b, c, d, e, f })
+								if (this.configManager.shouldLogCTMTransform()) {
+					console.log("CTM矩阵:", { a, b, c, d, e, f })
+				}
 
 				// 检查CTM矩阵是否为单位矩阵（无变换）
-				const isIdentity = Math.abs(a - 1) < 0.001 && Math.abs(b) < 0.001 &&
-								 Math.abs(c) < 0.001 && Math.abs(d - 1) < 0.001 &&
+				const isIdentity = Math.abs(a - 1) < 0.001 && Math.abs(b) < 0.001 && 
+								 Math.abs(c) < 0.001 && Math.abs(d - 1) < 0.001 && 
 								 Math.abs(e) < 0.001 && Math.abs(f) < 0.001
 
 				if (!isIdentity) {
-					console.log("应用CTM变换")
+					if (this.configManager.shouldLogCTMTransform()) {
+						console.log("应用CTM变换")
+					}
 
 					// 检查是否为纯缩放矩阵（b和c为0）
 					const isPureScale = Math.abs(b) < 0.001 && Math.abs(c) < 0.001
 
-					if (isPureScale) {
+										if (isPureScale) {
 						// 纯缩放矩阵，可以分解为缩放和平移
 						const scaleX = a
 						const scaleY = d
 						const translateX = e
 						const translateY = f
-
-						console.log("纯缩放矩阵 - 缩放:", scaleX, scaleY, "平移:", translateX, translateY)
+						
+						if (this.configManager.shouldLogCTMTransform()) {
+							console.log("纯缩放矩阵 - 缩放:", scaleX, scaleY, "平移:", translateX, translateY)
+						}
 
 						// 先应用平移，再应用缩放
 						this.pageCanvasCtx.translate(translateX, translateY)
 						this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
 						this.pageCanvasCtx.scale(scaleX, scaleY)
 						this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
-					} else {
+										} else {
 						// 复杂变换矩阵，包含旋转或倾斜
-						console.log("复杂变换矩阵，包含旋转或倾斜")
-
+						if (this.configManager.shouldLogCTMTransform()) {
+							console.log("复杂变换矩阵，包含旋转或倾斜")
+						}
+						
 						// 分解CTM矩阵
 						const decomposed = this.decomposeCTM(a, b, c, d, e, f)
-						console.log("分解后的变换:", decomposed)
+						if (this.configManager.shouldLogCTMTransform()) {
+							console.log("分解后的变换:", decomposed)
+						}
 
 						// 保存当前状态
 						this.pageCanvasCtx.save()
@@ -382,7 +402,9 @@ export class TextRenderer {
 						}
 					}
 				} else {
-					console.log("CTM为单位矩阵，跳过变换")
+					if (this.configManager.shouldLogCTMTransform()) {
+						console.log("CTM为单位矩阵，跳过变换")
+					}
 				}
 			}
 		}
@@ -419,6 +441,11 @@ export class TextRenderer {
 	 * @param boundaryBox 边界框
 	 */
 	private drawTextBoundaryBox(boundaryBox: { x: number; y: number; width: number; height: number; }) {
+		// 检查配置是否启用边界框绘制
+		if (!this.configManager.shouldDrawTextBoundaryBox()) {
+			return
+		}
+
 		const ctx = this.pageCanvasCtx
 
 		// 保存当前的绘制状态
@@ -451,6 +478,8 @@ export class TextRenderer {
 		// 恢复绘制状态
 		ctx.restore()
 
-		console.log("绘制文本边界框:", boundaryBox)
+		if (this.configManager.shouldLogTextRendering()) {
+			console.log("绘制文本边界框:", boundaryBox)
+		}
 	}
 }

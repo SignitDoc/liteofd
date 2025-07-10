@@ -5,6 +5,7 @@ import { OfdWriter } from "./ofdWriter"
 import { XmlData } from "./ofdData"
 import * as ofdActions from "./ofdActions"
 import { loadLocalDefaultFonts } from "./ofdFont"
+import { ConfigUI } from "../config/configUI"
 
 /**
  * LiteOfd 类是一个用于处理 OFD 文件的轻量级库。
@@ -14,7 +15,9 @@ export default class LiteOfd {
   private ofdDocument: OfdDocument
   private ofdRender: OfdRender | null = null
   private currentScale: number = 1
-  
+  private configUI: ConfigUI | null = null
+  private containerDiv: HTMLDivElement
+
   constructor() {
     this.ofdDocument = new OfdDocument()
   }
@@ -28,12 +31,13 @@ export default class LiteOfd {
   render(container?: HTMLDivElement, pageWrapStyle?: string): HTMLDivElement {
     this.ofdRender = new OfdRender(this.ofdDocument)
     const containerDiv = container || document.createElement('div')
+    this.containerDiv = containerDiv
     return this.ofdRender.renderOfdWithCustomDiv(containerDiv, pageWrapStyle)
   }
 
   /**
    * 渲染对应页面
-   * @param pageIndex 页面位置 
+   * @param pageIndex 页面位置
    */
   renderPage(pageIndex: number, pageWrapStyle?: string){
     this.ofdRender = new OfdRender(this.ofdDocument)
@@ -105,7 +109,7 @@ export default class LiteOfd {
 	zoomIn(step: number = 0.1): void {
 		this.zoom(this.currentScale + step)
 	  }
-	
+
 	  /**
 	   * 缩小文档
 	   * @param step 缩小步长，默认为 0.1
@@ -181,5 +185,52 @@ export default class LiteOfd {
       throw new Error('OFD文档尚未解析，请先调用parse方法');
     }
     return this.ofdDocument;
+  }
+
+  /**
+   * 显示配置UI
+   * @param container 可选的容器元素，默认为document.body
+   */
+  showConfigUI(container?: HTMLElement): void {
+    if (!this.configUI) {
+      this.configUI = new ConfigUI()
+      this.configUI.createConfigUI(container || document.body)
+    } else {
+      this.configUI.show()
+    }
+  }
+
+  /**
+   * 隐藏配置UI
+   */
+  hideConfigUI(): void {
+    if (this.configUI) {
+      this.configUI.hide()
+    }
+  }
+
+  /**
+   * 切换配置UI显示状态
+   */
+  toggleConfigUI(container?: HTMLElement): void {
+    if (!this.configUI) {
+      this.showConfigUI(container)
+    } else {
+      this.configUI.toggle()
+    }
+  }
+
+  getContainer() {
+    return this.containerDiv
+  }
+
+  /**
+   * 销毁配置UI
+   */
+  destroyConfigUI(): void {
+    if (this.configUI) {
+      this.configUI.destroy()
+      this.configUI = null
+    }
   }
 }
