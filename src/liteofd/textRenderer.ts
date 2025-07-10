@@ -3,7 +3,7 @@ import { OfdDocument } from "./ofdDocument"
 import * as parser from "./parser"
 import { AttributeKey, OFD_KEY } from "./attrType"
 import { fontIdWithName, opentypeFonts } from "./ofdFont"
-import { getFontSize, parseColor } from "./utils/elementUtils"
+import { getFontSize, parseColor, getDeltaList, extractTextToCharArray } from "./utils/elementUtils"
 import { convertToBox, convertToDpi } from "./utils/utils"
 import opentype from "../opentype"
 
@@ -76,40 +76,70 @@ export class TextRenderer {
 						rlig: true
 					}
 				}
-								// 获取HScale和VScale属性
+
+				// 获取HScale和VScale属性
 				const hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale)
 				const vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale)
-				
+
+				// 获取DeltaX和DeltaY属性
+				const deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
+				const deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
+
+				// 获取文本的起始位置（相对于boundaryBox）
+				const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
+				const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
+
+				// 计算每个字符的位置（基于boundaryBox的坐标系统）
+				const charList = extractTextToCharArray(text, deltaX, deltaY, originX, originY)
+
 				// 保存当前canvas状态
 				this.pageCanvasCtx.save()
-				
+
 				// 如果存在缩放属性，应用matrix变换
 				if (hScale || vScale) {
 					const hScaleValue = hScale ? parseFloat(hScale) : 1
 					const vScaleValue = vScale ? parseFloat(vScale) : 1
-					
+
 					// 在文本绘制位置应用缩放变换
 					this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
 					this.pageCanvasCtx.scale(hScaleValue, vScaleValue)
 					this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
 				}
 
-				// console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode, options)
 				const fontSize = getFontSize(nodeData)
 				// 获取当前canvas的fillStyle
 				const currentFillStyle = this.pageCanvasCtx.fillStyle
-				// 获取Path对象并设置正确的fill颜色
-				const path = opentypeFont.getPath(text + "", boundaryBox.x, boundaryBox.y + boundaryBox.height, fontSize, options)
-				path.fill = currentFillStyle
-				// 绘制Path
-				path.draw(this.pageCanvasCtx)
-				
+				// 逐个绘制每个字符，DeltaX表示每个字符的整体宽度
+				let currentX = boundaryBox.x + parseFloat(originX)
+				let currentY = boundaryBox.y + boundaryBox.height - parseFloat(originY)
+
+				for (let i = 0; i < text.length; i++) {
+					const charText = text[i]
+
+					// 绘制当前字符
+					const path = opentypeFont.getPath(charText, currentX, currentY, fontSize, options)
+					path.fill = currentFillStyle
+					path.draw(this.pageCanvasCtx)
+
+					// 计算下一个字符的位置
+					if (i < text.length - 1) {
+						// 获取DeltaX值（如果存在）
+						let deltaXValue = 0
+						if (deltaX.length > i) {
+							deltaXValue = deltaX[i]
+						}
+						// 下一个字符位置 = 当前字符位置 + DeltaX值（包含字符宽度和间隙）
+						currentX += convertToDpi(deltaXValue)
+					}
+				}
+
 				// 恢复canvas状态
 				this.pageCanvasCtx.restore()
+				console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "textobject:", nodeData, options)
 			} else {
-				console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
 				// 绘制文本
 				this.pageCanvasCtx.fillText(text, boundaryBox.x, boundaryBox.y + boundaryBox.height, boundaryBox.width)
+				console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
 			}
 		}
 	}
@@ -235,8 +265,10 @@ export class TextRenderer {
 	 * @param nodeData 节点数据
 	 */
 	private applyCTMTransform(nodeData: XmlData) {
+		debugger
 		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
 		if (ctmStr) {
+			console.log("text ctm text", ctmStr)
 			const ctms = ctmStr.split(' ')
 			if (ctms.length >= 6) {
 				const a = parseFloat(ctms[0])

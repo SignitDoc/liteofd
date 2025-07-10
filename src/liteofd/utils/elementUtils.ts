@@ -28,7 +28,7 @@ function decodeHTML(html) {
  * @param originX
  * @param originY
  */
-const extractTextToCharArray = (textStr: string, deltaXList: any[], deltaYList: any[], originX: any, originY: any) => {
+export const extractTextToCharArray = (textStr: string, deltaXList: any[], deltaYList: any[], originX: any, originY: any): Array<{x: number, y: number, text: string, deltaX: number, deltaY: number}> => {
 	let textCodePointList = []
 	let lastXDeltaIndex = 0
 	let lastYDeltaIndex = 0
