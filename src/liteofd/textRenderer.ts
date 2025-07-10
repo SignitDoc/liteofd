@@ -68,7 +68,7 @@ export class TextRenderer {
 			// 添加绘制param
 			this.#addDrawParam(nodeData)
 			if (opentypeFont) {
-				let options = {
+				let options: any = {
 					kerning: true,
 					hinting: false,
 					features: {
@@ -76,6 +76,24 @@ export class TextRenderer {
 						rlig: true
 					}
 				}
+								// 获取HScale和VScale属性
+				const hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale)
+				const vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale)
+				
+				// 保存当前canvas状态
+				this.pageCanvasCtx.save()
+				
+				// 如果存在缩放属性，应用matrix变换
+				if (hScale || vScale) {
+					const hScaleValue = hScale ? parseFloat(hScale) : 1
+					const vScaleValue = vScale ? parseFloat(vScale) : 1
+					
+					// 在文本绘制位置应用缩放变换
+					this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
+					this.pageCanvasCtx.scale(hScaleValue, vScaleValue)
+					this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
+				}
+
 				// console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode, options)
 				const fontSize = getFontSize(nodeData)
 				// 获取当前canvas的fillStyle
@@ -85,6 +103,9 @@ export class TextRenderer {
 				path.fill = currentFillStyle
 				// 绘制Path
 				path.draw(this.pageCanvasCtx)
+				
+				// 恢复canvas状态
+				this.pageCanvasCtx.restore()
 			} else {
 				console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
 				// 绘制文本
