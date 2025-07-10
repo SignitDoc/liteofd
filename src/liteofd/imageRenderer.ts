@@ -148,7 +148,6 @@ export class ImageRenderer {
 	 */
 	private async drawCanvasImage(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; }) {
 		let imageData = await this.#findImageMediaData(nodeData)?.promise
-		console.log("draw canvas image base64", imageData)
 		if (!imageData) {
 			console.error("无法获取图片数据:", nodeData)
 			return
@@ -157,7 +156,6 @@ export class ImageRenderer {
 		// 创建图片对象
 		const img = new Image()
 		img.onload = () => {
-			console.log("draw canvas image base64", boundaryBox)
 			// 图片加载完成后绘制
 			this.pageCanvasCtx.drawImage(
 				img,

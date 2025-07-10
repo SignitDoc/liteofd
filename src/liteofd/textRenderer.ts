@@ -80,7 +80,7 @@ export class TextRenderer {
 				const fontSize = getFontSize(nodeData)
 				opentypeFont.draw(this.pageCanvasCtx, text + "", boundaryBox.x, boundaryBox.y + boundaryBox.height, fontSize)
 			} else {
-				// console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
+				console.log("Canvas 普通 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "字体ID:", fontId, textCode)
 				// 绘制文本
 				this.pageCanvasCtx.fillText(text, boundaryBox.x, boundaryBox.y + boundaryBox.height, boundaryBox.width)
 			}
@@ -161,7 +161,7 @@ export class TextRenderer {
 				if (foundFont) {
 					const fontName = parser.findAttributeValueByKey(foundFont, AttributeKey.FontName)
 					const fontFamily = parser.findAttributeValueByKey(foundFont, AttributeKey.FamilyName)
-
+					// 将不寻常的字体放入到本地里面，比如宋体，楷体之类一些不同名字的字体名称
 					if (fontName) {
 						fontStyle = `${fontSize || 12}px "${fontName}"`
 					} else if (fontFamily) {

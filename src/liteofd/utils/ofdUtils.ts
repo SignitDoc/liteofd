@@ -22,7 +22,7 @@ const loadOFDFonts = async (files: any, fonts: XmlData) => {
 			let fontFile = parser.findValueByTagName(fontData, OFD_KEY.FontFile)
 			// 将字体的id和name进行匹配
 			fontIdWithName.set(fontId, fontName)
-			console.log("load font res 11", fontIdWithName)
+			console.log("load font res 11", fontIdWithName, fontFile)
 			if (fontFile && fontFile.value) {
 				let fileName = fontFile.value
 				let fontFilePath = fontDefaultDir + "/" + fileName
@@ -34,9 +34,10 @@ const loadOFDFonts = async (files: any, fonts: XmlData) => {
 			} else {
 				let realFontName = fontName || familyName
 				realFontName = convertNonStandardFont(realFontName)
-				console.log("realFontName", realFontName)
+				console.log("realFontName fontName", realFontName)
 				if(realFontName && isDefaultFont(realFontName)) {
-					// await loadDefaultFont(realFontName)
+					// 通过默认字体加载，加载opentype.js加载本地的默认字体文件
+					await loadDefaultFont(realFontName)
 				}
 			}
 		}
@@ -224,10 +225,10 @@ export const convertNonStandardFont = (fontName: string): string => {
 		// 'ArialUnicodeMS-BoldItalic': 'Helvetica-BoldOblique',
 		// 'ArialUnicodeMS Italic': 'Helvetica-Oblique',
 		// 'ArialUnicodeMS-Italic': 'Helvetica-Oblique'
-		'KaiTi_GB2312': 'KaiTi',
-		'KaiTi_GB2312-Bold': 'KaiTi-Bold',
-		'KaiTi_GB2312-BoldItalic': 'KaiTi-BoldItalic',
-		'KaiTi_GB2312-Italic': 'KaiTi-Italic'
+		// 'KaiTi_GB2312': 'KaiTi',
+		// 'KaiTi_GB2312-Bold': 'KaiTi-Bold',
+		// 'KaiTi_GB2312-BoldItalic': 'KaiTi-BoldItalic',
+		// 'KaiTi_GB2312-Italic': 'KaiTi-Italic'
 	};
 
 	// 将非标准字体转换为标准字体
