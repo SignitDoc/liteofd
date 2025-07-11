@@ -92,7 +92,7 @@ const decodeHtmlEntities = (text: string): string => {
     '&#x20;': ' ',
     '&#x0020;': ' '
   };
-  
+
   return text.replace(/&[^;]+;/g, (entity) => {
     return entities[entity] || entity;
   });
@@ -120,8 +120,8 @@ export const createTextSpan = (nodeData: XmlData, textCodeData: XmlData, textNod
 	let textStr = textCode.value.toString()
 	textStr = decodeHtmlEntities(textStr)
 	// 根据node的deltax和deltay进行创建字符位置
-	let deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
-	let deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
+	let deltaX = getDeltaList(textStr, textCode, AttributeKey.DeltaX)
+	let deltaY = getDeltaList(textStr, textCode, AttributeKey.DeltaY)
 
 	// 将char分割，并且添加上x和y的值
 	let charList = extractTextToCharArray(textStr, deltaX, deltaY, x, y)
@@ -173,10 +173,10 @@ export const getCTM = (obj: XmlData) => {
 	return null
 }
 
-export const getDeltaList = (obj: XmlData, key) => {
+export const getDeltaList = (text: string, obj: XmlData, key) => {
 	let deltaStr = parser.findAttributeValueByKey(obj, key)
 	if (deltaStr) {
-		return deltaFormatter(deltaStr)
+		return deltaFormatter(text, deltaStr)
 		// 判断数组是否是纯数组还是带有数字的那种数组
 	} else {
 		return []
@@ -187,40 +187,71 @@ export const getDeltaList = (obj: XmlData, key) => {
  * 将textobject的字符的delta进行解析，比如如果是g数组那么解析成对应数字的数组，如果是单个字符那么需要解析称为多少个字符的位置数组每个位置一样
  * @param delta
  */
-export const deltaFormatter = function (delta) {
+export const deltaFormatter = function (text: string, delta) {
 	if (delta.indexOf("g") === -1) {
 		let floatList = [];
-		for (let f of delta.split(' ')) {
-			floatList.push(parseFloat(f));
+		const deltaArray = delta.split(' ').filter(f => f.trim().length > 0);
+		
+		// 如果只有一个数字，则返回与text字符长度相同的数组
+		if (deltaArray.length === 1) {
+			const singleValue = parseFloat(deltaArray[0]);
+			for (let i = 0; i < text.length - 1; i++) {
+				floatList.push(singleValue);
+			}
+			return floatList;
+		} else {
+			// 多个数字的情况，按原来的逻辑处理
+			for (let f of deltaArray) {
+				floatList.push(parseFloat(f));
+			}
+			return floatList;
 		}
-		return floatList;
 	} else {
 		const array = delta.split(' ');
-		let gFlag = false;
-		let gProcessing = false;
-		let gItemCount = 0;
 		let floatList = [];
-		for (const s of array) {
+		let currentIndex = 0;
+		const totalIntervals = text.length - 1;
+		
+		for (let i = 0; i < array.length; i++) {
+			const s = array[i];
+			
+			if (!s || s.trim().length == 0) {
+				continue;
+			}
+			
 			if ('g' === s) {
-				gFlag = true;
-			} else {
-				if (!s || s.trim().length == 0) {
-					continue;
-				}
-				if (gFlag) {
-					gItemCount = parseInt(s);
-					gProcessing = true;
-					gFlag = false;
-				} else if (gProcessing) {
-					for (let j = 0; j < gItemCount; j++) {
-						floatList.push(parseFloat(s));
+				// 处理g指令
+				if (i + 2 < array.length) {
+					const gItemCount = parseInt(array[i + 1]);
+					const gValue = parseFloat(array[i + 2]);
+					
+					// 添加指定数量的gValue
+					for (let j = 0; j < gItemCount && currentIndex < totalIntervals; j++) {
+						floatList.push(gValue);
+						currentIndex++;
 					}
-					gProcessing = false;
-				} else {
+					
+					// 跳过已处理的参数
+					i += 2;
+				}
+			} else {
+				// 处理非g指令的数字（作为剩余值）
+				if (currentIndex < totalIntervals) {
 					floatList.push(parseFloat(s));
+					currentIndex++;
 				}
 			}
 		}
+		
+		// 如果生成的数组长度不够，用最后一个值填充
+		while (floatList.length < totalIntervals) {
+			if (floatList.length > 0) {
+				floatList.push(floatList[floatList.length - 1]);
+			} else {
+				floatList.push(0);
+			}
+		}
+		
 		return floatList;
 	}
 }
@@ -284,13 +315,13 @@ export const rgbToHexWithAlpha = (r: number, g: number, b: number, alpha: number
 	g = Math.max(0, Math.min(255, g));
 	b = Math.max(0, Math.min(255, b));
 	alpha = Math.max(0, Math.min(255, alpha));
-	
+
 	// 转换为16进制并补零
 	const hexR = r.toString(16).padStart(2, '0');
 	const hexG = g.toString(16).padStart(2, '0');
 	const hexB = b.toString(16).padStart(2, '0');
 	const hexAlpha = alpha.toString(16).padStart(2, '0');
-	
+
 	// 返回带alpha的16进制颜色值
 	return `#${hexR}${hexG}${hexB}${hexAlpha}`;
 }
@@ -366,7 +397,7 @@ export const getOFDFilePath = (path: string) => {
 			let newofdWidth = convertToDpiWithScale(ofdWidth, 1)
 			console.log("ofdWidth", ofdWidth, newofdWidth, screenWidth);
 			// 计算缩放比例
-			let scale = (screenWidth - 100) / ofdWidth   
+			let scale = (screenWidth - 100) / ofdWidth
 			return scale
 		}
 		// 如果物理盒不存在，则返回1

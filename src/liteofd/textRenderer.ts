@@ -78,8 +78,8 @@ export class TextRenderer {
 				const vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale) || 1
 
 				// 获取DeltaX和DeltaY属性
-				const deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
-				const deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
+				const deltaX = getDeltaList(text, textCode, AttributeKey.DeltaX)
+				const deltaY = getDeltaList(text, textCode, AttributeKey.DeltaY)
 
 				// 获取文本的起始位置（相对于boundaryBox）
 				const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
@@ -145,8 +145,8 @@ export class TextRenderer {
 				} else {
 					// 普通字体也需要使用DeltaX来设置字符位置
 					// 获取DeltaX和DeltaY属性
-					const deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
-					const deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
+					const deltaX = getDeltaList(text, textCode, AttributeKey.DeltaX)
+					const deltaY = getDeltaList(text, textCode, AttributeKey.DeltaY)
 
 					// 获取文本的起始位置（相对于boundaryBox）
 					const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
