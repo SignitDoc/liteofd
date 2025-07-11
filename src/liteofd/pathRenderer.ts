@@ -54,6 +54,8 @@ export class PathRenderer {
 		const points = calPathPoint(convertPathAbbreviatedDatatoPoint(abbreviatedData.value))
 		// 应用CTM变换
 		this.applyCTMTransform(nodeData)
+		// 添加绘制param
+		this.#addDrawParam(nodeData)
 		// 设置路径样式
 		this.setCanvasPathStyle(nodeData)
 		// 绘制路径 - 在boundaryBox位置绘制
@@ -83,6 +85,82 @@ export class PathRenderer {
 	}
 
 	/**
+	 * 添加绘制参数
+	 * @param nodeData 节点数据
+	 */
+	#addDrawParam(nodeData: XmlData) {
+		let drawParamID = parser.findAttributeValueByKey(nodeData, AttributeKey.DrawParam)
+		console.log("add path draw params", drawParamID)
+		if (drawParamID) {
+			let drawParamNode = parser.findNodeByAttributeKeyValue(drawParamID, AttributeKey.ID, this.ofdDocument.publicRes)
+			debugger
+			if (drawParamNode) {
+				// 填充颜色
+				this.#addFillColor(drawParamNode)
+				// 添加线宽度和线条颜色
+				this.#addStrokeColor(drawParamNode)
+				// 添加线宽度
+				this.#addLineWidth(drawParamNode)
+				// 添加虚线模式
+				this.#addDashPattern(drawParamNode)
+				console.log("path drawParamNode", drawParamNode)
+			}
+		}
+	}
+
+	/**
+	 * 添加描边颜色
+	 * @param nodeData 节点数据
+	 */
+	#addStrokeColor(nodeData: XmlData) {
+		let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
+		let strokeColorStr = strokeColorObj && parser.findAttributeValueByKey(strokeColorObj, AttributeKey.Value)
+		if (strokeColorStr) {
+			let strokeColor = parseColor(strokeColorStr)
+			this.pageCanvasCtx.strokeStyle = strokeColor
+		}
+	}
+
+	/**
+	 * 添加填充颜色
+	 * @param nodeData 节点数据
+	 */
+	#addFillColor(nodeData: XmlData) {
+		let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
+		let fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
+		if (fillColorStr) {
+			let fillColor = parseColor(fillColorStr)
+			this.pageCanvasCtx.fillStyle = fillColor
+		}
+	}
+
+	/**
+	 * 添加线宽度
+	 * @param nodeData 节点数据
+	 */
+	#addLineWidth(nodeData: XmlData) {
+		let lineWidthStr = parser.findAttributeValueByKey(nodeData, AttributeKey.LineWidth)
+		if (lineWidthStr) {
+			let lineWidth = convertToDpi(parseFloat(lineWidthStr))
+			this.pageCanvasCtx.lineWidth = lineWidth
+		}
+	}
+
+	/**
+	 * 添加虚线模式
+	 * @param nodeData 节点数据
+	 */
+	#addDashPattern(nodeData: XmlData) {
+		const dashPattern = parser.findAttributeValueByKey(nodeData, AttributeKey.DashPattern)
+		if (dashPattern) {
+			const dashArray = dashPattern.split(' ').map(value => convertToDpi(parseFloat(value)))
+			this.pageCanvasCtx.setLineDash(dashArray)
+		} else {
+			this.pageCanvasCtx.setLineDash([])
+		}
+	}
+
+	/**
 	 * 设置canvas路径样式
 	 * @param nodeData 节点数据
 	 */
@@ -94,8 +172,6 @@ export class PathRenderer {
 		if (lineWidthStr) {
 			let lineWidth = convertToDpi(parseFloat(lineWidthStr))
 			ctx.lineWidth = lineWidth
-		} else {
-			ctx.lineWidth = 1
 		}
 
 		// 设置虚线模式
@@ -118,8 +194,6 @@ export class PathRenderer {
 			}
 		} else if (strokeColorStr) {
 			ctx.strokeStyle = parseColor(strokeColorStr)
-		} else {
-			ctx.strokeStyle = 'rgb(0, 0, 0)' // 默认黑色
 		}
 
 		// 设置填充颜色

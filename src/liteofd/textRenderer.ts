@@ -94,9 +94,6 @@ export class TextRenderer {
 					this.pageCanvasCtx.scale(hScaleValue, vScaleValue)
 					this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
 				}
-				// 计算每个字符的位置（基于boundaryBox的坐标系统）
-				const charList = extractTextToCharArray(text, deltaX, deltaY, originX, originY)
-				const fontSize = getFontSize(nodeData)
 				if (opentypeFont) {
 					let options: any = {
 						kerning: true,
@@ -106,7 +103,9 @@ export class TextRenderer {
 							rlig: true
 						}
 					}
-
+					// 计算每个字符的位置（基于boundaryBox的坐标系统）
+					const charList = extractTextToCharArray(text, deltaX, deltaY, originX, originY)
+					const fontSize = getFontSize(nodeData)
 					// 获取当前canvas的fillStyle
 					const currentFillStyle = this.pageCanvasCtx.fillStyle
 					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
