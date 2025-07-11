@@ -73,6 +73,30 @@ export class TextRenderer {
 				this.applyCTMTransform(nodeData, boundaryBox)
 				// 添加绘制param
 				this.#addDrawParam(nodeData)
+				// 获取HScale和VScale属性
+				const hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale) || 1
+				const vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale) || 1
+
+				// 获取DeltaX和DeltaY属性
+				const deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
+				const deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
+
+				// 获取文本的起始位置（相对于boundaryBox）
+				const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
+				const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
+				// 如果存在缩放属性，应用matrix变换
+				if (hScale || vScale) {
+					const hScaleValue = hScale ? parseFloat(hScale+"") : 1
+					const vScaleValue = vScale ? parseFloat(vScale+"") : 1
+
+					// 在文本绘制位置应用缩放变换
+					this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
+					this.pageCanvasCtx.scale(hScaleValue, vScaleValue)
+					this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
+				}
+				// 计算每个字符的位置（基于boundaryBox的坐标系统）
+				const charList = extractTextToCharArray(text, deltaX, deltaY, originX, originY)
+				const fontSize = getFontSize(nodeData)
 				if (opentypeFont) {
 					let options: any = {
 						kerning: true,
@@ -83,33 +107,6 @@ export class TextRenderer {
 						}
 					}
 
-					// 获取HScale和VScale属性
-					const hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale)
-					const vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale)
-
-					// 获取DeltaX和DeltaY属性
-					const deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
-					const deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
-
-					// 获取文本的起始位置（相对于boundaryBox）
-					const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
-					const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
-
-					// 计算每个字符的位置（基于boundaryBox的坐标系统）
-					const charList = extractTextToCharArray(text, deltaX, deltaY, originX, originY)
-
-					// 如果存在缩放属性，应用matrix变换
-					if (hScale || vScale) {
-						const hScaleValue = hScale ? parseFloat(hScale) : 1
-						const vScaleValue = vScale ? parseFloat(vScale) : 1
-
-						// 在文本绘制位置应用缩放变换
-						this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
-						this.pageCanvasCtx.scale(hScaleValue, vScaleValue)
-						this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
-					}
-
-					const fontSize = getFontSize(nodeData)
 					// 获取当前canvas的fillStyle
 					const currentFillStyle = this.pageCanvasCtx.fillStyle
 					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
@@ -139,12 +136,10 @@ export class TextRenderer {
 							}
 
 							// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
-							currentX += convertToDpi(deltaXValue)
-							currentY += convertToDpi(deltaYValue)
+							currentX += convertToDpi(deltaXValue / hScale)
+							currentY += convertToDpi(deltaYValue / vScale)
 						}
 					}
-
-
 					if (this.configManager.shouldLogTextRendering()) {
 						console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "textobject:", nodeData, boundaryBox)
 					}
@@ -164,7 +159,6 @@ export class TextRenderer {
 
 					for (let i = 0; i < text.length; i++) {
 						const charText = text[i]
-
 						// 绘制当前字符
 						this.pageCanvasCtx.fillText(charText, currentX, currentY)
 
@@ -183,8 +177,8 @@ export class TextRenderer {
 							}
 
 							// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
-							currentX += convertToDpi(deltaXValue)
-							currentY += convertToDpi(deltaYValue)
+							currentX += convertToDpi(deltaXValue / hScale)
+							currentY += convertToDpi(deltaYValue / vScale)
 						}
 					}
 
@@ -343,8 +337,8 @@ export class TextRenderer {
 				}
 
 				// 检查CTM矩阵是否为单位矩阵（无变换）
-				const isIdentity = Math.abs(a - 1) < 0.001 && Math.abs(b) < 0.001 && 
-								 Math.abs(c) < 0.001 && Math.abs(d - 1) < 0.001 && 
+				const isIdentity = Math.abs(a - 1) < 0.001 && Math.abs(b) < 0.001 &&
+								 Math.abs(c) < 0.001 && Math.abs(d - 1) < 0.001 &&
 								 Math.abs(e) < 0.001 && Math.abs(f) < 0.001
 
 				if (!isIdentity) {
@@ -361,7 +355,7 @@ export class TextRenderer {
 						const scaleY = d
 						const translateX = e
 						const translateY = f
-						
+
 						if (this.configManager.shouldLogCTMTransform()) {
 							console.log("纯缩放矩阵 - 缩放:", scaleX, scaleY, "平移:", translateX, translateY)
 						}
@@ -376,7 +370,7 @@ export class TextRenderer {
 						if (this.configManager.shouldLogCTMTransform()) {
 							console.log("复杂变换矩阵，包含旋转或倾斜")
 						}
-						
+
 						// 分解CTM矩阵
 						const decomposed = this.decomposeCTM(a, b, c, d, e, f)
 						if (this.configManager.shouldLogCTMTransform()) {
