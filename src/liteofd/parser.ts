@@ -98,37 +98,41 @@ const parseSignatureData = async (ofdDocument: OfdDocument, signList: XmlData[],
 	// 根据pageID来匹配对应的签名
 	if (signList && signList.length > 0) {
 		for (let j = 0; j < signList.length; j++) {
-			// 一个signature.xml文件中的签名信息数据
-			let tempSign = signList[j]
-			// 查找signature.xml中的stampannot的列表
-			let tempStampAnnotObj = findValueByTagName(tempSign, OFD_KEY.StampAnnot)
-			let signPathObj = findValueByTagName(tempSign, OFD_KEY.SignedValue)
-			let signPath = signPathObj.value
-			signPath = getOFDFilePath(signPath)
-			// 读取数据
-			let signData = await ofdDocument.files[signPath].async("base64")
-			let sealObj = await decodeSignatureStringData(signData) // 获取签名文件中解析的签名数据
-			// await unzipOfd(stampAnnot.sealObj.ofdArray) // 将ofd类型的数据进行解压，获取到需要渲染的印章内容
-			if (sealObj && sealObj.type === "ofd") {
-				// 需要对签名数据进行解压
-				await parseSignatureOFDData(sealObj, tempSign)
-			} else if (sealObj && sealObj.type === "png") {
-				// 图片类型签名
-				let img = 'data:image/png;base64,' + btoa(String.fromCharCode.apply(null, sealObj.ofdArray));
-				tempSign.sealData = img
-			}
-
-			tempSign.sealObject = sealObj
-
-			// 将签章的列表添加到对应的pageData里面，也就是把页面数据匹配到对应的签章数据
-			for (let k = 0; k < tempStampAnnotObj.children.length; k++) {
-				let tempStampAnnot = tempStampAnnotObj.children[k]
-				let pageRefID = findAttributeValueByKey(tempStampAnnot, AttributeKey.PageRef)
-				console.log("get pagerefid", pageRefID, pageID)
-				// 页面id和签章上面的引用id匹配就可以
-				if (pageRefID === pageID) {
-					pageData.signList.push(tempSign)
+			try {
+				// 一个signature.xml文件中的签名信息数据
+				let tempSign = signList[j]
+				// 查找signature.xml中的stampannot的列表
+				let tempStampAnnotObj = findValueByTagName(tempSign, OFD_KEY.StampAnnot)
+				let signPathObj = findValueByTagName(tempSign, OFD_KEY.SignedValue)
+				let signPath = signPathObj.value
+				signPath = getOFDFilePath(signPath)
+				// 读取数据
+				let signData = await ofdDocument.files[signPath].async("base64")
+				let sealObj = await decodeSignatureStringData(signData) // 获取签名文件中解析的签名数据
+				// await unzipOfd(stampAnnot.sealObj.ofdArray) // 将ofd类型的数据进行解压，获取到需要渲染的印章内容
+				if (sealObj && sealObj.type === "ofd") {
+					// 需要对签名数据进行解压
+					await parseSignatureOFDData(sealObj, tempSign)
+				} else if (sealObj && sealObj.type === "png") {
+					// 图片类型签名
+					let img = 'data:image/png;base64,' + btoa(String.fromCharCode.apply(null, sealObj.ofdArray));
+					tempSign.sealData = img
 				}
+
+				tempSign.sealObject = sealObj
+
+				// 将签章的列表添加到对应的pageData里面，也就是把页面数据匹配到对应的签章数据
+				for (let k = 0; k < tempStampAnnotObj.children.length; k++) {
+					let tempStampAnnot = tempStampAnnotObj.children[k]
+					let pageRefID = findAttributeValueByKey(tempStampAnnot, AttributeKey.PageRef)
+					console.log("get pagerefid", pageRefID, pageID)
+					// 页面id和签章上面的引用id匹配就可以
+					if (pageRefID === pageID) {
+						pageData.signList.push(tempSign)
+					}
+				}
+			} catch (e) {
+				console.error("parse sign error", e)
 			}
 		}
 	}
