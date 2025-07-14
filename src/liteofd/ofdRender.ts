@@ -7,7 +7,7 @@ import { getDefaultScale } from "./utils/elementUtils"
 
 /**
  * OfdRender 类用于渲染 OFD 文档。
- * 
+ *
  * @class OfdRender
  * @property {OfdDocument} ofdDocument - OFD 文档对象
  * @property {XmlData[]} pages - 文档的页面数据
@@ -30,7 +30,7 @@ export class OfdRender {
 	 * @param width 宽度
 	 * @param height 高度
 	 * @param pageWrapStyle 页面的样式
-	 * @returns 
+	 * @returns
 	 */
 	renderOfdWithSize(width: string, height: string, pageWrapStyle: string | null = null): HTMLDivElement {
 		// 创建外层容器div
@@ -108,7 +108,7 @@ export class OfdRender {
 		}
 	}
 
-	#renderPage(pageIndex: number, rootContainer: HTMLDivElement, wrapStyle: string | null = null) {	
+	#renderPage(pageIndex: number, rootContainer: HTMLDivElement, wrapStyle: string | null = null) {
 		let pageData = this.pages[pageIndex]
 		let pageContainer = new OfdPageContainer(this.ofdDocument, pageData, rootContainer)
 		// 为每个页面容器添加一个独特的ID
@@ -134,7 +134,7 @@ export class OfdRender {
 			this.applyZoom(this.rootContainer, newScale);
 		}
 	}
-	
+
 	/**
 	 * 缩小文档
 	 * 每次缩小 10%，但不小于 0.1
@@ -146,7 +146,7 @@ export class OfdRender {
 			this.applyZoom(this.rootContainer, newScale);
 		}
 	}
-	
+
 	/**
 	 * 应用指定的缩放比例
 	 * @param newScale 新的缩放比例
@@ -171,7 +171,7 @@ export class OfdRender {
 			this.adjustContainerAndPosition(rootContainer, originalWidth, newScale);
 		}
 	}
-	
+
 	/**
 	 * 调整容器和内容的位置
 	 * @param originalWidth 原始宽度
@@ -208,7 +208,7 @@ export class OfdRender {
 
 	/**
 	 * 获取滚动容器
-	 * @returns 
+	 * @returns
 	 */
 	public getScrollContainer(): HTMLDivElement {
 		return this.scrollContainer
@@ -216,14 +216,14 @@ export class OfdRender {
 
 	/**
 	 * 添加滚动页面监听
-	 * @param rootContainer 
+	 * @param rootContainer
 	 */
 	private addScrollListener(rootContainer: HTMLDivElement): void {
 		console.log("addScrollListener", rootContainer);
 		rootContainer.setAttribute(AttributeKey.ID, "ofd-scroll-container");
 		const pages = rootContainer.querySelectorAll('[id^="ofd-page-"]');
-		
-		let debounceTimer: number | null = null;
+
+		let debounceTimer;
 		const debounceDelay = 200; // 200毫秒的防抖延迟
 
 		rootContainer.addEventListener('scroll', () => {

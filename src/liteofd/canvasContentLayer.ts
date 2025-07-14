@@ -16,14 +16,17 @@ export class CanvasContentLayer extends Layer {
 	private setDefaultZOrder = false // 是否使用默认的zorder的值设置zindex
 	private defaultZorderValue = -1 // 默认的zindex的值
 	private pageCanvas!: HTMLCanvasElement // 绘制的界面canvas
+	private pageContainer!: HTMLDivElement // 包裹canvas的div组件
 	private pageCanvasCtx!: CanvasRenderingContext2D // 绘制的界面canvas的上下文
 	private textRenderer!: TextRenderer // 文本渲染器
 	private pathRenderer!: PathRenderer // 路径渲染器
 	private imageRenderer!: ImageRenderer // 图片渲染器
 
-	constructor(ofdDocument: OfdDocument) {
+	constructor(ofdDocument: OfdDocument, pageContainer: HTMLDivElement, pageCanvas: HTMLCanvasElement) {
 		super()
 		this.ofdDocument = ofdDocument
+		this.pageCanvas = pageCanvas
+		this.pageContainer = pageContainer
 		this.#initPageContainer()
 	}
 
@@ -78,7 +81,6 @@ export class CanvasContentLayer extends Layer {
 		try {
 			let contentData = parser.findValueByTagName(pageData, OFD_KEY.Content)
 			if(contentData) {
-				this.pageCanvas = pageContainer.firstChild as HTMLCanvasElement
 				const ctx = this.pageCanvas.getContext('2d')
 				if (!ctx) {
 					console.error("无法获取canvas上下文")

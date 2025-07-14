@@ -350,7 +350,7 @@ export class TextRenderer {
 					// 检查是否为纯缩放矩阵（b和c为0）
 					const isPureScale = Math.abs(b) < 0.001 && Math.abs(c) < 0.001
 
-										if (isPureScale) {
+					if (isPureScale) {
 						// 纯缩放矩阵，可以分解为缩放和平移
 						const scaleX = a
 						const scaleY = d
@@ -366,7 +366,7 @@ export class TextRenderer {
 						this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
 						this.pageCanvasCtx.scale(scaleX, scaleY)
 						this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
-										} else {
+					} else {
 						// 复杂变换矩阵，包含旋转或倾斜
 						if (this.configManager.shouldLogCTMTransform()) {
 							console.log("复杂变换矩阵，包含旋转或倾斜")

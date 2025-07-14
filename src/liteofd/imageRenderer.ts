@@ -4,16 +4,19 @@ import * as parser from "./parser"
 import { AttributeKey, OFD_KEY } from "./attrType"
 import { convertToBox, convertToDpi } from "./utils/utils"
 import PromiseCapability from "./promiseCapability"
+import { ConfigManager } from "../config/configManager"
 
 // 图片渲染器类
 export class ImageRenderer {
 	private ofdDocument: OfdDocument
 	private pageCanvasCtx: CanvasRenderingContext2D
 	private mediaFileList: XmlData[] // 多媒体节点的数组
+	private configManager: ConfigManager
 
 	constructor(ofdDocument: OfdDocument, pageCanvasCtx: CanvasRenderingContext2D) {
 		this.ofdDocument = ofdDocument
 		this.pageCanvasCtx = pageCanvasCtx
+		this.configManager = ConfigManager.getInstance()
 		if (ofdDocument.mediaFileList) {
 			this.mediaFileList = ofdDocument.mediaFileList
 		} else {
@@ -62,8 +65,10 @@ export class ImageRenderer {
 		// }
 
 		if (boundaryBox) {
-			// 应用CTM变换
-			// this.applyCTMTransform(nodeData)
+			// 先应用CTM变换
+			this.applyCTMTransform(nodeData, boundaryBox)
+			// 在变换后的坐标系中绘制边界框
+			this.drawImageBoundaryBox(boundaryBox)
 			// 绘制图片
 			this.drawCanvasImage(nodeData, boundaryBox)
 		}
@@ -74,10 +79,10 @@ export class ImageRenderer {
 	 * @param imgNode 图片的节点数据
 	 * @private
 	 */
-	#loadImageSourceData(imgNode: XmlData): PromiseCapability {
+	#loadImageSourceData(imgNode: XmlData): PromiseCapability<string> {
 		let imgName = imgNode.value
 		let upperCaseImgName = imgName.toUpperCase() // 这里默认名字是唯一表示图片资源的
-		let loadedPromise = new PromiseCapability()
+		let loadedPromise = new PromiseCapability<string>()
 		// 查看是否已经加载
 		if(this.ofdDocument.loadedMediaFile.has(upperCaseImgName)) {
 			let imgData = this.ofdDocument.loadedMediaFile.get(upperCaseImgName)
@@ -110,14 +115,14 @@ export class ImageRenderer {
 	 * @param nodeData
 	 * @private
 	 */
-	#findImageMediaData(nodeData: XmlData): PromiseCapability | null {
+	#findImageMediaData(nodeData: XmlData): PromiseCapability<string> | null {
 		let imgResourceID = parser.findAttributeValueByKey(nodeData, AttributeKey.ResourceID)
 		if (imgResourceID) {
 			let mediaNodeRoot = this.mediaFileList[0]
 			if (mediaNodeRoot) {
 				let firstMediaNode = mediaNodeRoot.children[0]
 				let isSingle = isNaN(Number(firstMediaNode.tagName))
-				let tempNodeList = []
+				let tempNodeList: XmlData[] = []
 				if (isSingle) {
 					tempNodeList = [mediaNodeRoot]
 				} else {
@@ -256,23 +261,36 @@ export class ImageRenderer {
 	/**
 	 * 应用CTM变换
 	 * @param nodeData 节点数据
+	 * @param boundaryBox 图片位置
 	 */
-	private applyCTMTransform(nodeData: XmlData) {
+	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; }) {
 		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
 		if (ctmStr) {
+			if (this.configManager.shouldLogCTMTransform()) {
+				console.log("image ctm text", ctmStr)
+			}
 			const ctms = ctmStr.split(' ')
 			if (ctms.length >= 6) {
-				const a = parseFloat(ctms[0])
-				const b = parseFloat(ctms[1])
-				const c = parseFloat(ctms[2])
-				const d = parseFloat(ctms[3])
+				// 参考ImageSvg的addCTM实现
+				const a = convertToDpi(parseFloat(ctms[0])) / boundaryBox.width
+				const b = convertToDpi(parseFloat(ctms[1])) / boundaryBox.width
+				const c = convertToDpi(parseFloat(ctms[2])) / boundaryBox.height
+				const d = convertToDpi(parseFloat(ctms[3])) / boundaryBox.height
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
 
+				if (this.configManager.shouldLogCTMTransform()) {
+					console.log("CTM矩阵:", { a, b, c, d, e, f })
+					console.log("图像绘制 应用CTM变换")
+				}
+
+				// 直接使用setTransform应用矩阵变换
 				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
 			}
 		}
 	}
+
+
 
 	/**
 	 * 绘制图片的boundaryBox边框，用于调试

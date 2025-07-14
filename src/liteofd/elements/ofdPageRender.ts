@@ -11,11 +11,12 @@ import { CanvasContentLayer } from "../canvasContentLayer"
  */
 export class OfdPageRender {
 	private contentLayer: ContentLayer // 使用svg进行绘制内容层
-	private canvasContentLayer: CanvasContentLayer // 使用canvas进行绘制内容层
+	private canvasContentLayer: CanvasContentLayer | null // 使用canvas进行绘制内容层
 	private ofdPage: XmlData // 页面数据，包含签名数据
 	private readonly renderPromise: PromiseCapability
 	private ofdDocument: OfdDocument
 	private pageContainer: HTMLDivElement
+	private pageCanvas: HTMLCanvasElement
 	private isCanvasRender: boolean = true // 是否使用canvas进行绘制内容
 
 
@@ -39,12 +40,17 @@ export class OfdPageRender {
 	// 使用canvas进行绘制渲染
 	#renderCanvasContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
 		console.log("create canvas content layer 1")
-		this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument)
-		this.canvasContentLayer.render(pageData, pageContainer)
+		this.canvasContentLayer?.render(pageData, pageContainer)
 	}
 
-	render(container: HTMLDivElement) {
+	render(container: HTMLDivElement, canvasContentLayer: CanvasContentLayer | null = null, pageCanvas: HTMLCanvasElement) {
 		this.pageContainer = container
+		this.pageCanvas = pageCanvas
+		if (!canvasContentLayer) {
+			this.canvasContentLayer = canvasContentLayer
+		} else {
+			this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument, this.pageContainer, this.pageCanvas)
+		}
 		this.#render()
 		// 开始进行渲染
 		return this.renderPromise

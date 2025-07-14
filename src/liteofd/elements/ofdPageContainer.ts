@@ -13,7 +13,6 @@ import { RootDocPath } from "../parser"
 import { SignatureElement } from "../elements/SignatureElement"
 import { OfdAnnotationElement } from "./ofdAnnotationElement"
 import { CanvasContentLayer } from "../canvasContentLayer"
-import { createOFDCanvas } from "../ofdCanvas"
 
 /**
  * OFD的页面渲染容器，里面有一个pageRender用来调用页面的渲染功能进行 内容的渲染
@@ -23,8 +22,10 @@ export class OfdPageContainer {
 	private ofdDocument: OfdDocument // ofd的文档数据
 	private pageData: XmlData // 当前页面的数据
 	private contentLayer: ContentLayer // 渲染的内容层，包含textcode和模板等
-	private canvasContentLayer: CanvasContentLayer // 使用canvas渲染的渲染的内容层，包含textcode和模板等
+	private canvasContentLayer: CanvasContentLayer // 使用canvas渲染的渲染的内容层，包含textcode和模板等，包裹canvas进行绘制
 	private isCanvasRender: Boolean = true // 默认使用canvas渲染
+	private pageContainer: HTMLDivElement // 包裹canvas的div组件
+	private pageCanvas: HTMLCanvasElement // 绘制内容的canvas组件
 
 	/**
 	 * 初始化页面
@@ -50,7 +51,9 @@ export class OfdPageContainer {
 	// 渲染内容层
 	#renderCanvasContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
 		console.log("create canvas content layer 2")
-		this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument)
+		if (!this.canvasContentLayer) {
+			this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument, this.pageContainer, this.pageCanvas)
+		}
 		this.canvasContentLayer.render(pageData, pageContainer)
 	}
 
@@ -152,8 +155,11 @@ export class OfdPageContainer {
 	 */
 	async #renderPageAsync(pageData: XmlData, pageContainer: HTMLDivElement){
 		let pageRender = new OfdPageRender(this.ofdDocument, pageData)
+		if (!this.canvasContentLayer) {
+			this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument, this.pageContainer, this.pageCanvas)
+		}
 		// 开启异步渲染页面内容，内容层
-		let renderPromise = pageRender.render(pageContainer)
+		let renderPromise = pageRender.render(pageContainer, this.canvasContentLayer, this.pageCanvas)
 		renderPromise.promise
 			.then(res => {
 				// console.log("render page finis", res)
@@ -174,12 +180,12 @@ export class OfdPageContainer {
 	 */
 	getPageElement(): HTMLDivElement {
 		// 首先添加div，然后页面的内容使用也不进行渲染
-		let pageContainer = this.#createPageContainer(this.pageData)
-		let pageCanvas = this.#createPageCanvas(this.pageData)
-		pageContainer.appendChild(pageCanvas)
-		this.#renderPageAsync(this.pageData, pageContainer)
+		this.pageContainer = this.#createPageContainer(this.pageData)
+		this.pageCanvas = this.#createPageCanvas(this.pageData)
+		this.pageContainer.appendChild(this.pageCanvas)
+		this.#renderPageAsync(this.pageData, this.pageContainer)
 
-		return pageContainer
+		return this.pageContainer
 	}
 
 
