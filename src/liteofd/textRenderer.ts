@@ -110,7 +110,8 @@ export class TextRenderer {
 					const currentFillStyle = this.pageCanvasCtx.fillStyle
 					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
 					let currentX = boundaryBox.x + parseFloat(originX)
-					let currentY = boundaryBox.y + boundaryBox.height - parseFloat(originY)
+					// Y位置从boundaryBox顶部开始，到字符串的基线位置
+					let currentY = boundaryBox.y + convertToDpi(parseFloat(originY))
 
 					for (let i = 0; i < text.length; i++) {
 						const charText = text[i]
@@ -154,7 +155,8 @@ export class TextRenderer {
 
 					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
 					let currentX = boundaryBox.x + parseFloat(originX)
-					let currentY = boundaryBox.y + boundaryBox.height - parseFloat(originY)
+					// Y位置从boundaryBox顶部开始，到字符串的基线位置
+					let currentY = boundaryBox.y + convertToDpi(parseFloat(originY))
 
 					for (let i = 0; i < text.length; i++) {
 						const charText = text[i]
