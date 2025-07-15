@@ -66,7 +66,7 @@ export class ImageRenderer {
 
 		if (boundaryBox) {
 			// 先应用CTM变换
-			this.applyCTMTransform(nodeData, boundaryBox)
+			this.applyCTMTransform(nodeData)
 			// 在变换后的坐标系中绘制边界框
 			// this.drawImageBoundaryBox(boundaryBox)
 			// 绘制图片
@@ -259,32 +259,21 @@ export class ImageRenderer {
 	}
 
 	/**
-	 * 应用CTM变换
+	 * 应用CTM变换（直接设置当前变换矩阵）
 	 * @param nodeData 节点数据
-	 * @param boundaryBox 图片位置
 	 */
-	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; }) {
+	private applyCTMTransform(nodeData: XmlData) {
 		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
 		if (ctmStr) {
-			if (this.configManager.shouldLogCTMTransform()) {
-				console.log("image ctm text", ctmStr)
-			}
 			const ctms = ctmStr.split(' ')
 			if (ctms.length >= 6) {
-				// 参考ImageSvg的addCTM实现
-				const a = convertToDpi(parseFloat(ctms[0])) / boundaryBox.width
-				const b = convertToDpi(parseFloat(ctms[1])) / boundaryBox.width
-				const c = convertToDpi(parseFloat(ctms[2])) / boundaryBox.height
-				const d = convertToDpi(parseFloat(ctms[3])) / boundaryBox.height
+				const a = parseFloat(ctms[0])
+				const b = parseFloat(ctms[1])
+				const c = parseFloat(ctms[2])
+				const d = parseFloat(ctms[3])
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
-
-				if (this.configManager.shouldLogCTMTransform()) {
-					console.log("CTM矩阵:", { a, b, c, d, e, f })
-					console.log("图像绘制 应用CTM变换")
-				}
-
-				// 直接使用setTransform应用矩阵变换
+				this.pageCanvasCtx.save()
 				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
 			}
 		}

@@ -4,15 +4,18 @@ import * as parser from "./parser"
 import { AttributeKey, OFD_KEY } from "./attrType"
 import { parseColor } from "./utils/elementUtils"
 import { convertToBox, convertToDpi, calPathPoint, convertPathAbbreviatedDatatoPoint } from "./utils/utils"
+import { ConfigManager } from "../config/configManager"
 
 // 路径渲染器类
 export class PathRenderer {
 	private ofdDocument: OfdDocument
 	private pageCanvasCtx: CanvasRenderingContext2D
+	private configManager: ConfigManager
 
 	constructor(ofdDocument: OfdDocument, pageCanvasCtx: CanvasRenderingContext2D) {
 		this.ofdDocument = ofdDocument
 		this.pageCanvasCtx = pageCanvasCtx
+		this.configManager = ConfigManager.getInstance()
 	}
 
 	/**
@@ -60,11 +63,16 @@ export class PathRenderer {
 		this.setCanvasPathStyle(nodeData)
 		// 绘制路径 - 在boundaryBox位置绘制
 		this.drawCanvasPath(points, boundaryBox)
+
+		// 根据id判断是否绘制边界框
+		if (id === "81" && boundaryBox) {
+			this.drawPathBoundaryBox(boundaryBox)
+		}
 		// console.log("Canvas绘制路径:", nodeData, "点数:", points.length, "boundaryBox:", boundaryBox)
 	}
 
 	/**
-	 * 应用CTM变换
+	 * 应用CTM变换（直接设置当前变换矩阵）
 	 * @param nodeData 节点数据
 	 */
 	private applyCTMTransform(nodeData: XmlData) {
@@ -78,7 +86,7 @@ export class PathRenderer {
 				const d = parseFloat(ctms[3])
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
-
+				this.pageCanvasCtx.save()
 				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
 			}
 		}
@@ -93,7 +101,6 @@ export class PathRenderer {
 		console.log("add path draw params", drawParamID)
 		if (drawParamID) {
 			let drawParamNode = parser.findNodeByAttributeKeyValue(drawParamID, AttributeKey.ID, this.ofdDocument.publicRes)
-			debugger
 			if (drawParamNode) {
 				// 填充颜色
 				this.#addFillColor(drawParamNode)
@@ -383,6 +390,32 @@ export class PathRenderer {
 
 		// 只进行描边，不进行填充
 		ctx.stroke()
+	}
+
+	/**
+	 * 分解CTM矩阵为缩放、旋转和平移
+	 * @param a b c d e f CTM矩阵参数
+	 * @returns 分解后的变换参数
+	 */
+	private decomposeCTM(a: number, b: number, c: number, d: number, e: number, f: number) {
+		// 计算缩放因子
+		const scaleX = Math.sqrt(a * a + b * b)
+		const scaleY = Math.sqrt(c * c + d * d)
+
+		// 计算旋转角度（弧度）
+		const rotation = Math.atan2(b, a)
+
+		// 平移量
+		const translateX = e
+		const translateY = f
+
+		return {
+			scaleX,
+			scaleY,
+			rotation,
+			translateX,
+			translateY
+		}
 	}
 
 	/**
