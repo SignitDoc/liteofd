@@ -68,7 +68,7 @@ export class ImageRenderer {
 			// 先应用CTM变换
 			this.applyCTMTransform(nodeData, boundaryBox)
 			// 在变换后的坐标系中绘制边界框
-			this.drawImageBoundaryBox(boundaryBox)
+			// this.drawImageBoundaryBox(boundaryBox)
 			// 绘制图片
 			this.drawCanvasImage(nodeData, boundaryBox)
 		}

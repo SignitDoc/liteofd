@@ -27,6 +27,19 @@ export class CanvasContentLayer extends Layer {
 		this.ofdDocument = ofdDocument
 		this.pageCanvas = pageCanvas
 		this.pageContainer = pageContainer
+		// 获取绘制的参数，textrender和pathrender等
+		const ctx = this.pageCanvas.getContext('2d')
+		if (!ctx) {
+			console.error("无法获取canvas上下文")
+			return null
+		}
+		this.pageCanvasCtx = ctx
+		// 初始化文本渲染器
+		this.textRenderer = new TextRenderer(this.ofdDocument, this.pageCanvasCtx)
+		// 初始化路径渲染器
+		this.pathRenderer = new PathRenderer(this.ofdDocument, this.pageCanvasCtx)
+		// 初始化图片渲染器
+		this.imageRenderer = new ImageRenderer(this.ofdDocument, this.pageCanvasCtx)
 		this.#initPageContainer()
 	}
 
@@ -81,18 +94,6 @@ export class CanvasContentLayer extends Layer {
 		try {
 			let contentData = parser.findValueByTagName(pageData, OFD_KEY.Content)
 			if(contentData) {
-				const ctx = this.pageCanvas.getContext('2d')
-				if (!ctx) {
-					console.error("无法获取canvas上下文")
-					return null
-				}
-				this.pageCanvasCtx = ctx
-				// 初始化文本渲染器
-				this.textRenderer = new TextRenderer(this.ofdDocument, this.pageCanvasCtx)
-				// 初始化路径渲染器
-				this.pathRenderer = new PathRenderer(this.ofdDocument, this.pageCanvasCtx)
-				// 初始化图片渲染器
-				this.imageRenderer = new ImageRenderer(this.ofdDocument, this.pageCanvasCtx)
 				// 渲染内容层
 				this.#initPageContainer()
 				this.#renderPageContent(contentData, pageContainer)

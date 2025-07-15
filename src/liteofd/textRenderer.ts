@@ -26,11 +26,40 @@ export class TextRenderer {
 	 * @param pageContainer 页面容器
 	 */
 	renderTextObject(nodeObjs: XmlData, pageContainer: Element) {
+		console.log("textrender draw text", this.pageCanvasCtx, this.pageCanvasCtx.canvas)
+
+		// 获取canvas的缩放信息
+		const canvas = this.pageCanvasCtx.canvas
+		const devicePixelRatio = window.devicePixelRatio || 1
+		const rect = canvas.getBoundingClientRect()
+		const scaleX = rect.width / canvas.width
+		const scaleY = rect.height / canvas.height
+
+		console.log("Canvas缩放信息:", {
+			canvasWidth: canvas.width,
+			canvasHeight: canvas.height,
+			rectWidth: rect.width,
+			rectHeight: rect.height,
+			scaleX: scaleX,
+			scaleY: scaleY,
+			devicePixelRatio: devicePixelRatio,
+			canvasId: canvas.id,
+			canvasClass: canvas.className
+		})
+
 		// 多个文本子节点
 		for (let i = 0; i < nodeObjs.children.length; i++) {
 			let nodeData = nodeObjs.children[i]
 			this.renderSingleTextObject(nodeData, pageContainer)
 		}
+
+		// 测试位置
+		// 148.5 18.5 16 3.6
+		// 69 7 72 7.6749
+		// let testBoundary = {x: convertToDpi(1), y: convertToDpi(1), width: convertToDpi(210), height: convertToDpi(260)}
+		// this.drawTextBoundaryBox(
+		// 	testBoundary,
+		// 	true)
 	}
 
 	/**
@@ -76,6 +105,8 @@ export class TextRenderer {
 				// 获取HScale和VScale属性
 				const hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale) || 1
 				const vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale) || 1
+				const hScaleValue = parseFloat(hScale + "")
+				const vScaleValue = parseFloat(vScale + "")
 
 				// 获取DeltaX和DeltaY属性
 				const deltaX = getDeltaList(text, textCode, AttributeKey.DeltaX)
@@ -86,8 +117,8 @@ export class TextRenderer {
 				const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
 				// 如果存在缩放属性，应用matrix变换
 				if (hScale || vScale) {
-					const hScaleValue = hScale ? parseFloat(hScale+"") : 1
-					const vScaleValue = vScale ? parseFloat(vScale+"") : 1
+					// const hScaleValue = hScale ? parseFloat(hScale+"") : 1
+					// const vScaleValue = vScale ? parseFloat(vScale+"") : 1
 
 					// 在文本绘制位置应用缩放变换
 					this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
@@ -136,8 +167,8 @@ export class TextRenderer {
 							}
 
 							// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
-							currentX += convertToDpi(deltaXValue / hScale)
-							currentY += convertToDpi(deltaYValue / vScale)
+							currentX += convertToDpi(deltaXValue / hScaleValue)
+							currentY += convertToDpi(deltaYValue / vScaleValue)
 						}
 					}
 					if (this.configManager.shouldLogTextRendering()) {
@@ -146,12 +177,12 @@ export class TextRenderer {
 				} else {
 					// 普通字体也需要使用DeltaX来设置字符位置
 					// 获取DeltaX和DeltaY属性
-					const deltaX = getDeltaList(text, textCode, AttributeKey.DeltaX)
-					const deltaY = getDeltaList(text, textCode, AttributeKey.DeltaY)
-
-					// 获取文本的起始位置（相对于boundaryBox）
-					const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
-					const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
+					// const deltaX = getDeltaList(text, textCode, AttributeKey.DeltaX)
+					// const deltaY = getDeltaList(text, textCode, AttributeKey.DeltaY)
+					//
+					// // 获取文本的起始位置（相对于boundaryBox）
+					// const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
+					// const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
 
 					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
 					let currentX = boundaryBox.x + parseFloat(originX)
@@ -178,8 +209,8 @@ export class TextRenderer {
 							}
 
 							// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
-							currentX += convertToDpi(deltaXValue / hScale)
-							currentY += convertToDpi(deltaYValue / vScale)
+							currentX += convertToDpi(deltaXValue / hScaleValue)
+							currentY += convertToDpi(deltaYValue / vScaleValue)
 						}
 					}
 
@@ -388,6 +419,7 @@ export class TextRenderer {
 							this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
 							this.pageCanvasCtx.scale(decomposed.scaleX, decomposed.scaleY)
 							this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
+							this.pageCanvasCtx.restore()
 						} catch (error) {
 							console.error("CTM变换应用失败:", error)
 							// 恢复状态
@@ -435,11 +467,14 @@ export class TextRenderer {
 	 * 绘制文本的boundaryBox边框，用于调试
 	 * @param boundaryBox 边界框
 	 */
-	private drawTextBoundaryBox(boundaryBox: { x: number; y: number; width: number; height: number; }) {
+	private drawTextBoundaryBox(boundaryBox: { x: number; y: number; width: number; height: number; }, forceDraw: boolean = false) {
 		// 检查配置是否启用边界框绘制
-		if (!this.configManager.shouldDrawTextBoundaryBox()) {
-			return
+		if (!forceDraw) {
+			if (!this.configManager.shouldDrawTextBoundaryBox()) {
+				return
+			}
 		}
+
 
 		const ctx = this.pageCanvasCtx
 
