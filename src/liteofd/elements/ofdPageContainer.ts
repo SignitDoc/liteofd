@@ -133,6 +133,9 @@ export class OfdPageContainer {
 	#createPageCanvas(pageData: XmlData): HTMLCanvasElement{
 		let pageCanvas = document.createElement("canvas")
 
+		// 根据创建时间设置canvas的id
+		const timestamp = Date.now()
+		pageCanvas.setAttribute("id", `page-canvas-${timestamp}`)
 		pageCanvas.setAttribute("class", "page-canvas")
 		let physicsBoxObj = parser.findValueByTagName(pageData, OFD_KEY.PhysicalBox)
 		// 如果页面的宽度为空，那么使用整体的页面布局
@@ -158,21 +161,25 @@ export class OfdPageContainer {
 		if (!this.canvasContentLayer) {
 			this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument, this.pageContainer, this.pageCanvas)
 		}
-		// 开启异步渲染页面内容，内容层
-		let renderPromise = pageRender.render(pageContainer, this.canvasContentLayer, this.pageCanvas)
-		renderPromise.promise
-			.then(res => {
-				// console.log("render page finis", res)
-			})
-			.catch(err => {
-				console.log("render page err", err)
-			})
 		// 模板层
 		this.#renderTemplateLayer(pageData, pageContainer)
 		// 需要用page外层的signlist数据
 		this.#renderSignatures(pageData, pageContainer)
 		// 渲染注释层
 		this.#renderAnnotLayer(pageData, pageContainer)
+
+		setTimeout(() => {
+			// 开启异步渲染页面内容，内容层
+			let renderPromise = pageRender.render(pageContainer, this.canvasContentLayer, this.pageCanvas)
+			renderPromise.promise
+				.then(res => {
+					// console.log("render page finis", res)
+				})
+				.catch(err => {
+					console.log("render page err", err)
+				})
+		}, 10)
+
 	}
 
 	/**
