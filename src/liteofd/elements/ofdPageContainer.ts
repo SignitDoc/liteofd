@@ -167,19 +167,15 @@ export class OfdPageContainer {
 		this.#renderSignatures(pageData, pageContainer)
 		// 渲染注释层
 		this.#renderAnnotLayer(pageData, pageContainer)
-
-		setTimeout(() => {
-			// 开启异步渲染页面内容，内容层
-			let renderPromise = pageRender.render(pageContainer, this.canvasContentLayer, this.pageCanvas)
-			renderPromise.promise
-				.then(res => {
-					// console.log("render page finis", res)
-				})
-				.catch(err => {
-					console.log("render page err", err)
-				})
-		}, 10)
-
+		// 开启异步渲染页面内容，内容层
+		let renderPromise = pageRender.render(pageContainer, this.canvasContentLayer, this.pageCanvas)
+		renderPromise.promise
+			.then(res => {
+				// console.log("render page finis", res)
+			})
+			.catch(err => {
+				console.log("render page err", err)
+			})
 	}
 
 	/**

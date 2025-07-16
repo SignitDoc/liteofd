@@ -74,7 +74,7 @@ export class OfdPageRender {
 			} catch (e) {
 				this.renderPromise.reject(e)
 			}
-		}, 0)
+		}, 10)
 	}
 
 	/**

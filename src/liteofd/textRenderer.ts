@@ -81,6 +81,7 @@ export class TextRenderer {
 			}
 
 			// 获取文本位置
+			let textID = parser.findAttributeValueByKey(nodeData, AttributeKey.ID)
 			let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
 			let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
 			if (boundaryStr) {
@@ -98,33 +99,47 @@ export class TextRenderer {
 				let opentypeFont = this.setCanvasFont(nodeData, fontId)
 				// 设置文本颜色
 				this.setCanvasTextColor(nodeData)
-				// 应用CTM变换
-				this.applyCTMTransform(nodeData)
 				// 添加绘制param
 				this.#addDrawParam(nodeData)
-				// 获取HScale和VScale属性
-				const hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale) || 1
-				const vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale) || 1
-				const hScaleValue = parseFloat(hScale + "")
-				const vScaleValue = parseFloat(vScale + "")
+
+				let hScaleValue = 1
+				let vScaleValue = 1
+				const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
+				if (ctmStr) {
+					const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
+					let ctms = ctmStr.split(" ")
+					const a = parseFloat(ctms[0])
+					const b = parseFloat(ctms[1])
+					const c = parseFloat(ctms[2])
+					const d = parseFloat(ctms[3])
+					const e = parseFloat(ctms[4])
+					const f = parseFloat(ctms[5])
+
+					this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y)
+					this.pageCanvasCtx.transform(a, b, c, d, e, f)
+					this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y))
+				} else {
+					// 获取HScale和VScale属性
+					const hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale) || 1
+					const vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale) || 1
+					hScaleValue = parseFloat(hScale + "")
+					vScaleValue = parseFloat(vScale + "")
+					// 如果存在缩放属性，应用matrix变换
+					if (hScale || vScale) {
+						// 在文本绘制位置应用缩放变换
+						this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y)
+						this.pageCanvasCtx.scale(hScaleValue, vScaleValue)
+						this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y))
+					}
+				}
 
 				// 获取DeltaX和DeltaY属性
 				const deltaX = getDeltaList(text, textCode, AttributeKey.DeltaX)
 				const deltaY = getDeltaList(text, textCode, AttributeKey.DeltaY)
-
 				// 获取文本的起始位置（相对于boundaryBox）
 				const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
 				const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
-				// 如果存在缩放属性，应用matrix变换
-				if (hScale || vScale) {
-					// const hScaleValue = hScale ? parseFloat(hScale+"") : 1
-					// const vScaleValue = vScale ? parseFloat(vScale+"") : 1
 
-					// 在文本绘制位置应用缩放变换
-					this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
-					this.pageCanvasCtx.scale(hScaleValue, vScaleValue)
-					this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
-				}
 				if (opentypeFont) {
 					let options: any = {
 						kerning: true,
@@ -175,15 +190,6 @@ export class TextRenderer {
 						console.log("Canvas opentype 绘制文本", text, "位置:", boundaryBox.x, boundaryBox.y, "textobject:", nodeData, boundaryBox)
 					}
 				} else {
-					// 普通字体也需要使用DeltaX来设置字符位置
-					// 获取DeltaX和DeltaY属性
-					// const deltaX = getDeltaList(text, textCode, AttributeKey.DeltaX)
-					// const deltaY = getDeltaList(text, textCode, AttributeKey.DeltaY)
-					//
-					// // 获取文本的起始位置（相对于boundaryBox）
-					// const originX = parser.findAttributeValueByKey(textCode, AttributeKey.X) || "0"
-					// const originY = parser.findAttributeValueByKey(textCode, AttributeKey.Y) || "0"
-
 					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
 					let currentX = boundaryBox.x + parseFloat(originX)
 					// Y位置从boundaryBox顶部开始，到字符串的基线位置
@@ -227,6 +233,125 @@ export class TextRenderer {
 			this.pageCanvasCtx.restore()
 		}
 	}
+
+	/**
+	 * 应用CTM变换
+	 * @param nodeData 节点数据
+	 * @param boundaryBox 文本位置
+	 */
+	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; }) {
+		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
+		if (ctmStr) {
+			if (this.configManager.shouldLogCTMTransform()) {
+				console.log("text ctm text", ctmStr)
+			}
+			const ctms = ctmStr.split(' ')
+			if (ctms.length >= 6) {
+				const a = parseFloat(ctms[0])
+				const b = parseFloat(ctms[1])
+				const c = parseFloat(ctms[2])
+				const d = parseFloat(ctms[3])
+				const e = parseFloat(ctms[4])
+				const f = parseFloat(ctms[5])
+
+				if (this.configManager.shouldLogCTMTransform()) {
+					console.log("CTM矩阵:", { a, b, c, d, e, f })
+				}
+
+				// 检查CTM矩阵是否为单位矩阵（无变换）
+				const isIdentity = Math.abs(a - 1) < 0.001 && Math.abs(b) < 0.001 &&
+					Math.abs(c) < 0.001 && Math.abs(d - 1) < 0.001 &&
+					Math.abs(e) < 0.001 && Math.abs(f) < 0.001
+
+				if (!isIdentity) {
+					if (this.configManager.shouldLogCTMTransform()) {
+						console.log("应用CTM变换")
+					}
+
+					// 检查是否为纯缩放矩阵（b和c为0）
+					const isPureScale = Math.abs(b) < 0.001 && Math.abs(c) < 0.001
+
+					if (isPureScale) {
+						// 纯缩放矩阵，可以分解为缩放和平移
+						const scaleX = a
+						const scaleY = d
+						const translateX = e
+						const translateY = f
+
+						if (this.configManager.shouldLogCTMTransform()) {
+							console.log("纯缩放矩阵 - 缩放:", scaleX, scaleY, "平移:", translateX, translateY)
+						}
+
+						// 先应用平移，再应用缩放
+						this.pageCanvasCtx.translate(translateX, translateY)
+						this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
+						this.pageCanvasCtx.scale(scaleX, scaleY)
+						this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
+					} else {
+						// 复杂变换矩阵，包含旋转或倾斜
+						if (this.configManager.shouldLogCTMTransform()) {
+							console.log("复杂变换矩阵，包含旋转或倾斜")
+						}
+
+						// 分解CTM矩阵
+						const decomposed = this.decomposeCTM(a, b, c, d, e, f)
+						if (this.configManager.shouldLogCTMTransform()) {
+							console.log("分解后的变换:", decomposed)
+						}
+
+						// 保存当前状态
+						this.pageCanvasCtx.save()
+
+						try {
+							// 按顺序应用变换：平移 -> 旋转 -> 缩放
+							this.pageCanvasCtx.translate(decomposed.translateX, decomposed.translateY)
+							this.pageCanvasCtx.rotate(decomposed.rotation)
+							this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y + boundaryBox.height)
+							this.pageCanvasCtx.scale(decomposed.scaleX, decomposed.scaleY)
+							this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y + boundaryBox.height))
+						} catch (error) {
+							console.error("CTM变换应用失败:", error)
+							// 恢复状态
+							// this.pageCanvasCtx.restore()
+							// // 尝试只应用平移
+							// this.pageCanvasCtx.translate(e, f)
+						}
+					}
+				} else {
+					if (this.configManager.shouldLogCTMTransform()) {
+						console.log("CTM为单位矩阵，跳过变换")
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * 分解CTM矩阵为缩放、旋转和平移
+	 * @param a b c d e f CTM矩阵参数
+	 * @returns 分解后的变换参数
+	 */
+	private decomposeCTM(a: number, b: number, c: number, d: number, e: number, f: number) {
+		// 计算缩放因子
+		const scaleX = Math.sqrt(a * a + b * b)
+		const scaleY = Math.sqrt(c * c + d * d)
+
+		// 计算旋转角度（弧度）
+		const rotation = Math.atan2(b, a)
+
+		// 平移量
+		const translateX = e
+		const translateY = f
+
+		return {
+			scaleX,
+			scaleY,
+			rotation,
+			translateX,
+			translateY
+		}
+	}
+
 
 	#addStrokeColor(nodeData: XmlData) {
 		let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
@@ -344,27 +469,32 @@ export class TextRenderer {
 		}
 	}
 
-	/**
-	 * 应用CTM变换（直接设置当前变换矩阵）
-	 * @param nodeData 节点数据
-	 */
-	private applyCTMTransform(nodeData: XmlData) {
-		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
-		if (ctmStr) {
-			const ctms = ctmStr.split(' ')
-			if (ctms.length >= 6) {
-				const a = parseFloat(ctms[0])
-				const b = parseFloat(ctms[1])
-				const c = parseFloat(ctms[2])
-				const d = parseFloat(ctms[3])
-				const e = convertToDpi(parseFloat(ctms[4]))
-				const f = convertToDpi(parseFloat(ctms[5]))
-				this.pageCanvasCtx.save()
-				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
-				this.pageCanvasCtx.restore()
-			}
-		}
-	}
+	// /**
+	//  * 应用CTM变换（直接设置当前变换矩阵）
+	//  * @param nodeData 节点数据
+	//  */
+	// private applyCTMTransform(nodeData: XmlData, ctmStr: string, boundaryBox) {
+	// 	if (ctmStr) {
+	// 		const ctms = ctmStr.split(' ')
+	// 		if (ctms.length >= 6) {
+	// 			const a = convertToDpi(parseFloat(ctms[0])) / boundaryBox.width
+	// 			const b = convertToDpi(parseFloat(ctms[1])) / boundaryBox.width
+	// 			const c = convertToDpi(parseFloat(ctms[2])) / boundaryBox.height
+	// 			const d = convertToDpi(parseFloat(ctms[3])) / boundaryBox.height
+	//
+	//
+	// 			// const a = parseFloat(ctms[0])
+	// 			// const b = parseFloat(ctms[1])
+	// 			// const c = parseFloat(ctms[2])
+	// 			// const d = parseFloat(ctms[3])
+	// 			const e = convertToDpi(parseFloat(ctms[4]))
+	// 			const f = convertToDpi(parseFloat(ctms[5]))
+	// 			this.pageCanvasCtx.save()
+	// 			this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
+	// 			this.pageCanvasCtx.restore()
+	// 		}
+	// 	}
+	// }
 
 	/**
 	 * 绘制文本的boundaryBox边框，用于调试
