@@ -361,6 +361,7 @@ export class TextRenderer {
 				const f = convertToDpi(parseFloat(ctms[5]))
 				this.pageCanvasCtx.save()
 				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
+				this.pageCanvasCtx.restore()
 			}
 		}
 	}

@@ -267,14 +267,20 @@ export class ImageRenderer {
 		if (ctmStr) {
 			const ctms = ctmStr.split(' ')
 			if (ctms.length >= 6) {
-				const a = convertToDpi(parseFloat(ctms[0])) / boundaryBox.width
-				const b = convertToDpi(parseFloat(ctms[1])) / boundaryBox.width
-				const c = convertToDpi(parseFloat(ctms[2])) / boundaryBox.height
-				const d = convertToDpi(parseFloat(ctms[3])) / boundaryBox.height
+				// const a = convertToDpi(parseFloat(ctms[0])) / boundaryBox.width
+				// const b = convertToDpi(parseFloat(ctms[1])) / boundaryBox.width
+				// const c = convertToDpi(parseFloat(ctms[2])) / boundaryBox.height
+				// const d = convertToDpi(parseFloat(ctms[3])) / boundaryBox.height
+
+				const a = parseFloat(ctms[0])
+				const b = parseFloat(ctms[1])
+				const c = parseFloat(ctms[2])
+				const d = parseFloat(ctms[3])
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
 				this.pageCanvasCtx.save()
 				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
+				this.pageCanvasCtx.restore()
 			}
 		}
 	}
