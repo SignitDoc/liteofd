@@ -47,6 +47,9 @@ export class ConfigUI {
 		// 创建功能配置区域
 		this.createFeaturesSection()
 
+		// 创建渲染页面配置区域
+		this.createRenderPagesSection()
+
 		// 创建按钮区域
 		this.createButtons()
 
@@ -149,6 +152,88 @@ export class ConfigUI {
 		this.createCheckbox(section, '启用文本选择', featuresConfig.enableTextSelection, (checked) => {
 			this.configManager.updateConfig({ features: { ...featuresConfig, enableTextSelection: checked } })
 		})
+
+		this.container!.appendChild(section)
+	}
+
+	private createRenderPagesSection(): void {
+		const section = document.createElement('div')
+		section.style.marginBottom = '15px'
+
+		const title = document.createElement('h4')
+		title.textContent = '渲染页面配置'
+		title.style.margin = '0 0 8px 0'
+		title.style.fontSize = '12px'
+		section.appendChild(title)
+
+		// 创建说明文字
+		const description = document.createElement('div')
+		description.textContent = '指定要渲染的页面索引（如：0,2 表示渲染第1和第3页），留空则渲染全部页面'
+		description.style.cssText = `
+			font-size: 10px;
+			color: #666;
+			margin-bottom: 8px;
+			line-height: 1.3;
+		`
+		section.appendChild(description)
+
+		// 创建输入框容器
+		const inputContainer = document.createElement('div')
+		inputContainer.style.display = 'flex'
+		inputContainer.style.alignItems = 'center'
+		inputContainer.style.marginBottom = '5px'
+
+		// 创建标签
+		const label = document.createElement('label')
+		label.textContent = '页面索引：'
+		label.style.cssText = `
+			font-size: 11px;
+			margin-right: 5px;
+			min-width: 60px;
+		`
+		inputContainer.appendChild(label)
+
+		// 创建输入框
+		const input = document.createElement('input')
+		input.type = 'text'
+		input.placeholder = '如：0,2'
+		input.style.cssText = `
+			flex: 1;
+			padding: 3px 5px;
+			font-size: 11px;
+			border: 1px solid #ccc;
+			border-radius: 3px;
+			width: 100px;
+		`
+
+		// 获取当前配置并设置输入框的值
+		const renderPages = this.configManager.getRenderPagesConfig()
+		if (renderPages && renderPages.length > 0) {
+			input.value = renderPages.join(',')
+		}
+
+		// 添加输入事件监听
+		input.addEventListener('input', (e) => {
+			const value = (e.target as HTMLInputElement).value.trim()
+			if (value === '') {
+				// 清空时删除配置
+				this.configManager.updateRenderPagesConfig(undefined)
+			} else {
+				// 解析输入的页面索引
+				const pageIndexes = value.split(',')
+					.map(s => s.trim())
+					.filter(s => s !== '')
+					.map(s => parseInt(s))
+					.filter(n => !isNaN(n))
+				
+				if (pageIndexes.length > 0) {
+					this.configManager.updateRenderPagesConfig(pageIndexes)
+				}
+			}
+		})
+
+		inputContainer.appendChild(input)
+		section.appendChild(inputContainer)
 
 		this.container!.appendChild(section)
 	}
