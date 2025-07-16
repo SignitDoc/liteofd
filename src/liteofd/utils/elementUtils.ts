@@ -82,7 +82,7 @@ export const extractTextToCharArray = (textStr: string, deltaXList: any[], delta
  * @param text 包含HTML实体的文本
  * @return 转换后的文本
  */
-const decodeHtmlEntities = (text: string): string => {
+export const decodeHtmlEntities = (text: string): string => {
   const entities: { [key: string]: string } = {
     '&lt;': '<',
     '&gt;': '>',

@@ -3,7 +3,7 @@ import { OfdDocument } from "./ofdDocument"
 import * as parser from "./parser"
 import { AttributeKey, OFD_KEY } from "./attrType"
 import { fontIdWithName, opentypeFonts } from "./ofdFont"
-import { getFontSize, parseColor, getDeltaList, extractTextToCharArray } from "./utils/elementUtils"
+import { getFontSize, parseColor, getDeltaList, extractTextToCharArray, decodeHtmlEntities } from "./utils/elementUtils"
 import { convertToBox, convertToDpi } from "./utils/utils"
 import opentype from "../opentype"
 import { ConfigManager } from "../config/configManager"
@@ -88,7 +88,8 @@ export class TextRenderer {
 
 			if (boundaryBox) {
 				let text = textCode?.value || ""
-
+				// 新增：对文本内容进行HTML实体解码，确保如&lt;等符号被正确渲染
+				text = decodeHtmlEntities(text)
 				// 根据配置决定是否绘制文本边界框
 				if (this.configManager.shouldDrawTextBoundaryBox()) {
 					this.drawTextBoundaryBox(boundaryBox)
