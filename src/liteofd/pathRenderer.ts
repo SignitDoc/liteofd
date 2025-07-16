@@ -42,6 +42,7 @@ export class PathRenderer {
 		// 	return
 		// }
 
+		this.pageCanvasCtx.save()
 		let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
 		let boundaryBox: { x: number; y: number; width: number; height: number; }
 		if (boundaryStr) {
@@ -64,10 +65,11 @@ export class PathRenderer {
 		// 绘制路径 - 在boundaryBox位置绘制
 		this.drawCanvasPath(points, boundaryBox)
 
+		this.pageCanvasCtx.restore()
 		// 根据id判断是否绘制边界框
-		if (id === "81" && boundaryBox) {
-			this.drawPathBoundaryBox(boundaryBox)
-		}
+		// if (id === "81" && boundaryBox) {
+		// 	this.drawPathBoundaryBox(boundaryBox)
+		// }
 		// console.log("Canvas绘制路径:", nodeData, "点数:", points.length, "boundaryBox:", boundaryBox)
 	}
 
@@ -91,9 +93,9 @@ export class PathRenderer {
 				const d = parseFloat(ctms[3])
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
-				this.pageCanvasCtx.save()
+				// this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y)
 				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
-				this.pageCanvasCtx.restore()
+				// this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y))
 			}
 		}
 	}
