@@ -69,19 +69,17 @@ export class TextRenderer {
 	 */
 	private renderSingleTextObject(nodeData: XmlData, pageContainer: Element) {
 		try {
-			// 保存当前canvas状态
-			this.pageCanvasCtx.save()
-
 			let fontId = parser.findAttributeValueByKey(nodeData, AttributeKey.FONT)
 			let textCode = parser.findValueByTagName(nodeData, OFD_KEY.TextCode)
+			let textID = parser.findAttributeValueByKey(nodeData, AttributeKey.ID)
 			// 检查textCode是否存在
 			if (!textCode) {
 				console.error("textCode不存在")
 				return
 			}
-
+			// 保存当前canvas状态
+			this.pageCanvasCtx.save()
 			// 获取文本位置
-			let textID = parser.findAttributeValueByKey(nodeData, AttributeKey.ID)
 			let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
 			let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
 			if (boundaryStr) {
@@ -155,7 +153,7 @@ export class TextRenderer {
 					// 获取当前canvas的fillStyle
 					const currentFillStyle = this.pageCanvasCtx.fillStyle
 					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
-					let currentX = boundaryBox.x + parseFloat(originX)
+					let currentX = boundaryBox.x + convertToDpi(parseFloat(originX))
 					// Y位置从boundaryBox顶部开始，到字符串的基线位置
 					let currentY = boundaryBox.y + convertToDpi(parseFloat(originY))
 
@@ -191,7 +189,7 @@ export class TextRenderer {
 					}
 				} else {
 					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
-					let currentX = boundaryBox.x + parseFloat(originX)
+					let currentX = boundaryBox.x + convertToDpi(parseFloat(originX))
 					// Y位置从boundaryBox顶部开始，到字符串的基线位置
 					let currentY = boundaryBox.y + convertToDpi(parseFloat(originY))
 
