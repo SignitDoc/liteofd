@@ -127,6 +127,16 @@ export class ConfigManager {
     this.saveConfig()
   }
 
+  public updatePerformanceConfig(performanceConfig: Partial<PerformanceConfig>): void {
+    this.config.performance = { ...this.config.performance, ...performanceConfig }
+    this.saveConfig()
+  }
+
+  public updateFeaturesConfig(featuresConfig: Partial<FeaturesConfig>): void {
+    this.config.features = { ...this.config.features, ...featuresConfig }
+    this.saveConfig()
+  }
+
   private saveConfig(): void {
     try {
       localStorage.setItem('liteofd-config', JSON.stringify(this.config))

@@ -3,6 +3,7 @@ import { ConfigManager } from './configManager'
 export class ConfigUI {
 	private configManager: ConfigManager
 	private container: HTMLDivElement | null = null
+	private saveSuccessTimer: number | null = null
 
 	constructor() {
 		this.configManager = ConfigManager.getInstance()
@@ -71,31 +72,37 @@ export class ConfigUI {
 		// 文本边界框
 		this.createCheckbox(section, '绘制文本边界框', debugConfig.drawTextBoundaryBox, (checked) => {
 			this.configManager.updateDebugConfig({ drawTextBoundaryBox: checked })
+			this.showSaveSuccess()
 		})
 
 		// 路径边界框
 		this.createCheckbox(section, '绘制路径边界框', debugConfig.drawPathBoundaryBox, (checked) => {
 			this.configManager.updateDebugConfig({ drawPathBoundaryBox: checked })
+			this.showSaveSuccess()
 		})
 
 		// 图像边界框
 		this.createCheckbox(section, '绘制图像边界框', debugConfig.drawImageBoundaryBox, (checked) => {
 			this.configManager.updateDebugConfig({ drawImageBoundaryBox: checked })
+			this.showSaveSuccess()
 		})
 
 		// CTM变换日志
 		this.createCheckbox(section, 'CTM变换日志', debugConfig.logCTMTransform, (checked) => {
 			this.configManager.updateDebugConfig({ logCTMTransform: checked })
+			this.showSaveSuccess()
 		})
 
 		// 文本渲染日志
 		this.createCheckbox(section, '文本渲染日志', debugConfig.logTextRendering, (checked) => {
 			this.configManager.updateDebugConfig({ logTextRendering: checked })
+			this.showSaveSuccess()
 		})
 
 		// 字体加载日志
 		this.createCheckbox(section, '字体加载日志', debugConfig.logFontLoading, (checked) => {
 			this.configManager.updateDebugConfig({ logFontLoading: checked })
+			this.showSaveSuccess()
 		})
 
 		this.container!.appendChild(section)
@@ -116,11 +123,13 @@ export class ConfigUI {
 		// 抗锯齿
 		this.createCheckbox(section, '启用抗锯齿', renderingConfig.enableAntialiasing, (checked) => {
 			this.configManager.updateRenderingConfig({ enableAntialiasing: checked })
+			this.showSaveSuccess()
 		})
 
 		// 文本渲染优化
 		this.createCheckbox(section, '文本渲染优化', renderingConfig.textRenderingOptimization, (checked) => {
 			this.configManager.updateRenderingConfig({ textRenderingOptimization: checked })
+			this.showSaveSuccess()
 		})
 
 		this.container!.appendChild(section)
@@ -140,17 +149,20 @@ export class ConfigUI {
 
 		// 缩放功能
 		this.createCheckbox(section, '启用缩放', featuresConfig.enableZoom, (checked) => {
-			this.configManager.updateConfig({ features: { ...featuresConfig, enableZoom: checked } })
+			this.configManager.updateFeaturesConfig({ enableZoom: checked })
+			this.showSaveSuccess()
 		})
 
 		// 平移功能
 		this.createCheckbox(section, '启用平移', featuresConfig.enablePan, (checked) => {
-			this.configManager.updateConfig({ features: { ...featuresConfig, enablePan: checked } })
+			this.configManager.updateFeaturesConfig({ enablePan: checked })
+			this.showSaveSuccess()
 		})
 
 		// 文本选择
 		this.createCheckbox(section, '启用文本选择', featuresConfig.enableTextSelection, (checked) => {
-			this.configManager.updateConfig({ features: { ...featuresConfig, enableTextSelection: checked } })
+			this.configManager.updateFeaturesConfig({ enableTextSelection: checked })
+			this.showSaveSuccess()
 		})
 
 		this.container!.appendChild(section)
@@ -218,6 +230,7 @@ export class ConfigUI {
 			if (value === '') {
 				// 清空时删除配置
 				this.configManager.updateRenderPagesConfig(undefined)
+				this.showSaveSuccess()
 			} else {
 				// 解析输入的页面索引
 				const pageIndexes = value.split(',')
@@ -228,6 +241,7 @@ export class ConfigUI {
 				
 				if (pageIndexes.length > 0) {
 					this.configManager.updateRenderPagesConfig(pageIndexes)
+					this.showSaveSuccess()
 				}
 			}
 		})
@@ -338,5 +352,57 @@ export class ConfigUI {
 			this.container.parentNode.removeChild(this.container)
 			this.container = null
 		}
+	}
+
+	/**
+	 * 显示保存成功提示
+	 */
+	private showSaveSuccess(): void {
+		// 清除之前的定时器
+		if (this.saveSuccessTimer) {
+			clearTimeout(this.saveSuccessTimer)
+		}
+
+		// 移除已存在的提示
+		const existingToast = document.querySelector('.liteofd-save-toast')
+		if (existingToast) {
+			existingToast.remove()
+		}
+
+		// 创建临时提示元素
+		const toast = document.createElement('div')
+		toast.className = 'liteofd-save-toast'
+		toast.textContent = '配置已保存到本地'
+		toast.style.cssText = `
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background: #4CAF50;
+			color: white;
+			padding: 10px 15px;
+			border-radius: 5px;
+			font-size: 12px;
+			z-index: 1001;
+			opacity: 0;
+			transition: opacity 0.3s;
+		`
+		
+		document.body.appendChild(toast)
+		
+		// 显示提示
+		setTimeout(() => {
+			toast.style.opacity = '1'
+		}, 10)
+		
+		// 2秒后自动移除
+		this.saveSuccessTimer = window.setTimeout(() => {
+			toast.style.opacity = '0'
+			setTimeout(() => {
+				if (toast.parentNode) {
+					toast.parentNode.removeChild(toast)
+				}
+			}, 300)
+		}, 2000)
 	}
 } 
