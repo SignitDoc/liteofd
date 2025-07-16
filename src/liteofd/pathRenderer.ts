@@ -38,16 +38,13 @@ export class PathRenderer {
 	 */
 	private renderSinglePathObject(nodeData: XmlData, pageContainer: Element) {
 		let id = parser.findAttributeValueByKey(nodeData, AttributeKey.ID)
-		// if (id === "7") {
-		// 	return
-		// }
-
-		this.pageCanvasCtx.save()
 		let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
 		let boundaryBox: { x: number; y: number; width: number; height: number; }
 		if (boundaryStr) {
 			boundaryBox = convertToBox(boundaryStr)
 		}
+		let idValue = parseInt(id)
+
 
 		// 获取路径数据
 		let abbreviatedData = parser.findValueByTagNameOfFirstNode(nodeData, OFD_KEY.AbbreviatedData)
@@ -56,6 +53,8 @@ export class PathRenderer {
 		}
 		// 计算路径点
 		const points = calPathPoint(convertPathAbbreviatedDatatoPoint(abbreviatedData.value))
+
+		this.pageCanvasCtx.save()
 		// 应用CTM变换
 		this.applyCTMTransform(nodeData, boundaryBox)
 		// 添加绘制param
@@ -64,7 +63,6 @@ export class PathRenderer {
 		this.setCanvasPathStyle(nodeData)
 		// 绘制路径 - 在boundaryBox位置绘制
 		this.drawCanvasPath(points, boundaryBox)
-
 		this.pageCanvasCtx.restore()
 		// 根据id判断是否绘制边界框
 		// if (id === "81" && boundaryBox) {
@@ -120,6 +118,16 @@ export class PathRenderer {
 				this.#addDashPattern(drawParamNode)
 				console.log("path drawParamNode", drawParamNode)
 			}
+		} else {
+			// 直接根据节点的填充来进行绘制设置颜色
+			let fillColor = parser.findAttributeValueByKey(nodeData, AttributeKey.Fill)
+			if (fillColor && JSON.parse(fillColor)) {
+				this.#addFillColor(nodeData)
+			}
+			let strokeColor = parser.findAttributeValueByKey(nodeData, AttributeKey.Stroke)
+			if (strokeColor && JSON.parse(strokeColor)) {
+				this.#addStrokeColor(nodeData)
+			}
 		}
 	}
 
@@ -133,6 +141,7 @@ export class PathRenderer {
 		if (strokeColorStr) {
 			let strokeColor = parseColor(strokeColorStr)
 			this.pageCanvasCtx.strokeStyle = strokeColor
+			this.pageCanvasCtx.stroke()
 		}
 	}
 
@@ -146,6 +155,7 @@ export class PathRenderer {
 		if (fillColorStr) {
 			let fillColor = parseColor(fillColorStr)
 			this.pageCanvasCtx.fillStyle = fillColor
+			this.pageCanvasCtx.fill()
 		}
 	}
 
@@ -198,37 +208,37 @@ export class PathRenderer {
 			ctx.setLineDash([])
 		}
 
-		// 设置描边颜色
-		let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
-		let strokeColorBoolean = parser.findAttributeValueByKey(nodeData, AttributeKey.Stroke)
-		let strokeColorStr = strokeColorObj && parser.findAttributeValueByKey(strokeColorObj, AttributeKey.Value)
-
-		if (strokeColorBoolean && JSON.parse(strokeColorBoolean)) {
-			if (strokeColorStr) {
-				ctx.strokeStyle = parseColor(strokeColorStr)
-			}
-		} else if (strokeColorStr) {
-			ctx.strokeStyle = parseColor(strokeColorStr)
-		}
-
-		// 设置填充颜色
-		let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
-		let fillColorBoolean = parser.findAttributeValueByKey(nodeData, AttributeKey.Fill)
-		let fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
-
-		if (fillColorBoolean) {
-			if (fillColorObj && fillColorStr) {
-				ctx.fillStyle = parseColor(fillColorStr)
-			} else {
-				ctx.fillStyle = 'none'
-			}
-		} else {
-			if (fillColorStr) {
-				ctx.fillStyle = parseColor(fillColorStr)
-			} else {
-				ctx.fillStyle = 'none'
-			}
-		}
+		// // 设置描边颜色
+		// let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
+		// let strokeColorBoolean = parser.findAttributeValueByKey(nodeData, AttributeKey.Stroke)
+		// let strokeColorStr = strokeColorObj && parser.findAttributeValueByKey(strokeColorObj, AttributeKey.Value)
+		//
+		// if (strokeColorBoolean && JSON.parse(strokeColorBoolean)) {
+		// 	if (strokeColorStr) {
+		// 		ctx.strokeStyle = parseColor(strokeColorStr)
+		// 	}
+		// } else if (strokeColorStr) {
+		// 	ctx.strokeStyle = parseColor(strokeColorStr)
+		// }
+		//
+		// // 设置填充颜色
+		// let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
+		// let fillColorBoolean = parser.findAttributeValueByKey(nodeData, AttributeKey.Fill)
+		// let fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
+		//
+		// if (fillColorBoolean) {
+		// 	if (fillColorObj && fillColorStr) {
+		// 		ctx.fillStyle = parseColor(fillColorStr)
+		// 	} else {
+		// 		ctx.fillStyle = 'none'
+		// 	}
+		// } else {
+		// 	if (fillColorStr) {
+		// 		ctx.fillStyle = parseColor(fillColorStr)
+		// 	} else {
+		// 		ctx.fillStyle = 'none'
+		// 	}
+		// }
 	}
 
 	/**
