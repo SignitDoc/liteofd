@@ -348,7 +348,7 @@ export const loadLocalDefaultFonts = async () => {
 			loadedFonts.set("小标宋体", true)
 		}
 		if(!loadedFonts.has("仿宋")) {
-			const fontPath = `/assets/fonts/FangSong.ttf`;
+			const fontPath = `/assets/fonts/xiaobiaosongti.otf`;
 			await loadLocalDefaultFont("仿宋", fontPath)
 			loadedFonts.set("仿宋", true)
 		}
