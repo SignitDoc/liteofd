@@ -6,6 +6,7 @@ import { AttributeKey, OFD_KEY } from '../src/liteofd/attrType.ts';
 import {OfdDocument} from "../src/liteofd/ofdDocument.ts";
 import { OfdTools } from '../src/liteofd/ofdtools.ts';
 import { ChildProcess } from 'child_process';
+import { ConfigManager } from '../src/config/configManager'
 
 const appContent = document.getElementById('content') as HTMLDivElement
 
@@ -125,7 +126,10 @@ function parseOfdFile(file: File) {
     liteOfd.parse(file).then((data: OfdDocument) => {
     console.log('解析OFD文件成功:', data);
     updatePageInfo()
-      let temp = liteOfd.render(undefined, 'background-color: white; margin-top: 12px;')
+      // 读取 configManager 的 renderPages 配置
+      const configManager = ConfigManager.getInstance();
+      const renderPages = configManager.getRenderPagesConfig();
+      let temp = liteOfd.render(undefined, 'background-color: white; margin-top: 12px;', renderPages)
       appContent.appendChild(temp)
 	  initOfdEventListeners(); // 在渲染完成后初始化事件监听器
     // 添加大纲

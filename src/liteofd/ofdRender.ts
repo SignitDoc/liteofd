@@ -46,11 +46,12 @@ export class OfdRender {
 	 * 使用自定义的div来渲染OFD文档
 	 * @param customDiv 自定义的div
 	 * @param pageWrapStyle 页面的样式
+	 * @param pageIndexes 指定渲染的页面索引数组，可选
 	 */
-	renderOfdWithCustomDiv(customDiv: HTMLDivElement, pageWrapStyle: string | null = null) {
+	renderOfdWithCustomDiv(customDiv: HTMLDivElement, pageWrapStyle: string | null = null, pageIndexes?: number[]) {
 		// 获取默认缩放比例
 		let scale = getDefaultScale(this.ofdDocument);
-		this.renderOfdWithScale(customDiv, scale, pageWrapStyle)
+		this.renderOfdWithScale(customDiv, scale, pageWrapStyle, pageIndexes)
 		return this.scrollContainer
 	}
 
@@ -67,17 +68,17 @@ export class OfdRender {
 		setPageScal(scale)
 	}
 
-	renderOfdWithScale(rootDiv: HTMLDivElement, scale: number, pageWrapStyle: string | null = null) {
+	renderOfdWithScale(rootDiv: HTMLDivElement, scale: number, pageWrapStyle: string | null = null, pageIndexes?: number[]) {
 		setPageScal(scale)
 		// 新建一个根的div来包裹整个渲染的ofd文档的内容
 		this.ofdDocument.rootContainer = rootDiv
-		this.render(rootDiv, pageWrapStyle)
+		this.render(rootDiv, pageWrapStyle, pageIndexes)
 	}
 
-	render(rootContainer: HTMLDivElement, wrapStyle: string | null) {
+	render(rootContainer: HTMLDivElement, wrapStyle: string | null, pageIndexes?: number[]) {
 		this.rootContainer = rootContainer
 		// 渲染页面
-		this.#renderPages(rootContainer, wrapStyle)
+		this.#renderPages(rootContainer, wrapStyle, pageIndexes)
 		// 给scrollContainer添加滑动的css
 		this.scrollContainer.style.cssText = `
 			overflow-y: auto;
@@ -97,11 +98,20 @@ export class OfdRender {
 	/**
 	 * 渲染页面内容，这里是根据每个page数据来渲染，而每个page包含了content和模板等
 	 * @private
+	 * @param pageIndexes 指定渲染的页面索引数组，可选
 	 */
-	#renderPages(rootContainer: HTMLDivElement, wrapStyle: string | null) {
+	#renderPages(rootContainer: HTMLDivElement, wrapStyle: string | null, pageIndexes?: number[]) {
 		try {
-			for (let i = 0; i < this.pages.length; i++) {
-				this.#renderPage(i, rootContainer, wrapStyle);
+			if (Array.isArray(pageIndexes) && pageIndexes.length > 0) {
+				for (const i of pageIndexes) {
+					if (i >= 0 && i < this.pages.length) {
+						this.#renderPage(i, rootContainer, wrapStyle);
+					}
+				}
+			} else {
+				for (let i = 0; i < this.pages.length; i++) {
+					this.#renderPage(i, rootContainer, wrapStyle);
+				}
 			}
 		} catch (error) {
 			console.log("render error", error)

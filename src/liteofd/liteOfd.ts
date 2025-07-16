@@ -26,13 +26,14 @@ export default class LiteOfd {
    * 渲染 OFD 文档
    * @param container 可选的自定义容器
    * @param pageWrapStyle 可选的页面包装样式
+   * @param pageIndexes 指定渲染的页面索引数组，可选
    * @returns 渲染后的 HTMLDivElement
    */
-  render(container?: HTMLDivElement, pageWrapStyle?: string): HTMLDivElement {
+  render(container?: HTMLDivElement, pageWrapStyle?: string, pageIndexes?: number[]): HTMLDivElement {
     this.ofdRender = new OfdRender(this.ofdDocument)
     const containerDiv = container || document.createElement('div')
     this.containerDiv = containerDiv
-    return this.ofdRender.renderOfdWithCustomDiv(containerDiv, pageWrapStyle)
+    return this.ofdRender.renderOfdWithCustomDiv(containerDiv, pageWrapStyle, pageIndexes)
   }
 
   /**

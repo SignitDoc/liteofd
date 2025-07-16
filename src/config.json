@@ -1,4 +1,5 @@
 {
+  "renderPages": [],
   "debug": {
     "drawTextBoundaryBox": false,
     "drawPathBoundaryBox": false,

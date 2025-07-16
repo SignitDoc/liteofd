@@ -35,6 +35,7 @@ export interface GlobalConfig {
   rendering: RenderingConfig
   performance: PerformanceConfig
   features: FeaturesConfig
+  renderPages?: number[]
 }
 
 export class ConfigManager {
@@ -100,6 +101,15 @@ export class ConfigManager {
 
   public getFeaturesConfig(): FeaturesConfig {
     return this.config.features
+  }
+
+  public getRenderPagesConfig(): number[] | undefined {
+    return this.config.renderPages;
+  }
+
+  public updateRenderPagesConfig(renderPages: number[] | undefined): void {
+    this.config.renderPages = renderPages;
+    this.saveConfig();
   }
 
   public updateConfig(newConfig: Partial<GlobalConfig>): void {
