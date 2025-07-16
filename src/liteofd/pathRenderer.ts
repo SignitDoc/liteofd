@@ -43,7 +43,7 @@ export class PathRenderer {
 		// }
 
 		let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
-		let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
+		let boundaryBox: { x: number; y: number; width: number; height: number; }
 		if (boundaryStr) {
 			boundaryBox = convertToBox(boundaryStr)
 		}
@@ -56,7 +56,7 @@ export class PathRenderer {
 		// 计算路径点
 		const points = calPathPoint(convertPathAbbreviatedDatatoPoint(abbreviatedData.value))
 		// 应用CTM变换
-		this.applyCTMTransform(nodeData)
+		this.applyCTMTransform(nodeData, boundaryBox)
 		// 添加绘制param
 		this.#addDrawParam(nodeData)
 		// 设置路径样式
@@ -75,15 +75,15 @@ export class PathRenderer {
 	 * 应用CTM变换（直接设置当前变换矩阵）
 	 * @param nodeData 节点数据
 	 */
-	private applyCTMTransform(nodeData: XmlData) {
+	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; }) {
 		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
 		if (ctmStr) {
 			const ctms = ctmStr.split(' ')
 			if (ctms.length >= 6) {
-				const a = parseFloat(ctms[0])
-				const b = parseFloat(ctms[1])
-				const c = parseFloat(ctms[2])
-				const d = parseFloat(ctms[3])
+				const a = convertToDpi(parseFloat(ctms[0])) / boundaryBox.width
+				const b = convertToDpi(parseFloat(ctms[1])) / boundaryBox.width
+				const c = convertToDpi(parseFloat(ctms[2])) / boundaryBox.height
+				const d = convertToDpi(parseFloat(ctms[3])) / boundaryBox.height
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
 				this.pageCanvasCtx.save()

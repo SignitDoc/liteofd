@@ -66,7 +66,7 @@ export class ImageRenderer {
 
 		if (boundaryBox) {
 			// 先应用CTM变换
-			this.applyCTMTransform(nodeData)
+			this.applyCTMTransform(nodeData, boundaryBox)
 			// 在变换后的坐标系中绘制边界框
 			// this.drawImageBoundaryBox(boundaryBox)
 			// 绘制图片
@@ -262,15 +262,15 @@ export class ImageRenderer {
 	 * 应用CTM变换（直接设置当前变换矩阵）
 	 * @param nodeData 节点数据
 	 */
-	private applyCTMTransform(nodeData: XmlData) {
+	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; }) {
 		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
 		if (ctmStr) {
 			const ctms = ctmStr.split(' ')
 			if (ctms.length >= 6) {
-				const a = parseFloat(ctms[0])
-				const b = parseFloat(ctms[1])
-				const c = parseFloat(ctms[2])
-				const d = parseFloat(ctms[3])
+				const a = convertToDpi(parseFloat(ctms[0])) / boundaryBox.width
+				const b = convertToDpi(parseFloat(ctms[1])) / boundaryBox.width
+				const c = convertToDpi(parseFloat(ctms[2])) / boundaryBox.height
+				const d = convertToDpi(parseFloat(ctms[3])) / boundaryBox.height
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
 				this.pageCanvasCtx.save()
