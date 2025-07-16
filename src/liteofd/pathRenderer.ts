@@ -36,7 +36,7 @@ export class PathRenderer {
 	 * @param nodeData 单个路径节点数据
 	 * @param pageContainer 页面容器
 	 */
-	private renderSinglePathObject(nodeData: XmlData, pageContainer: Element) {
+	renderSinglePathObject(nodeData: XmlData, pageContainer: Element) {
 		let id = parser.findAttributeValueByKey(nodeData, AttributeKey.ID)
 		let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
 		let boundaryBox: { x: number; y: number; width: number; height: number; }

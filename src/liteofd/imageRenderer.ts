@@ -43,7 +43,7 @@ export class ImageRenderer {
 	 * @param nodeData 单个图片节点数据
 	 * @param pageContainer 页面容器
 	 */
-	private async renderSingleImageObject(nodeData: XmlData, pageContainer: Element) {
+	async renderSingleImageObject(nodeData: XmlData, pageContainer: Element) {
 		console.log("Canvas绘制图片:", nodeData)
 
 		// 获取图片位置

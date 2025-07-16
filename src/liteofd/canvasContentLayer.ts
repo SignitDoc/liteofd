@@ -52,13 +52,13 @@ export class CanvasContentLayer extends Layer {
 	#renderLayerDataObject(dataObj: XmlData, pageContainer: Element) {
 		switch (dataObj.tagName) {
 			case OFD_KEY.TextObject:
-				this.textRenderer.renderTextObject(dataObj, pageContainer)
+				this.textRenderer.renderSingleTextObject(dataObj, pageContainer)
 				break
 			case OFD_KEY.PathObject:
-				this.pathRenderer.renderPathObject(dataObj, pageContainer)
+				this.pathRenderer.renderSinglePathObject(dataObj, pageContainer)
 				break
 			case OFD_KEY.ImageObject:
-				this.imageRenderer.renderImageObject(dataObj, pageContainer)
+				this.imageRenderer.renderSingleImageObject(dataObj, pageContainer)
 				break
 			// case OFD_KEY.PageBlock:
 			// 	this.#renderPageBlock(dataObj, pageContainer)
@@ -67,10 +67,29 @@ export class CanvasContentLayer extends Layer {
 	}
 
 	#renderSingleLayer(layerData: XmlData, pageContainer: Element) {
+		// 这里的layerData就是每一个内容层的内容，但是初始里面是分了pathObject和textObject
+		// 为了根据id的值来进行pathObject和textObject绘制，那么需要将里面的children进行合并，合并成同一个数组然后绘制
+		// 1. 合并pathObject和textObject等
+		let allNodeChildren = [] // 包含了textObject和pathObject的数组，并且按照id进行排序
 		for (let i = 0; i < layerData.children.length; i++) {
 			let dataObj = layerData.children[i]
-			this.#renderLayerDataObject(dataObj, pageContainer)
+			let tagName = dataObj.tagName
+			dataObj.children.forEach(value => {
+				value.tagName = tagName
+				// 将所有node放入一个数组中
+				allNodeChildren.push(value)
+			})
 		}
+		// 2. 将所有node值按照id进行排序
+		allNodeChildren.sort((a, b) => {
+			// 取出id，转为数字
+			const idA = parseInt(parser.findAttributeValueByKey(a, AttributeKey.ID) || "0");
+			const idB = parseInt(parser.findAttributeValueByKey(b, AttributeKey.ID) || "0");
+			return idA - idB;
+		});
+		allNodeChildren.forEach(value => {
+			this.#renderLayerDataObject(value, pageContainer)
+		})
 	}
 
 	#renderLayer(layerData: XmlData, pageContainer: Element) {

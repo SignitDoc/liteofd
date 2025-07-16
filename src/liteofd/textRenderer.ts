@@ -67,7 +67,7 @@ export class TextRenderer {
 	 * @param nodeData 单个文本节点数据
 	 * @param pageContainer 页面容器
 	 */
-	private renderSingleTextObject(nodeData: XmlData, pageContainer: Element) {
+	renderSingleTextObject(nodeData: XmlData, pageContainer: Element) {
 		try {
 			let fontId = parser.findAttributeValueByKey(nodeData, AttributeKey.FONT)
 			let textCode = parser.findValueByTagName(nodeData, OFD_KEY.TextCode)
