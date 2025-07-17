@@ -41,6 +41,7 @@ export const AttributeKey = {
 	Type: "Type", // 
 	Subtype: "Subtype", // 注释的子类型
 	DashPattern: "DashPattern", // 
+	BitsPerComponent: "BitsPerComponent", // 颜色空间每个分量的位数
 }
 
 // ofd的xml标签中的标签名tagName
@@ -85,6 +86,8 @@ export const OFD_KEY = {
 	MediaFile: "ofd:MediaFile",
 	Font: "ofd:Font",
 	Fonts: "ofd:Fonts",
+	ColorSpaces: "ofd:ColorSpaces",
+	ColorSpace: "ofd:ColorSpace",
 	CustomDatas: "ofd:CustomDatas",
 	DocInfo: "ofd:DocInfo",
 	PageArea: "ofd:PageArea",

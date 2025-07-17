@@ -50,6 +50,10 @@ export class CanvasContentLayer extends Layer {
 	}
 
 	#renderLayerDataObject(dataObj: XmlData, pageContainer: Element) {
+		let idValue = parser.findAttributeValueByKey(dataObj, AttributeKey.ID)
+		if (idValue == 159) {
+			debugger
+		}
 		switch (dataObj.tagName) {
 			case OFD_KEY.TextObject:
 				this.textRenderer.renderSingleTextObject(dataObj, pageContainer)

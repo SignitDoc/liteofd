@@ -77,6 +77,10 @@ export class TextRenderer {
 				console.error("textCode不存在")
 				return
 			}
+			if (textID == 12) {
+				debugger
+			}
+
 			// 保存当前canvas状态
 			this.pageCanvasCtx.save()
 			// 获取文本位置
@@ -358,7 +362,6 @@ export class TextRenderer {
 		if (strokeColorStr) {
 			let strokeColor = parseColor(strokeColorStr)
 			this.pageCanvasCtx.strokeStyle = strokeColor
-			this.pageCanvasCtx.stroke()
 		}
 	}
 
@@ -368,7 +371,6 @@ export class TextRenderer {
 		if (fillColorStr) {
 			let fillColor = parseColor(fillColorStr)
 			this.pageCanvasCtx.fillStyle = fillColor
-			this.pageCanvasCtx.fill()
 		}
 	}
 

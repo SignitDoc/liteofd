@@ -11,6 +11,8 @@ export class PathRenderer {
 	private ofdDocument: OfdDocument
 	private pageCanvasCtx: CanvasRenderingContext2D
 	private configManager: ConfigManager
+	private needFillColor = false
+	private needStrokeColor = false
 
 	constructor(ofdDocument: OfdDocument, pageCanvasCtx: CanvasRenderingContext2D) {
 		this.ofdDocument = ofdDocument
@@ -37,35 +39,41 @@ export class PathRenderer {
 	 * @param pageContainer 页面容器
 	 */
 	renderSinglePathObject(nodeData: XmlData, pageContainer: Element) {
-		let id = parser.findAttributeValueByKey(nodeData, AttributeKey.ID)
-		let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
-		let boundaryBox: { x: number; y: number; width: number; height: number; }
-		if (boundaryStr) {
-			boundaryBox = convertToBox(boundaryStr)
-		}
-		let idValue = parseInt(id)
-		if (idValue == 1005) {
-			debugger
+		try {
+			this.needStrokeColor = false
+			this.needFillColor = false
+			let id = parser.findAttributeValueByKey(nodeData, AttributeKey.ID)
+			let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
+			let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
+			if (boundaryStr) {
+				boundaryBox = convertToBox(boundaryStr)
+			}
+			let idValue = parseInt(id)
+
+			// 获取路径数据
+			let abbreviatedData = parser.findValueByTagNameOfFirstNode(nodeData, OFD_KEY.AbbreviatedData)
+			if (!abbreviatedData) {
+				return
+			}
+			// 计算路径点
+			const points = calPathPoint(convertPathAbbreviatedDatatoPoint(abbreviatedData.value))
+
+			this.pageCanvasCtx.save()
+			// 应用CTM变换
+			this.applyCTMTransform(nodeData, boundaryBox)
+			// 设置路径样式
+			this.setCanvasPathStyle(nodeData)
+			// 添加绘制param
+			this.#addDrawParam(nodeData)
+			// 绘制路径 - 在boundaryBox位置绘制
+			this.drawCanvasPath(points, boundaryBox)
+			this.pageCanvasCtx.restore()
+			console.log("Canvas绘制路径:", nodeData, "点数:", points.length, "boundaryBox:", boundaryBox)
+		} catch (e) {
+			console.error("draw path error", e)
+			this.pageCanvasCtx.restore()
 		}
 
-		// 获取路径数据
-		let abbreviatedData = parser.findValueByTagNameOfFirstNode(nodeData, OFD_KEY.AbbreviatedData)
-		if (!abbreviatedData) {
-			return
-		}
-		// 计算路径点
-		const points = calPathPoint(convertPathAbbreviatedDatatoPoint(abbreviatedData.value))
-
-		this.pageCanvasCtx.save()
-		// 应用CTM变换
-		this.applyCTMTransform(nodeData, boundaryBox)
-		// 添加绘制param
-		this.#addDrawParam(nodeData)
-		// 设置路径样式
-		this.setCanvasPathStyle(nodeData)
-		// 绘制路径 - 在boundaryBox位置绘制
-		this.drawCanvasPath(points, boundaryBox)
-		this.pageCanvasCtx.restore()
 		// 根据id判断是否绘制边界框
 		// if (id === "81" && boundaryBox) {
 		// 	this.drawPathBoundaryBox(boundaryBox)
@@ -77,7 +85,7 @@ export class PathRenderer {
 	 * 应用CTM变换（直接设置当前变换矩阵）
 	 * @param nodeData 节点数据
 	 */
-	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; }) {
+	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; } | null) {
 		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
 		if (ctmStr) {
 			const ctms = ctmStr.split(' ')
@@ -94,7 +102,7 @@ export class PathRenderer {
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
 				// this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y)
-				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
+				this.pageCanvasCtx.transform(a, b, c, d, e, f)
 				// this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y))
 			}
 		}
@@ -147,9 +155,10 @@ export class PathRenderer {
 	#addStrokeColor(nodeData: XmlData, strokeColorObj: XmlData | undefined) {
 		let strokeColorStr = strokeColorObj && parser.findAttributeValueByKey(strokeColorObj, AttributeKey.Value)
 		if (strokeColorStr) {
-			let strokeColor = parseColor(strokeColorStr)
+			let strokeColor = this.parseColorWithColorSpace(strokeColorStr, nodeData)
 			this.pageCanvasCtx.strokeStyle = strokeColor
-			this.pageCanvasCtx.stroke()
+			this.needStrokeColor = true
+			// this.pageCanvasCtx.stroke()
 		}
 	}
 
@@ -160,9 +169,10 @@ export class PathRenderer {
 	#addFillColor(nodeData: XmlData, fillColorObj: XmlData | undefined) {
 		let fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
 		if (fillColorStr) {
-			let fillColor = parseColor(fillColorStr)
+			let fillColor = this.parseColorWithColorSpace(fillColorStr, nodeData)
 			this.pageCanvasCtx.fillStyle = fillColor
-			this.pageCanvasCtx.fill()
+			this.needFillColor = true
+			// this.pageCanvasCtx.fill()
 		}
 	}
 
@@ -211,8 +221,6 @@ export class PathRenderer {
 		if (dashPattern) {
 			const dashArray = dashPattern.split(' ').map(value => convertToDpi(parseFloat(value)))
 			ctx.setLineDash(dashArray)
-		} else {
-			ctx.setLineDash([])
 		}
 
 		// // 设置描边颜色
@@ -414,7 +422,13 @@ export class PathRenderer {
 		}
 
 		// 只进行描边，不进行填充
-		ctx.stroke()
+		// ctx.stroke()
+		if (this.needFillColor) {
+			this.pageCanvasCtx.fill()
+		}
+		if (this.needStrokeColor) {
+			this.pageCanvasCtx.stroke()
+		}
 	}
 
 	/**
@@ -474,5 +488,132 @@ export class PathRenderer {
 		ctx.restore()
 
 		console.log("绘制路径边界框:", boundaryBox)
+	}
+
+	/**
+	 * 根据 ColorSpace 解析颜色值
+	 * @param colorStr 颜色字符串
+	 * @param nodeData 节点数据
+	 * @returns 解析后的颜色值
+	 */
+	private parseColorWithColorSpace(colorStr: string, nodeData: XmlData): string {
+		// 获取 ColorSpace ID
+		let colorSpaceID = parser.findAttributeValueByKey(nodeData, AttributeKey.ColorSpace)
+		if (!colorSpaceID) {
+			// 如果没有指定 ColorSpace，使用默认的 parseColor
+			return parseColor(colorStr)
+		}
+
+		// 从 PublicRes 中查找对应的 ColorSpace
+		let colorSpacesNode = parser.findValueByTagName(this.ofdDocument.publicRes, OFD_KEY.ColorSpaces)
+		if (!colorSpacesNode) {
+			console.warn(`未找到 ColorSpaces 节点`)
+			return parseColor(colorStr)
+		}
+
+		let colorSpaceNode = parser.findNodeByAttributeKeyValue(colorSpaceID, AttributeKey.ID, colorSpacesNode)
+		if (!colorSpaceNode) {
+			console.warn(`未找到 ColorSpace ID: ${colorSpaceID}`)
+			return parseColor(colorStr)
+		}
+
+		// 获取 ColorSpace 类型
+		let colorSpaceType = parser.findAttributeValueByKey(colorSpaceNode, AttributeKey.Type)
+		let bitsPerComponent = parser.findAttributeValueByKey(colorSpaceNode, AttributeKey.BitsPerComponent)
+
+		debugger
+		// 根据 ColorSpace 类型解析颜色
+		switch (colorSpaceType) {
+			case 'RGB':
+				return this.parseRGBColor(colorStr, bitsPerComponent)
+			case 'GRAY':
+				return this.parseGrayColor(colorStr, bitsPerComponent)
+			case 'CMYK':
+				return this.parseCMYKColor(colorStr, bitsPerComponent)
+			default:
+				console.warn(`不支持的 ColorSpace 类型: ${colorSpaceType}`)
+				return parseColor(colorStr)
+		}
+	}
+
+	/**
+	 * 解析 RGB 颜色
+	 * @param colorStr 颜色字符串
+	 * @param bitsPerComponent 每个分量的位数
+	 * @returns RGB 颜色字符串
+	 */
+	private parseRGBColor(colorStr: string, bitsPerComponent: string): string {
+		let array = colorStr.split(' ')
+		if (array.length >= 3) {
+			let r = parseInt(array[0])
+			let g = parseInt(array[1])
+			let b = parseInt(array[2])
+
+			// 如果指定了位数，进行相应的转换
+			if (bitsPerComponent) {
+				let maxValue = Math.pow(2, parseInt(bitsPerComponent)) - 1
+				r = Math.round((r / maxValue) * 255)
+				g = Math.round((g / maxValue) * 255)
+				b = Math.round((b / maxValue) * 255)
+			}
+
+			return `rgb(${r}, ${g}, ${b})`
+		}
+		return `rgb(0, 0, 0)`
+	}
+
+	/**
+	 * 解析灰度颜色
+	 * @param colorStr 颜色字符串
+	 * @param bitsPerComponent 每个分量的位数
+	 * @returns RGB 颜色字符串
+	 */
+	private parseGrayColor(colorStr: string, bitsPerComponent: string): string {
+		let array = colorStr.split(' ')
+		if (array.length >= 1) {
+			let gray = parseInt(array[0])
+
+			// 如果指定了位数，进行相应的转换
+			if (bitsPerComponent) {
+				let maxValue = Math.pow(2, parseInt(bitsPerComponent)) - 1
+				gray = Math.round((gray / maxValue) * 255)
+			}
+
+			return `rgb(${gray}, ${gray}, ${gray})`
+		}
+		return `rgb(0, 0, 0)`
+	}
+
+	/**
+	 * 解析 CMYK 颜色
+	 * @param colorStr 颜色字符串
+	 * @param bitsPerComponent 每个分量的位数
+	 * @returns RGB 颜色字符串
+	 */
+	private parseCMYKColor(colorStr: string, bitsPerComponent: string): string {
+		let array = colorStr.split(' ')
+		if (array.length >= 4) {
+			let c = parseFloat(array[0])
+			let m = parseFloat(array[1])
+			let y = parseFloat(array[2])
+			let k = parseFloat(array[3])
+
+			// 如果指定了位数，进行相应的转换
+			if (bitsPerComponent) {
+				let maxValue = Math.pow(2, parseInt(bitsPerComponent)) - 1
+				c = c / maxValue
+				m = m / maxValue
+				y = y / maxValue
+				k = k / maxValue
+			}
+
+			// CMYK 转 RGB
+			let r = Math.round(255 * (1 - c) * (1 - k))
+			let g = Math.round(255 * (1 - m) * (1 - k))
+			let b = Math.round(255 * (1 - y) * (1 - k))
+
+			return `rgb(${r}, ${g}, ${b})`
+		}
+		return `rgb(0, 0, 0)`
 	}
 }
