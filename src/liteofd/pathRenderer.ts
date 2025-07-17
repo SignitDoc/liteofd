@@ -121,11 +121,13 @@ export class PathRenderer {
 		} else {
 			// 直接根据节点的填充来进行绘制设置颜色
 			let fillColor = parser.findAttributeValueByKey(nodeData, AttributeKey.Fill)
-			if (fillColor && JSON.parse(fillColor)) {
+			let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
+			if (fillColor && JSON.parse(fillColor) || fillColorObj) {
 				this.#addFillColor(nodeData)
 			}
 			let strokeColor = parser.findAttributeValueByKey(nodeData, AttributeKey.Stroke)
-			if (strokeColor && JSON.parse(strokeColor)) {
+			let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
+			if (strokeColor && JSON.parse(strokeColor) || strokeColorObj) {
 				this.#addStrokeColor(nodeData)
 			}
 		}

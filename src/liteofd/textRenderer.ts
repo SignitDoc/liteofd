@@ -358,6 +358,7 @@ export class TextRenderer {
 		if (strokeColorStr) {
 			let strokeColor = parseColor(strokeColorStr)
 			this.pageCanvasCtx.strokeStyle = strokeColor
+			this.pageCanvasCtx.stroke()
 		}
 	}
 
@@ -367,6 +368,7 @@ export class TextRenderer {
 		if (fillColorStr) {
 			let fillColor = parseColor(fillColorStr)
 			this.pageCanvasCtx.fillStyle = fillColor
+			this.pageCanvasCtx.fill()
 		}
 	}
 
