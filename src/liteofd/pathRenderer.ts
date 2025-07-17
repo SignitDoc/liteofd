@@ -44,7 +44,9 @@ export class PathRenderer {
 			boundaryBox = convertToBox(boundaryStr)
 		}
 		let idValue = parseInt(id)
-
+		if (idValue == 1005) {
+			debugger
+		}
 
 		// 获取路径数据
 		let abbreviatedData = parser.findValueByTagNameOfFirstNode(nodeData, OFD_KEY.AbbreviatedData)
@@ -105,30 +107,35 @@ export class PathRenderer {
 	#addDrawParam(nodeData: XmlData) {
 		let drawParamID = parser.findAttributeValueByKey(nodeData, AttributeKey.DrawParam)
 		console.log("add path draw params", drawParamID)
+		// 直接根据节点的填充来进行绘制设置颜色
+		let fillColor = parser.findAttributeValueByKey(nodeData, AttributeKey.Fill)
+		let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
+		if (fillColor && JSON.parse(fillColor) || fillColorObj) {
+			this.#addFillColor(nodeData, fillColorObj)
+		}
+		let strokeColor = parser.findAttributeValueByKey(nodeData, AttributeKey.Stroke)
+		let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
+		if (strokeColor && JSON.parse(strokeColor) || strokeColorObj) {
+			this.#addStrokeColor(nodeData, strokeColorObj)
+		}
 		if (drawParamID) {
 			let drawParamNode = parser.findNodeByAttributeKeyValue(drawParamID, AttributeKey.ID, this.ofdDocument.publicRes)
 			if (drawParamNode) {
-				// 填充颜色
-				this.#addFillColor(drawParamNode)
-				// 添加线宽度和线条颜色
-				this.#addStrokeColor(drawParamNode)
+				let fillColorObj = parser.findValueByTagName(drawParamNode, OFD_KEY.FillColor)
+				if (fillColorObj) {
+					// 填充颜色
+					this.#addFillColor(drawParamNode, fillColorObj)
+				}
+				let strokeColorObj = parser.findValueByTagName(drawParamNode, OFD_KEY.StrokeColor)
+				if (strokeColorObj) {
+					// 添加线宽度和线条颜色
+					this.#addStrokeColor(drawParamNode, strokeColorObj)
+				}
 				// 添加线宽度
 				this.#addLineWidth(drawParamNode)
 				// 添加虚线模式
 				this.#addDashPattern(drawParamNode)
 				console.log("path drawParamNode", drawParamNode)
-			}
-		} else {
-			// 直接根据节点的填充来进行绘制设置颜色
-			let fillColor = parser.findAttributeValueByKey(nodeData, AttributeKey.Fill)
-			let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
-			if (fillColor && JSON.parse(fillColor) || fillColorObj) {
-				this.#addFillColor(nodeData)
-			}
-			let strokeColor = parser.findAttributeValueByKey(nodeData, AttributeKey.Stroke)
-			let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
-			if (strokeColor && JSON.parse(strokeColor) || strokeColorObj) {
-				this.#addStrokeColor(nodeData)
 			}
 		}
 	}
@@ -137,8 +144,7 @@ export class PathRenderer {
 	 * 添加描边颜色
 	 * @param nodeData 节点数据
 	 */
-	#addStrokeColor(nodeData: XmlData) {
-		let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
+	#addStrokeColor(nodeData: XmlData, strokeColorObj: XmlData | undefined) {
 		let strokeColorStr = strokeColorObj && parser.findAttributeValueByKey(strokeColorObj, AttributeKey.Value)
 		if (strokeColorStr) {
 			let strokeColor = parseColor(strokeColorStr)
@@ -151,8 +157,7 @@ export class PathRenderer {
 	 * 添加填充颜色
 	 * @param nodeData 节点数据
 	 */
-	#addFillColor(nodeData: XmlData) {
-		let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
+	#addFillColor(nodeData: XmlData, fillColorObj: XmlData | undefined) {
 		let fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
 		if (fillColorStr) {
 			let fillColor = parseColor(fillColorStr)
