@@ -522,17 +522,61 @@ export class PathRenderer {
 		let bitsPerComponent = parser.findAttributeValueByKey(colorSpaceNode, AttributeKey.BitsPerComponent)
 
 		debugger
-		// 根据 ColorSpace 类型解析颜色
-		switch (colorSpaceType) {
-			case 'RGB':
-				return this.parseRGBColor(colorStr, bitsPerComponent)
-			case 'GRAY':
-				return this.parseGrayColor(colorStr, bitsPerComponent)
-			case 'CMYK':
-				return this.parseCMYKColor(colorStr, bitsPerComponent)
-			default:
-				console.warn(`不支持的 ColorSpace 类型: ${colorSpaceType}`)
-				return parseColor(colorStr)
+		// 判断颜色格式：16进制还是RGB数值
+		if (this.isHexColorFormat(colorStr)) {
+			return this.parseHexColor(colorStr)
+		} else {
+			// 根据 ColorSpace 类型解析颜色
+			switch (colorSpaceType) {
+				case 'RGB':
+					return this.parseRGBColor(colorStr, bitsPerComponent)
+				case 'GRAY':
+					return this.parseGrayColor(colorStr, bitsPerComponent)
+				case 'CMYK':
+					return this.parseCMYKColor(colorStr, bitsPerComponent)
+				default:
+					console.warn(`不支持的 ColorSpace 类型: ${colorSpaceType}`)
+					return parseColor(colorStr)
+			}
+		}
+	}
+
+	/**
+	 * 判断是否为16进制颜色格式
+	 * @param colorStr 颜色字符串
+	 * @returns 是否为16进制格式
+	 */
+	private isHexColorFormat(colorStr: string): boolean {
+		// 检查是否包含 # 符号
+		return colorStr.includes('#')
+	}
+
+	/**
+	 * 解析16进制颜色格式
+	 * @param colorStr 16进制颜色字符串，如 "#ee #20 #25"
+	 * @returns RGB颜色字符串
+	 */
+	private parseHexColor(colorStr: string): string {
+		// 移除所有空格并提取16进制值
+		let hexValues = colorStr.split(' ').map(part => {
+			// 移除 # 符号并转换为16进制数值
+			let hex = part.replace('#', '').trim()
+			if (hex) {
+				return parseInt(hex, 16)
+			}
+			return 0
+		}).filter(val => !isNaN(val))
+
+		if (hexValues.length >= 3) {
+			// RGB格式
+			return `rgb(${hexValues[0]}, ${hexValues[1]}, ${hexValues[2]})`
+		} else if (hexValues.length === 1) {
+			// 灰度格式
+			let gray = hexValues[0]
+			return `rgb(${gray}, ${gray}, ${gray})`
+		} else {
+			console.warn(`无法解析16进制颜色格式: ${colorStr}`)
+			return `rgb(0, 0, 0)`
 		}
 	}
 

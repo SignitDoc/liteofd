@@ -360,7 +360,7 @@ export class TextRenderer {
 		let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
 		let strokeColorStr = strokeColorObj && parser.findAttributeValueByKey(strokeColorObj, AttributeKey.Value)
 		if (strokeColorStr) {
-			let strokeColor = parseColor(strokeColorStr)
+			let strokeColor = this.parseColorWithColorSpace(strokeColorStr, nodeData)
 			this.pageCanvasCtx.strokeStyle = strokeColor
 		}
 	}
@@ -369,7 +369,7 @@ export class TextRenderer {
 		let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
 		let fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
 		if (fillColorStr) {
-			let fillColor = parseColor(fillColorStr)
+			let fillColor = this.parseColorWithColorSpace(fillColorStr, nodeData)
 			this.pageCanvasCtx.fillStyle = fillColor
 		}
 	}
@@ -465,11 +465,181 @@ export class TextRenderer {
 		const fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
 
 		if (fillColorStr) {
-			const fillColor = parseColor(fillColorStr)
+			const fillColor = this.parseColorWithColorSpace(fillColorStr, nodeData)
 			this.pageCanvasCtx.fillStyle = fillColor
 		} else {
 			this.pageCanvasCtx.fillStyle = '#000000' // 默认黑色
 		}
+	}
+
+	/**
+	 * 根据 ColorSpace 解析颜色值
+	 * @param colorStr 颜色字符串
+	 * @param nodeData 节点数据
+	 * @returns 解析后的颜色值
+	 */
+	private parseColorWithColorSpace(colorStr: string, nodeData: XmlData): string {
+		// 获取 ColorSpace ID
+		let colorSpaceID = parser.findAttributeValueByKey(nodeData, AttributeKey.ColorSpace)
+		if (!colorSpaceID) {
+			// 如果没有指定 ColorSpace，使用默认的 parseColor
+			return parseColor(colorStr)
+		}
+
+		// 从 PublicRes 中查找对应的 ColorSpace
+		let colorSpacesNode = parser.findValueByTagName(this.ofdDocument.publicRes, OFD_KEY.ColorSpaces)
+		if (!colorSpacesNode) {
+			console.warn(`未找到 ColorSpaces 节点`)
+			return parseColor(colorStr)
+		}
+
+		let colorSpaceNode = parser.findNodeByAttributeKeyValue(colorSpaceID, AttributeKey.ID, colorSpacesNode)
+		if (!colorSpaceNode) {
+			console.warn(`未找到 ColorSpace ID: ${colorSpaceID}`)
+			return parseColor(colorStr)
+		}
+
+		// 获取 ColorSpace 类型
+		let colorSpaceType = parser.findAttributeValueByKey(colorSpaceNode, AttributeKey.Type)
+		let bitsPerComponent = parser.findAttributeValueByKey(colorSpaceNode, AttributeKey.BitsPerComponent)
+
+		// 判断颜色格式：16进制还是RGB数值
+		if (this.isHexColorFormat(colorStr)) {
+			return this.parseHexColor(colorStr)
+		} else {
+			// 根据 ColorSpace 类型解析颜色
+			switch (colorSpaceType) {
+				case 'RGB':
+					return this.parseRGBColor(colorStr, bitsPerComponent)
+				case 'GRAY':
+					return this.parseGrayColor(colorStr, bitsPerComponent)
+				case 'CMYK':
+					return this.parseCMYKColor(colorStr, bitsPerComponent)
+				default:
+					console.warn(`不支持的 ColorSpace 类型: ${colorSpaceType}`)
+					return parseColor(colorStr)
+			}
+		}
+	}
+
+	/**
+	 * 判断是否为16进制颜色格式
+	 * @param colorStr 颜色字符串
+	 * @returns 是否为16进制格式
+	 */
+	private isHexColorFormat(colorStr: string): boolean {
+		// 检查是否包含 # 符号
+		return colorStr.includes('#')
+	}
+
+	/**
+	 * 解析16进制颜色格式
+	 * @param colorStr 16进制颜色字符串，如 "#ee #20 #25"
+	 * @returns RGB颜色字符串
+	 */
+	private parseHexColor(colorStr: string): string {
+		// 移除所有空格并提取16进制值
+		let hexValues = colorStr.split(' ').map(part => {
+			// 移除 # 符号并转换为16进制数值
+			let hex = part.replace('#', '').trim()
+			if (hex) {
+				return parseInt(hex, 16)
+			}
+			return 0
+		}).filter(val => !isNaN(val))
+
+		if (hexValues.length >= 3) {
+			// RGB格式
+			return `rgb(${hexValues[0]}, ${hexValues[1]}, ${hexValues[2]})`
+		} else if (hexValues.length === 1) {
+			// 灰度格式
+			let gray = hexValues[0]
+			return `rgb(${gray}, ${gray}, ${gray})`
+		} else {
+			console.warn(`无法解析16进制颜色格式: ${colorStr}`)
+			return `rgb(0, 0, 0)`
+		}
+	}
+
+	/**
+	 * 解析 RGB 颜色
+	 * @param colorStr 颜色字符串
+	 * @param bitsPerComponent 每个分量的位数
+	 * @returns RGB 颜色字符串
+	 */
+	private parseRGBColor(colorStr: string, bitsPerComponent: string): string {
+		let array = colorStr.split(' ')
+		if (array.length >= 3) {
+			let r = parseInt(array[0])
+			let g = parseInt(array[1])
+			let b = parseInt(array[2])
+			
+			// 如果指定了位数，进行相应的转换
+			if (bitsPerComponent) {
+				let maxValue = Math.pow(2, parseInt(bitsPerComponent)) - 1
+				r = Math.round((r / maxValue) * 255)
+				g = Math.round((g / maxValue) * 255)
+				b = Math.round((b / maxValue) * 255)
+			}
+			
+			return `rgb(${r}, ${g}, ${b})`
+		}
+		return `rgb(0, 0, 0)`
+	}
+
+	/**
+	 * 解析灰度颜色
+	 * @param colorStr 颜色字符串
+	 * @param bitsPerComponent 每个分量的位数
+	 * @returns RGB 颜色字符串
+	 */
+	private parseGrayColor(colorStr: string, bitsPerComponent: string): string {
+		let array = colorStr.split(' ')
+		if (array.length >= 1) {
+			let gray = parseInt(array[0])
+			
+			// 如果指定了位数，进行相应的转换
+			if (bitsPerComponent) {
+				let maxValue = Math.pow(2, parseInt(bitsPerComponent)) - 1
+				gray = Math.round((gray / maxValue) * 255)
+			}
+			
+			return `rgb(${gray}, ${gray}, ${gray})`
+		}
+		return `rgb(0, 0, 0)`
+	}
+
+	/**
+	 * 解析 CMYK 颜色
+	 * @param colorStr 颜色字符串
+	 * @param bitsPerComponent 每个分量的位数
+	 * @returns RGB 颜色字符串
+	 */
+	private parseCMYKColor(colorStr: string, bitsPerComponent: string): string {
+		let array = colorStr.split(' ')
+		if (array.length >= 4) {
+			let c = parseFloat(array[0])
+			let m = parseFloat(array[1])
+			let y = parseFloat(array[2])
+			let k = parseFloat(array[3])
+			
+			// 如果指定了位数，进行相应的转换
+			if (bitsPerComponent) {
+				let maxValue = Math.pow(2, parseInt(bitsPerComponent)) - 1
+				c = c / maxValue
+				m = m / maxValue
+				y = y / maxValue
+				k = k / maxValue
+			}
+			
+			// CMYK 转 RGB
+			let r = Math.round(255 * (1 - c) * (1 - k))
+			let g = Math.round(255 * (1 - m) * (1 - k))
+			let b = Math.round(255 * (1 - y) * (1 - k))
+			
+			return `rgb(${r}, ${g}, ${b})`
+		}
+		return `rgb(0, 0, 0)`
 	}
 
 	// /**
