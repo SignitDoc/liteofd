@@ -47,7 +47,10 @@ export class PathRenderer {
 			let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
 			if (boundaryStr) {
 				boundaryBox = convertToBox(boundaryStr)
+				// this.drawPathBoundaryBox(boundaryBox)
 			}
+			// boundaryBox = {x: convertToDpi(429), y: convertToDpi(438), width: 100, height: 100}
+
 			let idValue = parseInt(id)
 
 			// 获取路径数据
@@ -129,15 +132,15 @@ export class PathRenderer {
 		if (drawParamID) {
 			let drawParamNode = parser.findNodeByAttributeKeyValue(drawParamID, AttributeKey.ID, this.ofdDocument.publicRes)
 			if (drawParamNode) {
-				let fillColorObj = parser.findValueByTagName(drawParamNode, OFD_KEY.FillColor)
-				if (fillColorObj) {
+				let drawParamFillColorObj = parser.findValueByTagName(drawParamNode, OFD_KEY.FillColor)
+				if (drawParamFillColorObj) {
 					// 填充颜色
-					this.#addFillColor(drawParamNode, fillColorObj)
+					this.#addFillColor(drawParamNode, drawParamFillColorObj)
 				}
-				let strokeColorObj = parser.findValueByTagName(drawParamNode, OFD_KEY.StrokeColor)
-				if (strokeColorObj) {
+				let drawParamStrokeColorObj = parser.findValueByTagName(drawParamNode, OFD_KEY.StrokeColor)
+				if (drawParamStrokeColorObj) {
 					// 添加线宽度和线条颜色
-					this.#addStrokeColor(drawParamNode, strokeColorObj)
+					this.#addStrokeColor(drawParamNode, drawParamStrokeColorObj)
 				}
 				// 添加线宽度
 				this.#addLineWidth(drawParamNode)
