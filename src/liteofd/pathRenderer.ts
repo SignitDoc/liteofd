@@ -49,9 +49,6 @@ export class PathRenderer {
 			let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
 			if (boundaryStr) {
 				boundaryBox = convertToBox(boundaryStr)
-				if (idValue == 81) {
-					this.drawPathBoundaryBox(boundaryBox)
-				}
 			}
 			// 获取路径数据
 			let abbreviatedData = parser.findValueByTagNameOfFirstNode(nodeData, OFD_KEY.AbbreviatedData)
@@ -86,19 +83,14 @@ export class PathRenderer {
 			console.error("draw path error", e)
 			this.pageCanvasCtx.restore()
 		}
-
-		// 根据id判断是否绘制边界框
-		// if (id === "81" && boundaryBox) {
-		// 	this.drawPathBoundaryBox(boundaryBox)
-		// }
-		// console.log("Canvas绘制路径:", nodeData, "点数:", points.length, "boundaryBox:", boundaryBox)
 	}
 
 	/**
 	 * 应用CTM变换（直接设置当前变换矩阵）
 	 * @param nodeData 节点数据
+	 * @param boundaryBox 节点数据
 	 */
-	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; } | null) {
+	private applyCTMTransform(nodeData: XmlData, boundaryBox: { x: number; y: number; width: number; height: number; }) {
 		const ctmStr = parser.findAttributeValueByKey(nodeData, AttributeKey.CTM)
 		if (ctmStr) {
 			const ctms = ctmStr.split(' ')
@@ -114,9 +106,9 @@ export class PathRenderer {
 				const d = parseFloat(ctms[3])
 				const e = convertToDpi(parseFloat(ctms[4]))
 				const f = convertToDpi(parseFloat(ctms[5]))
-				// this.pageCanvasCtx.translate(boundaryBox.x, boundaryBox.y)
+				this.pageCanvasCtx.translate(boundaryBox?.x, boundaryBox?.y)
 				this.pageCanvasCtx.transform(a, b, c, d, e, f)
-				// this.pageCanvasCtx.translate(-boundaryBox.x, -(boundaryBox.y))
+				this.pageCanvasCtx.translate(-boundaryBox?.x, -(boundaryBox?.y))
 			}
 		}
 	}
