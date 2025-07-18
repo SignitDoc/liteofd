@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>PathRenderer 测试</title>
+    <style>
+        body { margin: 20px; font-family: Arial, sans-serif; }
+        .canvas-container { display: flex; gap: 20px; margin: 20px 0; }
+        .canvas-wrapper { flex: 1; text-align: center; }
+        canvas { border: 2px solid #ddd; background: white; }
+        .controls { margin: 20px 0; padding: 15px; background: #f8f9fa; }
+        .path-input { 
+            width: 100%; 
+            height: 60px; 
+            font-family: monospace; 
+            font-size: 12px; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            resize: vertical;
+        }
+        .info { background: #e7f3ff; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>PathRenderer 绘制对比测试</h1>
+    
+    <div class="controls">
+        <label>路径数据:</label><br>
+        <textarea id="pathInput" class="path-input">M 10.07 5.54 B 10.07 3.04 8.04 1 5.53 1 B 3.03 1 1 3.04 1 5.54 B 1 8.04 3.03 10.08 5.53 10.08 B 8.04 10.08 10.07 8.04 10.07 5.54 M 2.3 2.3 L 8.7 8.7 M 2.3 8.7 L 8.7 2.3</textarea>
+        <button onclick="testPathRenderer()">测试 PathRenderer 逻辑</button>
+        <button onclick="testDemoLogic()">测试 Demo 逻辑</button>
+    </div>
+
+    <div class="canvas-container">
+        <div class="canvas-wrapper">
+            <h3>PathRenderer 逻辑</h3>
+            <canvas id="canvas1" width="300" height="300"></canvas>
+        </div>
+        <div class="canvas-wrapper">
+            <h3>Demo 逻辑</h3>
+            <canvas id="canvas2" width="300" height="300"></canvas>
+        </div>
+    </div>
+    
+    <div id="info" class="info"></div>
+
+    <script>
+        // 模拟 PathRenderer 的路径解析逻辑
+        function parsePathDataRenderer(data) {
+            const commands = data.split(' ');
+            const points = [];
+            let i = 0;
+            
+            while (i < commands.length) {
+                const command = commands[i];
+                
+                switch (command) {
+                    case 'M':
+                        points.push({
+                            type: 'M',
+                            x: parseFloat(commands[i + 1]),
+                            y: parseFloat(commands[i + 2])
+                        });
+                        i += 3;
+                        break;
+                    case 'L':
+                        points.push({
+                            type: 'L',
+                            x: parseFloat(commands[i + 1]),
+                            y: parseFloat(commands[i + 2])
+                        });
+                        i += 3;
+                        break;
+                    case 'B':
+                        points.push({
+                            type: 'B',
+                            x1: parseFloat(commands[i + 1]),
+                            y1: parseFloat(commands[i + 2]),
+                            x2: parseFloat(commands[i + 3]),
+                            y2: parseFloat(commands[i + 4]),
+                            x: parseFloat(commands[i + 5]),
+                            y: parseFloat(commands[i + 6])
+                        });
+                        i += 7;
+                        break;
+                    default:
+                        i++;
+                        break;
+                }
+            }
+            
+            return points;
+        }
+
+        // PathRenderer 的绘制逻辑
+        function drawPathRenderer(ctx, points, boundaryBox = null) {
+            ctx.beginPath();
+            let currentX = 0;
+            let currentY = 0;
+
+            for (const point of points) {
+                switch (point.type) {
+                    case 'M':
+                        if (boundaryBox) {
+                            ctx.moveTo(boundaryBox.x + point.x, boundaryBox.y + point.y);
+                            currentX = boundaryBox.x + point.x;
+                            currentY = boundaryBox.y + point.y;
+                        } else {
+                            ctx.moveTo(point.x, point.y);
+                            currentX = point.x;
+                            currentY = point.y;
+                        }
+                        break;
+                    case 'L':
+                        if (boundaryBox) {
+                            ctx.lineTo(boundaryBox.x + point.x, boundaryBox.y + point.y);
+                            currentX = boundaryBox.x + point.x;
+                            currentY = boundaryBox.y + point.y;
+                        } else {
+                            ctx.lineTo(point.x, point.y);
+                            currentX = point.x;
+                            currentY = point.y;
+                        }
+                        break;
+                    case 'B':
+                        if (boundaryBox) {
+                            ctx.bezierCurveTo(
+                                boundaryBox.x + point.x1, boundaryBox.y + point.y1,
+                                boundaryBox.x + point.x2, boundaryBox.y + point.y2,
+                                boundaryBox.x + point.x, boundaryBox.y + point.y
+                            );
+                            currentX = boundaryBox.x + point.x;
+                            currentY = boundaryBox.y + point.y;
+                        } else {
+                            ctx.bezierCurveTo(point.x1, point.y1, point.x2, point.y2, point.x, point.y);
+                            currentX = point.x;
+                            currentY = point.y;
+                        }
+                        break;
+                }
+            }
+        }
+
+        // Demo 的绘制逻辑
+        function drawPathDemo(ctx, points, scale = 1, offsetX = 0, offsetY = 0) {
+            ctx.beginPath();
+            let currentX = 0, currentY = 0;
+
+            for (const point of points) {
+                switch (point.type) {
+                    case 'M':
+                        const moveX = (point.x * scale) + offsetX;
+                        const moveY = (point.y * scale) + offsetY;
+                        ctx.moveTo(moveX, moveY);
+                        currentX = moveX;
+                        currentY = moveY;
+                        break;
+                    case 'L':
+                        const lineX = (point.x * scale) + offsetX;
+                        const lineY = (point.y * scale) + offsetY;
+                        ctx.lineTo(lineX, lineY);
+                        currentX = lineX;
+                        currentY = lineY;
+                        break;
+                    case 'B':
+                        const x1 = (point.x1 * scale) + offsetX;
+                        const y1 = (point.y1 * scale) + offsetY;
+                        const x2 = (point.x2 * scale) + offsetX;
+                        const y2 = (point.y2 * scale) + offsetY;
+                        const x = (point.x * scale) + offsetX;
+                        const y = (point.y * scale) + offsetY;
+                        ctx.bezierCurveTo(x1, y1, x2, y2, x, y);
+                        currentX = x;
+                        currentY = y;
+                        break;
+                }
+            }
+        }
+
+        function testPathRenderer() {
+            const pathData = document.getElementById('pathInput').value.trim();
+            const points = parsePathDataRenderer(pathData);
+            
+            const canvas = document.getElementById('canvas1');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 模拟 boundaryBox
+            const boundaryBox = { x: 50, y: 50, width: 200, height: 200 };
+            
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            
+            drawPathRenderer(ctx, points, boundaryBox);
+            ctx.stroke();
+            
+            // 绘制坐标轴
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.stroke();
+            
+            document.getElementById('info').innerHTML = `
+                <strong>PathRenderer 逻辑结果：</strong><br>
+                命令数量: ${points.length}<br>
+                边界框: ${JSON.stringify(boundaryBox)}<br>
+                命令详情: ${JSON.stringify(points, null, 2)}
+            `;
+        }
+
+        function testDemoLogic() {
+            const pathData = document.getElementById('pathInput').value.trim();
+            const points = parsePathDataRenderer(pathData);
+            
+            const canvas = document.getElementById('canvas2');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            
+            drawPathDemo(ctx, points, 1, 50, 50);
+            ctx.stroke();
+            
+            // 绘制坐标轴
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.stroke();
+            
+            document.getElementById('info').innerHTML = `
+                <strong>Demo 逻辑结果：</strong><br>
+                命令数量: ${points.length}<br>
+                缩放: 1, 偏移: (50, 50)<br>
+                命令详情: ${JSON.stringify(points, null, 2)}
+            `;
+        }
+
+        // 初始化
+        window.addEventListener('load', function() {
+            testPathRenderer();
+            testDemoLogic();
+        });
+    </script>
+</body>
+</html> 
