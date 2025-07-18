@@ -14,6 +14,7 @@ import Layer from './liteofd/layer';
 import * as parser from './liteofd/parser';
 import { AttributeKey, OFD_KEY, OFD_ACTION, ANNOT_TYPE, MultiChildTagName } from './liteofd/attrType';
 import * as ofdFont from './liteofd/ofdFont';
+import { RendererConfig, rendererConfig } from './liteofd/rendererConfig';
 
 export {
   LiteOfd,
@@ -34,7 +35,9 @@ export {
   OFD_ACTION,
   ANNOT_TYPE,
   MultiChildTagName,
-  ofdFont
+  ofdFont,
+  RendererConfig,
+  rendererConfig
 };
 
 // 默认导出
