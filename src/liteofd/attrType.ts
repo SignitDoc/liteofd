@@ -42,6 +42,7 @@ export const AttributeKey = {
 	Subtype: "Subtype", // 注释的子类型
 	DashPattern: "DashPattern", // 
 	BitsPerComponent: "BitsPerComponent", // 颜色空间每个分量的位数
+	Rule: "Rule", // 路径填充规则
 }
 
 // ofd的xml标签中的标签名tagName

@@ -372,10 +372,10 @@ export const calPathPoint = function (abbreviatedPoint: any) {
 		  point.y1 = convertToDpi(point.y1);
 		  point.x2 = convertToDpi(point.x2);
 		  point.y2 = convertToDpi(point.y2);
-		  point.x3 = convertToDpi(point.x3);
-		  point.y3 = convertToDpi(point.y3);
-		  currentX = point.x3;
-		  currentY = point.y3;
+		  point.x = convertToDpi(point.x3);
+		  point.y = convertToDpi(point.y3);
+		  currentX = point.x;
+		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'Z':

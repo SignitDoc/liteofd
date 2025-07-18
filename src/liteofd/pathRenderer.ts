@@ -13,6 +13,7 @@ export class PathRenderer {
 	private configManager: ConfigManager
 	private needFillColor = false
 	private needStrokeColor = false
+	private currentFillRule: CanvasFillRule = 'nonzero' // 当前填充规则
 
 	constructor(ofdDocument: OfdDocument, pageCanvasCtx: CanvasRenderingContext2D) {
 		this.ofdDocument = ofdDocument
@@ -43,16 +44,15 @@ export class PathRenderer {
 			this.needStrokeColor = false
 			this.needFillColor = false
 			let id = parser.findAttributeValueByKey(nodeData, AttributeKey.ID)
+			let idValue = parseInt(id)
 			let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
 			let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
 			if (boundaryStr) {
 				boundaryBox = convertToBox(boundaryStr)
-				// this.drawPathBoundaryBox(boundaryBox)
+				if (idValue == 81) {
+					this.drawPathBoundaryBox(boundaryBox)
+				}
 			}
-			// boundaryBox = {x: convertToDpi(429), y: convertToDpi(438), width: 100, height: 100}
-
-			let idValue = parseInt(id)
-
 			// 获取路径数据
 			let abbreviatedData = parser.findValueByTagNameOfFirstNode(nodeData, OFD_KEY.AbbreviatedData)
 			if (!abbreviatedData) {
@@ -60,6 +60,16 @@ export class PathRenderer {
 			}
 			// 计算路径点
 			const points = calPathPoint(convertPathAbbreviatedDatatoPoint(abbreviatedData.value))
+
+			if (idValue == 81) {
+				console.log("ID=81 路径调试信息:")
+				console.log("- 原始路径数据:", abbreviatedData.value)
+				console.log("- 解析后的点数:", points.length)
+				console.log("- 边界框:", boundaryBox)
+				console.log("- CTM:", parser.findAttributeValueByKey(nodeData, AttributeKey.CTM))
+				console.log("- LineWidth:", parser.findAttributeValueByKey(nodeData, AttributeKey.LineWidth))
+				console.log("- 前5个路径点:", points)
+			}
 
 			this.pageCanvasCtx.save()
 			// 应用CTM变换
@@ -226,6 +236,37 @@ export class PathRenderer {
 			ctx.setLineDash(dashArray)
 		}
 
+		// 设置线条端点样式 (Cap)
+		const capStyle = parser.findAttributeValueByKey(nodeData, AttributeKey.Cap)
+		if (capStyle) {
+			switch (capStyle) {
+				case 'Square':
+					ctx.lineCap = 'square'
+					break
+				case 'Round':
+					ctx.lineCap = 'round'
+					break
+				case 'Butt':
+				default:
+					ctx.lineCap = 'butt'
+					break
+			}
+		}
+
+		// 设置路径填充规则 (Rule)
+		const fillRule = parser.findAttributeValueByKey(nodeData, AttributeKey.Rule)
+		if (fillRule) {
+			switch (fillRule) {
+				case 'Even-Odd':
+					this.currentFillRule = 'evenodd'
+					break
+				case 'Non-Zero':
+				default:
+					this.currentFillRule = 'nonzero'
+					break
+			}
+		}
+
 		// // 设置描边颜色
 		// let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
 		// let strokeColorBoolean = parser.findAttributeValueByKey(nodeData, AttributeKey.Stroke)
@@ -268,17 +309,16 @@ export class PathRenderer {
 		const ctx = this.pageCanvasCtx
 		ctx.beginPath()
 
-		// 如果有boundaryBox，设置起始位置
+		// 简化边界框处理逻辑，与 demo 保持一致
 		let currentX = boundaryBox ? boundaryBox.x : 0
 		let currentY = boundaryBox ? boundaryBox.y : 0
-		let firstPoint = true
 
 		for (let i = 0; i < points.length; i++) {
 			const point = points[i]
 
 			switch (point.type) {
 				case 'M': // 移动到
-					if (firstPoint && boundaryBox) {
+					if (boundaryBox) {
 						ctx.moveTo(boundaryBox.x + point.x, boundaryBox.y + point.y)
 						currentX = boundaryBox.x + point.x
 						currentY = boundaryBox.y + point.y
@@ -287,7 +327,6 @@ export class PathRenderer {
 						currentX = point.x
 						currentY = point.y
 					}
-					firstPoint = false
 					break
 				case 'L': // 画线到
 					if (boundaryBox) {
@@ -402,23 +441,21 @@ export class PathRenderer {
 					break
 				case 'Z': // 闭合路径
 				case 'z':
-					if (!firstPoint) {
-						ctx.closePath()
-					}
+					ctx.closePath()
 					break
 				case 'B': // 自定义贝塞尔曲线
 					if (boundaryBox) {
 						ctx.bezierCurveTo(
 							boundaryBox.x + point.x1, boundaryBox.y + point.y1,
 							boundaryBox.x + point.x2, boundaryBox.y + point.y2,
-							boundaryBox.x + point.x3, boundaryBox.y + point.y3
+							boundaryBox.x + point.x, boundaryBox.y + point.y
 						)
-						currentX = boundaryBox.x + point.x3
-						currentY = boundaryBox.y + point.y3
+						currentX = boundaryBox.x + point.x
+						currentY = boundaryBox.y + point.y
 					} else {
-						ctx.bezierCurveTo(point.x1, point.y1, point.x2, point.y2, point.x3, point.y3)
-						currentX = point.x3
-						currentY = point.y3
+						ctx.bezierCurveTo(point.x1, point.y1, point.x2, point.y2, point.x, point.y)
+						currentX = point.x
+						currentY = point.y
 					}
 					break
 			}
@@ -427,10 +464,175 @@ export class PathRenderer {
 		// 只进行描边，不进行填充
 		// ctx.stroke()
 		if (this.needFillColor) {
-			this.pageCanvasCtx.fill()
+			this.pageCanvasCtx.fill(this.currentFillRule)
 		}
 		if (this.needStrokeColor) {
 			this.pageCanvasCtx.stroke()
+		} else if (!this.needFillColor){
+			// 如果没有设置描边颜色，使用默认黑色进行描边
+			console.log("Path没有设置描边颜色，使用默认黑色描边")
+			this.pageCanvasCtx.strokeStyle = 'black'
+			this.pageCanvasCtx.stroke()
+		}
+	}
+
+	/**
+	 * 构建路径到 Path2D 对象
+	 * @param points 路径点数组
+	 * @param boundaryBox 边界框
+	 * @param path2D Path2D 对象
+	 */
+	private buildPathToPath2D(points: any[], boundaryBox: { x: number; y: number; width: number; height: number; } | null, path2D: Path2D) {
+		// 简化边界框处理逻辑，与 drawCanvasPath 保持一致
+		let currentX = 0
+		let currentY = 0
+
+		for (let i = 0; i < points.length; i++) {
+			const point = points[i]
+
+			switch (point.type) {
+				case 'M': // 移动到
+					if (boundaryBox) {
+						path2D.moveTo(boundaryBox.x + point.x, boundaryBox.y + point.y)
+						currentX = boundaryBox.x + point.x
+						currentY = boundaryBox.y + point.y
+					} else {
+						path2D.moveTo(point.x, point.y)
+						currentX = point.x
+						currentY = point.y
+					}
+					break
+				case 'L': // 画线到
+					if (boundaryBox) {
+						path2D.lineTo(boundaryBox.x + point.x, boundaryBox.y + point.y)
+						currentX = boundaryBox.x + point.x
+						currentY = boundaryBox.y + point.y
+					} else {
+						path2D.lineTo(point.x, point.y)
+						currentX = point.x
+						currentY = point.y
+					}
+					break
+				case 'H': // 水平线到
+					if (boundaryBox) {
+						path2D.lineTo(boundaryBox.x + point.x, currentY)
+						currentX = boundaryBox.x + point.x
+					} else {
+						path2D.lineTo(point.x, currentY)
+						currentX = point.x
+					}
+					break
+				case 'V': // 垂直线到
+					if (boundaryBox) {
+						path2D.lineTo(currentX, boundaryBox.y + point.y)
+						currentY = boundaryBox.y + point.y
+					} else {
+						path2D.lineTo(currentX, point.y)
+						currentY = point.y
+					}
+					break
+				case 'C': // 三次贝塞尔曲线
+					if (boundaryBox) {
+						path2D.bezierCurveTo(
+							boundaryBox.x + point.x1, boundaryBox.y + point.y1,
+							boundaryBox.x + point.x2, boundaryBox.y + point.y2,
+							boundaryBox.x + point.x, boundaryBox.y + point.y
+						)
+						currentX = boundaryBox.x + point.x
+						currentY = boundaryBox.y + point.y
+					} else {
+						path2D.bezierCurveTo(point.x1, point.y1, point.x2, point.y2, point.x, point.y)
+						currentX = point.x
+						currentY = point.y
+					}
+					break
+				case 'S': // 平滑三次贝塞尔曲线
+					if (boundaryBox) {
+						if ('x2' in point && 'y2' in point) {
+							path2D.bezierCurveTo(
+								boundaryBox.x + point.x2, boundaryBox.y + point.y2,
+								boundaryBox.x + point.x2, boundaryBox.y + point.y2,
+								boundaryBox.x + point.x, boundaryBox.y + point.y
+							)
+						} else {
+							path2D.bezierCurveTo(
+								boundaryBox.x + point.x, boundaryBox.y + point.y,
+								boundaryBox.x + point.x, boundaryBox.y + point.y,
+								boundaryBox.x + point.x, boundaryBox.y + point.y
+							)
+						}
+						currentX = boundaryBox.x + point.x
+						currentY = boundaryBox.y + point.y
+					} else {
+						if ('x2' in point && 'y2' in point) {
+							path2D.bezierCurveTo(point.x2, point.y2, point.x2, point.y2, point.x, point.y)
+						} else {
+							path2D.bezierCurveTo(point.x, point.y, point.x, point.y, point.x, point.y)
+						}
+						currentX = point.x
+						currentY = point.y
+					}
+					break
+				case 'Q': // 二次贝塞尔曲线
+					if (boundaryBox) {
+						path2D.quadraticCurveTo(
+							boundaryBox.x + point.x1, boundaryBox.y + point.y1,
+							boundaryBox.x + point.x, boundaryBox.y + point.y
+						)
+						currentX = boundaryBox.x + point.x
+						currentY = boundaryBox.y + point.y
+					} else {
+						path2D.quadraticCurveTo(point.x1, point.y1, point.x, point.y)
+						currentX = point.x
+						currentY = point.y
+					}
+					break
+				case 'T': // 平滑二次贝塞尔曲线
+					if (boundaryBox) {
+						path2D.quadraticCurveTo(
+							boundaryBox.x + point.x, boundaryBox.y + point.y,
+							boundaryBox.x + point.x, boundaryBox.y + point.y
+						)
+						currentX = boundaryBox.x + point.x
+						currentY = boundaryBox.y + point.y
+					} else {
+						path2D.quadraticCurveTo(point.x, point.y, point.x, point.y)
+						currentX = point.x
+						currentY = point.y
+					}
+					break
+				case 'A': // 椭圆弧
+					// 简化处理：将椭圆弧转换为直线
+					if (boundaryBox) {
+						path2D.lineTo(boundaryBox.x + point.x, boundaryBox.y + point.y)
+						currentX = boundaryBox.x + point.x
+						currentY = boundaryBox.y + point.y
+					} else {
+						path2D.lineTo(point.x, point.y)
+						currentX = point.x
+						currentY = point.y
+					}
+					break
+				case 'Z': // 闭合路径
+				case 'z':
+					path2D.closePath()
+					break
+				case 'B': // 自定义贝塞尔曲线
+					if (boundaryBox) {
+						path2D.bezierCurveTo(
+							boundaryBox.x + point.x1, boundaryBox.y + point.y1,
+							boundaryBox.x + point.x2, boundaryBox.y + point.y2,
+							boundaryBox.x + point.x, boundaryBox.y + point.y
+						)
+						currentX = boundaryBox.x + point.x
+						currentY = boundaryBox.y + point.y
+					} else {
+						path2D.bezierCurveTo(point.x1, point.y1, point.x2, point.y2, point.x, point.y)
+						currentX = point.x
+						currentY = point.y
+					}
+					break
+			}
 		}
 	}
 
