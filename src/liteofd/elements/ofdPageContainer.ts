@@ -94,11 +94,15 @@ export class OfdPageContainer {
 							if (templateFileData && templateFileData instanceof XmlData) {
 								// 根据模板页面的数据拿到Page，其他就跟普通的页面一样的渲染了
 								let pageData = parser.findValueByTagName(templateFileData, OFD_KEY.Page)
-														if (rendererConfig.isCanvasRender()) {
-							pageData && this.#renderCanvasContentLayer(pageData, pageContainer, zOrderValue)
-						} else {
-							pageData && this.#renderContentLayer(pageData, pageContainer, zOrderValue)
-						}
+
+								pageData && this.#renderCanvasContentLayer(pageData, pageContainer, zOrderValue)
+								pageData && this.#renderContentLayer(pageData, pageContainer, zOrderValue)
+
+								// if (rendererConfig.isCanvasRender()) {
+								// 	pageData && this.#renderCanvasContentLayer(pageData, pageContainer, zOrderValue)
+								// } else {
+								// 	pageData && this.#renderContentLayer(pageData, pageContainer, zOrderValue)
+								// }
 								console.log("template file data", templateFileData, templatePath, this.ofdDocument.files)
 							}
 						}

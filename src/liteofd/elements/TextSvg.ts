@@ -7,6 +7,7 @@ import { createTextSpan, getCTM, getFontSize, parseColor } from "../utils/elemen
 import { OfdDocument } from "../ofdDocument"
 import { CommonFont } from "../utils/commonFont"
 import { convertNonStandardFont, normalizeFontName } from "../utils/ofdUtils"
+import { rendererConfig } from "../rendererConfig"
 
 /**
  * 文本组件
@@ -141,18 +142,27 @@ export class TextSvg extends BaseSvg {
 	#addStrokeColor(nodeData: XmlData) {
 		let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
 		let strokeColorStr = strokeColorObj && parser.findAttributeValueByKey(strokeColorObj, AttributeKey.Value)
-		if (strokeColorStr) {
-			let strokeColor = parseColor(strokeColorStr)
-			this.textStyle += `stroke: ${strokeColor};`
+
+		if (rendererConfig.isCanvasRender()) {
+			this.textStyle += `stroke: transparent;`
+		} else {
+			if (strokeColorStr) {
+				let strokeColor = parseColor(strokeColorStr)
+				this.textStyle += `stroke: ${strokeColor};`
+			}
 		}
 	}
 
 	#addFillColor(nodeData: XmlData) {
 		let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
 		let fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
-		if (fillColorStr) {
-			let fillColor = parseColor(fillColorStr)
-			this.textStyle += `fill: ${fillColor};`
+		if (rendererConfig.isCanvasRender()) {
+			this.textStyle += `fill: transparent;`
+		} else {
+			if (fillColorStr) {
+				let fillColor = parseColor(fillColorStr)
+				this.textStyle += `fill: ${fillColor};`
+			}
 		}
 	}
 

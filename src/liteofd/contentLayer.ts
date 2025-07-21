@@ -9,6 +9,7 @@ import { XmlData } from "./ofdData"
 import { PathSvg } from "./elements/PathSvg"
 import { TextSvg } from "./elements/TextSvg"
 import { ImageSvg } from "./elements/ImageSvg"
+import { rendererConfig } from "./rendererConfig"
 
 export class ContentLayer extends Layer {
 	private ofdDocument: OfdDocument
@@ -35,10 +36,10 @@ export class ContentLayer extends Layer {
 	render(pageData: XmlData, pageContainer: Element) {
 		try {
 			let contentData = parser.findValueByTagName(pageData, OFD_KEY.Content)
-			if(contentData) {	
+			if(contentData) {
 				// 渲染内容层
 				this.#initPageContainer()
-				this.#renderPageContent(contentData, pageContainer)	
+				this.#renderPageContent(contentData, pageContainer)
 			}
 		} catch (e) {
 			console.log("render page content error", e, pageData)
@@ -60,19 +61,30 @@ export class ContentLayer extends Layer {
 	}
 
 	#renderLayerDataObject(dataObj: XmlData, pageContainer: Element) {
-		switch (dataObj.tagName) {
-			case OFD_KEY.TextObject:
-				this.#renderTextObject(dataObj, pageContainer)
-				break
-			case OFD_KEY.PathObject:
-				this.#renderPathObject(dataObj, pageContainer)
-				break
-			case OFD_KEY.ImageObject:
-				this.#renderImageObject(dataObj, pageContainer)
-				break
-			case OFD_KEY.PageBlock:
-				this.#renderPageBlock(dataObj, pageContainer)
-				break
+		if (rendererConfig.isCanvasRender()) {
+			switch (dataObj.tagName) {
+				case OFD_KEY.TextObject:
+					this.#renderTextObject(dataObj, pageContainer)
+					break
+				case OFD_KEY.PageBlock:
+					this.#renderPageBlock(dataObj, pageContainer)
+					break
+			}
+		} else {
+			switch (dataObj.tagName) {
+				case OFD_KEY.TextObject:
+					this.#renderTextObject(dataObj, pageContainer)
+					break
+				case OFD_KEY.PathObject:
+					this.#renderPathObject(dataObj, pageContainer)
+					break
+				case OFD_KEY.ImageObject:
+					this.#renderImageObject(dataObj, pageContainer)
+					break
+				case OFD_KEY.PageBlock:
+					this.#renderPageBlock(dataObj, pageContainer)
+					break
+			}
 		}
 	}
 
