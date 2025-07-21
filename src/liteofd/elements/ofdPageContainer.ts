@@ -13,7 +13,6 @@ import { RootDocPath } from "../parser"
 import { SignatureElement } from "../elements/SignatureElement"
 import { OfdAnnotationElement } from "./ofdAnnotationElement"
 import { CanvasContentLayer } from "../canvasContentLayer"
-import { rendererConfig } from "../rendererConfig"
 
 /**
  * OFD的页面渲染容器，里面有一个pageRender用来调用页面的渲染功能进行 内容的渲染
@@ -24,6 +23,11 @@ export class OfdPageContainer {
 	private pageData: XmlData // 当前页面的数据
 	private contentLayer!: ContentLayer // 渲染的内容层，包含textcode和模板等
 	private canvasContentLayer!: CanvasContentLayer // 使用canvas渲染的渲染的内容层，包含textcode和模板等，包裹canvas进行绘制
+	private textLayer: HTMLDivElement // 选择文本层
+	private annotionLayer: HTMLDivElement // 注释层
+	private annotationEditorLayer: HTMLDivElement // 注释编辑层
+	private canvasWrapper: HTMLDivElement // 绘制层
+
 	private pageContainer!: HTMLDivElement // 包裹canvas的div组件
 	private pageCanvas!: HTMLCanvasElement // 绘制内容的canvas组件
 
@@ -40,7 +44,7 @@ export class OfdPageContainer {
 
 	// 渲染内容层
 	#renderContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
-		this.contentLayer = new ContentLayer(this.ofdDocument)
+		this.contentLayer = new ContentLayer(this.ofdDocument, this.textLayer)
 		if (zOrder) {
 			this.contentLayer.renderWithZOrder(pageData, pageContainer, zOrder)
 		} else {
@@ -124,17 +128,57 @@ export class OfdPageContainer {
 		return pageStyle
 	}
 
+	#getSubLayerBox(pageData: XmlData){
+		let physicsBoxObj = parser.findValueByTagName(pageData, OFD_KEY.PhysicalBox)
+		// 如果页面的宽度为空，那么使用整体的页面布局
+		if (!physicsBoxObj) {
+			physicsBoxObj = parser.findValueByTagName(this.ofdDocument.documentData, OFD_KEY.PhysicalBox)
+		}
+
+		let physicBox = convertToBox(physicsBoxObj!!.value)
+		let pageStyle = `width: ${physicBox.width}px; height: ${physicBox.height}px; position: absolute; left: 0; top: 0`
+		return pageStyle
+	}
+
+	// 创建包含页面的div
 	#createPageContainer(pageData: XmlData): HTMLDivElement{
 		let pageContainer = document.createElement("div")
 		pageContainer.setAttribute("class", "page-container")
 		let pageStyle = this.#getPageBox(pageData)
 		pageContainer.setAttribute("style", pageStyle)
+		this.pageContainer = pageContainer
+
+		let subLayerStyle = this.#getSubLayerBox(pageData)
+		// 创建canvas层
+		this.canvasWrapper = this.#createPageCanvas(pageData)
+		this.canvasWrapper.setAttribute("style", subLayerStyle)
+
+		// 注释层
+		let annotationEditorLayer = document.createElement("div")
+		annotationEditorLayer.setAttribute("style", subLayerStyle)
+		annotationEditorLayer.setAttribute("class", "annotationEditorLayer")
+		pageContainer.appendChild(annotationEditorLayer)
+		this.annotationEditorLayer = annotationEditorLayer
+		// 注释层
+		let annotLayer = document.createElement("div")
+		annotLayer.setAttribute("style", subLayerStyle)
+		annotLayer.setAttribute("class", "annotionLayer")
+		pageContainer.appendChild(annotLayer)
+		this.annotionLayer = annotLayer
+		// 添加选择文本层
+		let textLayer = document.createElement("div")
+		textLayer.setAttribute("style", subLayerStyle)
+		textLayer.setAttribute("class", "textLayer")
+		pageContainer.appendChild(textLayer)
+		this.textLayer = textLayer
 
 		return pageContainer
 	}
 
 	// 创建绘制文本的canvas
-	#createPageCanvas(pageData: XmlData): HTMLCanvasElement{
+	#createPageCanvas(pageData: XmlData): HTMLDivElement{
+		let canvasWrapper = document.createElement("div")
+		canvasWrapper.setAttribute("class", "canvas-wrapper")
 		let pageCanvas = document.createElement("canvas")
 
 		// 根据创建时间设置canvas的id
@@ -151,7 +195,10 @@ export class OfdPageContainer {
 		pageCanvas.width = physicBox.width
 		pageCanvas.height = physicBox.height
 
-		return pageCanvas
+		this.pageContainer.appendChild(canvasWrapper)
+		canvasWrapper.appendChild(pageCanvas)
+		this.pageCanvas = pageCanvas
+		return canvasWrapper
 	}
 
 	/**
@@ -161,7 +208,7 @@ export class OfdPageContainer {
 	 * @private
 	 */
 	async #renderPageAsync(pageData: XmlData, pageContainer: HTMLDivElement){
-		let pageRender = new OfdPageRender(this.ofdDocument, pageData)
+		let pageRender = new OfdPageRender(this.ofdDocument, pageData, this.textLayer)
 		if (!this.canvasContentLayer) {
 			this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument, this.pageContainer, this.pageCanvas)
 		}
@@ -187,9 +234,7 @@ export class OfdPageContainer {
 	 */
 	getPageElement(): HTMLDivElement {
 		// 首先添加div，然后页面的内容使用也不进行渲染
-		this.pageContainer = this.#createPageContainer(this.pageData)
-		this.pageCanvas = this.#createPageCanvas(this.pageData)
-		this.pageContainer.appendChild(this.pageCanvas)
+		this.#createPageContainer(this.pageData)
 		this.#renderPageAsync(this.pageData, this.pageContainer)
 
 		return this.pageContainer

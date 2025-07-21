@@ -13,12 +13,14 @@ import { rendererConfig } from "./rendererConfig"
 
 export class ContentLayer extends Layer {
 	private ofdDocument: OfdDocument
+	private textLayer: HTMLDivElement
 	private setDefaultZOrder = false // 是否使用默认的zorder的值设置zindex
 	private defaultZorderValue = -1 // 默认的zindex的值
 
-	constructor(ofdDocument: OfdDocument) {
+	constructor(ofdDocument: OfdDocument, pageContainer: HTMLDivElement) {
 		super()
 		this.ofdDocument = ofdDocument
+		this.textLayer = pageContainer
 		this.#initPageContainer()
 	}
 
@@ -39,7 +41,7 @@ export class ContentLayer extends Layer {
 			if(contentData) {
 				// 渲染内容层
 				this.#initPageContainer()
-				this.#renderPageContent(contentData, pageContainer)
+				this.#renderPageContent(contentData, this.textLayer)
 			}
 		} catch (e) {
 			console.log("render page content error", e, pageData)

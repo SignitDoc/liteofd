@@ -13,6 +13,7 @@ import { rendererConfig } from "../rendererConfig"
 export class OfdPageRender {
 	private contentLayer!: ContentLayer // 使用svg进行绘制内容层
 	private canvasContentLayer: CanvasContentLayer | null = null // 使用canvas进行绘制内容层
+	private textLayer: HTMLDivElement
 	private ofdPage: XmlData // 页面数据，包含签名数据
 	private readonly renderPromise: PromiseCapability<any>
 	private ofdDocument: OfdDocument
@@ -20,16 +21,17 @@ export class OfdPageRender {
 	private pageCanvas!: HTMLCanvasElement
 
 
-	constructor(ofdDocument: OfdDocument, ofdPage: XmlData) {
+	constructor(ofdDocument: OfdDocument, ofdPage: XmlData, textLayer: HTMLDivElement) {
 		this.ofdPage = ofdPage
 		this.ofdDocument = ofdDocument
+		this.textLayer = textLayer
 		this.renderPromise = new PromiseCapability()
 	}
 
 
 	// 渲染内容层
 	#renderContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
-		this.contentLayer = new ContentLayer(this.ofdDocument)
+		this.contentLayer = new ContentLayer(this.ofdDocument, this.textLayer)
 		if (zOrder) {
 			this.contentLayer.renderWithZOrder(pageData, pageContainer, zOrder)
 		} else {
