@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>路径绘制问题分析</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        canvas { border: 1px solid #ccc; margin: 10px; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; font-family: monospace; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>路径绘制问题分析</h1>
+        <p>分析路径数据: <code>S 0 0 L 156 0 C</code></p>
+        
+        <div class="debug">
+            <h3>问题分析:</h3>
+            <p>路径数据 <code>S 0 0 L 156 0 C</code> 包含:</p>
+            <ul>
+                <li><code>S 0 0</code> - 平滑三次贝塞尔曲线，移动到 (0,0)</li>
+                <li><code>L 156 0</code> - 直线到 (156,0)</li>
+                <li><code>C</code> - 闭合路径（但缺少坐标）</li>
+            </ul>
+        </div>
+
+        <canvas id="canvas1" width="400" height="200"></canvas>
+        <canvas id="canvas2" width="400" height="200"></canvas>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // 模拟路径解析函数
+        function convertPathAbbreviatedDatatoPoint(abbreviatedData) {
+            let array = abbreviatedData.split(' ');
+            let pointList = [];
+            let i = 0;
+            
+            console.log("解析路径数据:", abbreviatedData);
+            console.log("分割后数组:", array);
+            
+            while (i < array.length) {
+                let command = array[i];
+                console.log(`处理命令 ${i}: ${command}`);
+                
+                switch (command) {
+                    case 'S':
+                    case 's':
+                        if (i + 2 < array.length) {
+                            let point = {
+                                'type': command,
+                                'x': parseFloat(array[i + 1]),
+                                'y': parseFloat(array[i + 2])
+                            };
+                            console.log("S命令解析:", point);
+                            pointList.push(point);
+                            i += 3;
+                        } else {
+                            console.error("S命令参数不足");
+                            i++;
+                        }
+                        break;
+                    case 'L':
+                    case 'l':
+                        if (i + 2 < array.length) {
+                            let point = {
+                                'type': command,
+                                'x': parseFloat(array[i + 1]),
+                                'y': parseFloat(array[i + 2])
+                            };
+                            console.log("L命令解析:", point);
+                            pointList.push(point);
+                            i += 3;
+                        } else {
+                            console.error("L命令参数不足");
+                            i++;
+                        }
+                        break;
+                    case 'C':
+                    case 'c':
+                        // 检查是否有足够的参数
+                        if (i + 6 < array.length) {
+                            let point = {
+                                'type': command,
+                                'x1': parseFloat(array[i + 1]),
+                                'y1': parseFloat(array[i + 2]),
+                                'x2': parseFloat(array[i + 3]),
+                                'y2': parseFloat(array[i + 4]),
+                                'x': parseFloat(array[i + 5]),
+                                'y': parseFloat(array[i + 6])
+                            };
+                            console.log("C命令解析:", point);
+                            pointList.push(point);
+                            i += 7;
+                        } else {
+                            // 如果参数不足，可能是闭合命令
+                            console.log("C命令参数不足，可能是闭合命令");
+                            let point = {
+                                'type': 'Z'
+                            };
+                            pointList.push(point);
+                            i++;
+                        }
+                        break;
+                    case 'Z':
+                    case 'z':
+                        let point = {
+                            'type': command
+                        };
+                        console.log("Z命令解析:", point);
+                        pointList.push(point);
+                        i++;
+                        break;
+                    default:
+                        console.warn(`未知命令: ${command}`);
+                        i++;
+                        break;
+                }
+            }
+            
+            console.log("最终解析结果:", pointList);
+            return pointList;
+        }
+
+        // 模拟路径点计算函数
+        function calPathPoint(abbreviatedPoint) {
+            let pointList = [];
+            let currentX = 0, currentY = 0;
+            
+            console.log("计算路径点，输入:", abbreviatedPoint);
+            
+            for (let i = 0; i < abbreviatedPoint.length; i++) {
+                let point = abbreviatedPoint[i];
+                
+                switch (point.type) {
+                    case 'S':
+                    case 's':
+                        // 对于S命令，如果没有控制点，应该转换为直线
+                        if ('x2' in point && 'y2' in point) {
+                            point.x2 = point.x2;
+                            point.y2 = point.y2;
+                            point.x = point.x;
+                            point.y = point.y;
+                        } else {
+                            // 如果S命令只有终点坐标，应该转换为移动到该点
+                            console.log("S命令转换为移动到:", point.x, point.y);
+                            point.type = 'M';
+                            point.x = point.x;
+                            point.y = point.y;
+                        }
+                        currentX = point.x;
+                        currentY = point.y;
+                        pointList.push(point);
+                        break;
+                    case 'L':
+                    case 'l':
+                        point.x = point.x;
+                        point.y = point.y;
+                        currentX = point.x;
+                        currentY = point.y;
+                        pointList.push(point);
+                        break;
+                    case 'C':
+                    case 'c':
+                        if ('x1' in point && 'y1' in point && 'x2' in point && 'y2' in point) {
+                            point.x1 = point.x1;
+                            point.y1 = point.y1;
+                            point.x2 = point.x2;
+                            point.y2 = point.y2;
+                            point.x = point.x;
+                            point.y = point.y;
+                            currentX = point.x;
+                            currentY = point.y;
+                            pointList.push(point);
+                        } else {
+                            console.warn("C命令参数不完整");
+                        }
+                        break;
+                    case 'Z':
+                    case 'z':
+                        pointList.push(point);
+                        break;
+                    default:
+                        console.warn(`未知点类型: ${point.type}`);
+                        break;
+                }
+            }
+            
+            console.log("计算后的路径点:", pointList);
+            return pointList;
+        }
+
+        // 绘制路径函数
+        function drawCanvasPath(ctx, points, boundaryBox = null) {
+            ctx.beginPath();
+            
+            let currentX = boundaryBox ? boundaryBox.x : 0;
+            let currentY = boundaryBox ? boundaryBox.y : 0;
+            
+            console.log("开始绘制路径，点数:", points.length);
+            
+            for (let i = 0; i < points.length; i++) {
+                const point = points[i];
+                console.log(`绘制点 ${i}:`, point);
+                
+                switch (point.type) {
+                    case 'M':
+                        if (boundaryBox) {
+                            ctx.moveTo(boundaryBox.x + point.x, boundaryBox.y + point.y);
+                            currentX = boundaryBox.x + point.x;
+                            currentY = boundaryBox.y + point.y;
+                        } else {
+                            ctx.moveTo(point.x, point.y);
+                            currentX = point.x;
+                            currentY = point.y;
+                        }
+                        console.log(`移动到: (${currentX}, ${currentY})`);
+                        break;
+                    case 'L':
+                        if (boundaryBox) {
+                            ctx.lineTo(boundaryBox.x + point.x, boundaryBox.y + point.y);
+                            currentX = boundaryBox.x + point.x;
+                            currentY = boundaryBox.y + point.y;
+                        } else {
+                            ctx.lineTo(point.x, point.y);
+                            currentX = point.x;
+                            currentY = point.y;
+                        }
+                        console.log(`画线到: (${currentX}, ${currentY})`);
+                        break;
+                    case 'S':
+                        // 对于S命令，如果没有控制点，应该绘制为直线
+                        if (boundaryBox) {
+                            ctx.lineTo(boundaryBox.x + point.x, boundaryBox.y + point.y);
+                            currentX = boundaryBox.x + point.x;
+                            currentY = boundaryBox.y + point.y;
+                        } else {
+                            ctx.lineTo(point.x, point.y);
+                            currentX = point.x;
+                            currentY = point.y;
+                        }
+                        console.log(`S命令绘制为直线到: (${currentX}, ${currentY})`);
+                        break;
+                    case 'C':
+                        if (boundaryBox) {
+                            ctx.bezierCurveTo(
+                                boundaryBox.x + point.x1, boundaryBox.y + point.y1,
+                                boundaryBox.x + point.x2, boundaryBox.y + point.y2,
+                                boundaryBox.x + point.x, boundaryBox.y + point.y
+                            );
+                            currentX = boundaryBox.x + point.x;
+                            currentY = boundaryBox.y + point.y;
+                        } else {
+                            ctx.bezierCurveTo(point.x1, point.y1, point.x2, point.y2, point.x, point.y);
+                            currentX = point.x;
+                            currentY = point.y;
+                        }
+                        console.log(`贝塞尔曲线到: (${currentX}, ${currentY})`);
+                        break;
+                    case 'Z':
+                        ctx.closePath();
+                        console.log("闭合路径");
+                        break;
+                }
+            }
+        }
+
+        // 测试函数
+        function testPath() {
+            const pathData = "S 0 0 L 156 0 C";
+            const resultsDiv = document.getElementById('results');
+            
+            resultsDiv.innerHTML = '<h3>测试结果:</h3>';
+            
+            try {
+                // 解析路径数据
+                const points = convertPathAbbreviatedDatatoPoint(pathData);
+                const calculatedPoints = calPathPoint(points);
+                
+                resultsDiv.innerHTML += `<p class="success">✓ 路径解析成功，得到 ${calculatedPoints.length} 个点</p>`;
+                resultsDiv.innerHTML += `<p>解析结果: ${JSON.stringify(calculatedPoints, null, 2)}</p>`;
+                
+                // 绘制到第一个canvas
+                const canvas1 = document.getElementById('canvas1');
+                const ctx1 = canvas1.getContext('2d');
+                ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+                
+                ctx1.strokeStyle = 'red';
+                ctx1.lineWidth = 2;
+                drawCanvasPath(ctx1, calculatedPoints);
+                ctx1.stroke();
+                
+                // 绘制到第二个canvas（带边界框）
+                const canvas2 = document.getElementById('canvas2');
+                const ctx2 = canvas2.getContext('2d');
+                ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+                
+                const boundaryBox = { x: 50, y: 50, width: 200, height: 100 };
+                ctx2.strokeStyle = 'blue';
+                ctx2.lineWidth = 2;
+                drawCanvasPath(ctx2, calculatedPoints, boundaryBox);
+                ctx2.stroke();
+                
+                // 绘制边界框
+                ctx2.strokeStyle = 'green';
+                ctx2.lineWidth = 1;
+                ctx2.strokeRect(boundaryBox.x, boundaryBox.y, boundaryBox.width, boundaryBox.height);
+                
+                resultsDiv.innerHTML += `<p class="success">✓ 路径绘制完成</p>`;
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">✗ 错误: ${error.message}</p>`;
+                console.error("测试失败:", error);
+            }
+        }
+
+        // 页面加载完成后运行测试
+        window.addEventListener('load', testPath);
+    </script>
+</body>
+</html> 
