@@ -98,14 +98,28 @@ export const convertPathAbbreviatedDatatoPoint = (abbreviatedData: string) => {
 		  break;
 		case 'S':
 		case 's':
-			pointList.push({
-				'type': command,
-				'x': parseFloat(array[i + 1]),
-				'y': parseFloat(array[i + 2]),
-			  });
-		  console.log("command s is #2", command, pointList)
-		  i += 3;
-		  break;
+			// 检查是否有足够的参数用于贝塞尔曲线
+			if (i + 4 < array.length && !isNaN(parseFloat(array[i + 3])) && !isNaN(parseFloat(array[i + 4]))) {
+				// 完整的S命令：S x2 y2 x y
+				pointList.push({
+					'type': command,
+					'x2': parseFloat(array[i + 1]),
+					'y2': parseFloat(array[i + 2]),
+					'x': parseFloat(array[i + 3]),
+					'y': parseFloat(array[i + 4])
+				});
+				i += 5;
+			} else {
+				// 简化的S命令：S x y (只有终点坐标)
+				pointList.push({
+					'type': command,
+					'x': parseFloat(array[i + 1]),
+					'y': parseFloat(array[i + 2])
+				});
+				i += 3;
+			}
+			console.log("command s is #2", command, pointList)
+			break;
 		case 'Q':
 		case 'q':
 		  pointList.push({
