@@ -166,7 +166,7 @@ export class OfdRender {
 		if (rootContainer) {
 			// 应用缩放
 			rootContainer.style.transform = `scale(${newScale})`;
-			rootContainer.style.transformOrigin = 'top left';
+			rootContainer.style.transformOrigin = 'center top';
 			// 调整父容器和内容位置
 			// this.adjustContainerAndPosition(rootContainer, originalWidth, newScale);
 		}
