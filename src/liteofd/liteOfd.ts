@@ -32,6 +32,7 @@ export default class LiteOfd {
   render(container?: HTMLDivElement, pageWrapStyle?: string, pageIndexes?: number[]): HTMLDivElement {
     this.ofdRender = new OfdRender(this.ofdDocument)
     const containerDiv = container || document.createElement('div')
+    containerDiv.setAttribute("class", "pages-container")
     this.containerDiv = containerDiv
     return this.ofdRender.renderOfdWithCustomDiv(containerDiv, pageWrapStyle, pageIndexes)
   }

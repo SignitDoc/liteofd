@@ -66,5 +66,9 @@ body { margin: 0; }
   color: transparent;
 }
 
-.page-container {
+.pages-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }

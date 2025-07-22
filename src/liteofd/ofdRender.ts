@@ -164,15 +164,9 @@ export class OfdRender {
 	public applyZoom(rootContainer: HTMLDivElement, newScale: number): void {
 		debugger
 		if (rootContainer) {
-			if (!rootContainer.dataset.originalWidth) {
-				rootContainer.dataset.originalWidth = rootContainer.offsetWidth.toString();
-			}
-			// const originalWidth = parseFloat(rootContainer.dataset.originalWidth);
-
 			// 应用缩放
 			rootContainer.style.transform = `scale(${newScale})`;
 			rootContainer.style.transformOrigin = 'top left';
-
 			// 调整父容器和内容位置
 			// this.adjustContainerAndPosition(rootContainer, originalWidth, newScale);
 		}
