@@ -77,9 +77,6 @@ export class TextRenderer {
 				console.error("textCode不存在")
 				return
 			}
-			if (textID == 12) {
-				debugger
-			}
 
 			// 保存当前canvas状态
 			this.pageCanvasCtx.save()
@@ -573,7 +570,7 @@ export class TextRenderer {
 			let r = parseInt(array[0])
 			let g = parseInt(array[1])
 			let b = parseInt(array[2])
-			
+
 			// 如果指定了位数，进行相应的转换
 			if (bitsPerComponent) {
 				let maxValue = Math.pow(2, parseInt(bitsPerComponent)) - 1
@@ -581,7 +578,7 @@ export class TextRenderer {
 				g = Math.round((g / maxValue) * 255)
 				b = Math.round((b / maxValue) * 255)
 			}
-			
+
 			return `rgb(${r}, ${g}, ${b})`
 		}
 		return `rgb(0, 0, 0)`
@@ -597,13 +594,13 @@ export class TextRenderer {
 		let array = colorStr.split(' ')
 		if (array.length >= 1) {
 			let gray = parseInt(array[0])
-			
+
 			// 如果指定了位数，进行相应的转换
 			if (bitsPerComponent) {
 				let maxValue = Math.pow(2, parseInt(bitsPerComponent)) - 1
 				gray = Math.round((gray / maxValue) * 255)
 			}
-			
+
 			return `rgb(${gray}, ${gray}, ${gray})`
 		}
 		return `rgb(0, 0, 0)`
@@ -622,7 +619,7 @@ export class TextRenderer {
 			let m = parseFloat(array[1])
 			let y = parseFloat(array[2])
 			let k = parseFloat(array[3])
-			
+
 			// 如果指定了位数，进行相应的转换
 			if (bitsPerComponent) {
 				let maxValue = Math.pow(2, parseInt(bitsPerComponent)) - 1
@@ -631,12 +628,12 @@ export class TextRenderer {
 				y = y / maxValue
 				k = k / maxValue
 			}
-			
+
 			// CMYK 转 RGB
 			let r = Math.round(255 * (1 - c) * (1 - k))
 			let g = Math.round(255 * (1 - m) * (1 - k))
 			let b = Math.round(255 * (1 - y) * (1 - k))
-			
+
 			return `rgb(${r}, ${g}, ${b})`
 		}
 		return `rgb(0, 0, 0)`

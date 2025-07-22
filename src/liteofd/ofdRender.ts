@@ -138,6 +138,7 @@ export class OfdRender {
 	 * 每次放大 10%
 	 */
 	zoomIn(): void {
+		debugger
 		if (this.rootContainer) {
 			const currentScale = parseFloat(this.rootContainer.dataset.scale || '1');
 			const newScale = currentScale * 1.1; // 每次放大 10%
@@ -162,23 +163,19 @@ export class OfdRender {
 	 * @param newScale 新的缩放比例
 	 */
 	public applyZoom(rootContainer: HTMLDivElement, newScale: number): void {
+		debugger
 		if (rootContainer) {
 			if (!rootContainer.dataset.originalWidth) {
 				rootContainer.dataset.originalWidth = rootContainer.offsetWidth.toString();
 			}
-			const originalWidth = parseFloat(rootContainer.dataset.originalWidth);
+			// const originalWidth = parseFloat(rootContainer.dataset.originalWidth);
 
 			// 应用缩放
 			rootContainer.style.transform = `scale(${newScale})`;
 			rootContainer.style.transformOrigin = 'top left';
-			rootContainer.dataset.scale = newScale.toString();
-
-			// 调整内容大小，但保持原始尺寸
-			rootContainer.style.width = `${originalWidth}px`;
-			rootContainer.style.height = 'auto';
 
 			// 调整父容器和内容位置
-			this.adjustContainerAndPosition(rootContainer, originalWidth, newScale);
+			// this.adjustContainerAndPosition(rootContainer, originalWidth, newScale);
 		}
 	}
 

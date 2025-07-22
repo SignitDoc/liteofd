@@ -558,7 +558,6 @@ export class PathRenderer {
 		let colorSpaceType = parser.findAttributeValueByKey(colorSpaceNode, AttributeKey.Type)
 		let bitsPerComponent = parser.findAttributeValueByKey(colorSpaceNode, AttributeKey.BitsPerComponent)
 
-		debugger
 		// 判断颜色格式：16进制还是RGB数值
 		if (this.isHexColorFormat(colorStr)) {
 			return this.parseHexColor(colorStr)
