@@ -81,8 +81,7 @@ export class OfdRender {
 		this.#renderPages(rootContainer, wrapStyle, pageIndexes)
 		// 给scrollContainer添加滑动的css
 		this.scrollContainer.style.cssText = `
-			overflow-y: auto;
-			overflow-x: hidden;
+			overflow: auto;
 			height: 100%;
 			width: 100%;
 			scroll-behavior: smooth;
