@@ -100,6 +100,7 @@ export default class LiteOfd {
     if (this.ofdRender) {
       const newScale = Math.max(0.1, Math.min(scale, 5))
       this.ofdRender.applyZoom(this.ofdRender.rootContainer, newScale)
+      this.currentScale = newScale
     }
   }
 
