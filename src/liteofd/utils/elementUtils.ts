@@ -1,6 +1,6 @@
 import * as parser from "../parser"
 import { AttributeKey, OFD_KEY } from "../attrType"
-import { convertToDpi, convertToDpiWithScale } from "./utils"
+import { convertToDpi } from "./utils"
 import { XmlData } from "../ofdData"
 import { OfdDocument } from "../ofdDocument"
 
@@ -191,7 +191,7 @@ export const deltaFormatter = function (text: string, delta) {
 	if (delta.indexOf("g") === -1) {
 		let floatList = [];
 		const deltaArray = delta.split(' ').filter(f => f.trim().length > 0);
-		
+
 		// 如果只有一个数字，则返回与text字符长度相同的数组
 		if (deltaArray.length === 1) {
 			const singleValue = parseFloat(deltaArray[0]);
@@ -211,26 +211,26 @@ export const deltaFormatter = function (text: string, delta) {
 		let floatList = [];
 		let currentIndex = 0;
 		const totalIntervals = text.length - 1;
-		
+
 		for (let i = 0; i < array.length; i++) {
 			const s = array[i];
-			
+
 			if (!s || s.trim().length == 0) {
 				continue;
 			}
-			
+
 			if ('g' === s) {
 				// 处理g指令
 				if (i + 2 < array.length) {
 					const gItemCount = parseInt(array[i + 1]);
 					const gValue = parseFloat(array[i + 2]);
-					
+
 					// 添加指定数量的gValue
 					for (let j = 0; j < gItemCount && currentIndex < totalIntervals; j++) {
 						floatList.push(gValue);
 						currentIndex++;
 					}
-					
+
 					// 跳过已处理的参数
 					i += 2;
 				}
@@ -242,7 +242,7 @@ export const deltaFormatter = function (text: string, delta) {
 				}
 			}
 		}
-		
+
 		// 如果生成的数组长度不够，用最后一个值填充
 		while (floatList.length < totalIntervals) {
 			if (floatList.length > 0) {
@@ -251,7 +251,7 @@ export const deltaFormatter = function (text: string, delta) {
 				floatList.push(0);
 			}
 		}
-		
+
 		return floatList;
 	}
 }
@@ -394,10 +394,11 @@ export const getOFDFilePath = (path: string) => {
 			let physicalBox = physicalBoxObj.value.split(" ")
 			let ofdWidth = parseFloat(physicalBox[2])
 
-			let newofdWidth = convertToDpiWithScale(ofdWidth, 1)
-			console.log("ofdWidth", ofdWidth, newofdWidth, screenWidth);
+			let newofdWidth = convertToDpi(ofdWidth)
+			console.log("screen width and ofdWidth", screenWidth, ofdWidth, newofdWidth, screenWidth);
 			// 计算缩放比例
 			let scale = (screenWidth - 100) / ofdWidth
+			console.log("current page scale", scale)
 			return scale
 		}
 		// 如果物理盒不存在，则返回1
