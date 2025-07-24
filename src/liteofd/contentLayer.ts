@@ -10,6 +10,7 @@ import { PathSvg } from "./elements/PathSvg"
 import { TextSvg } from "./elements/TextSvg"
 import { ImageSvg } from "./elements/ImageSvg"
 import { rendererConfig } from "./rendererConfig"
+import { TextElement } from "./elements/TextElement"
 
 export class ContentLayer extends Layer {
 	private ofdDocument: OfdDocument
@@ -145,7 +146,7 @@ export class ContentLayer extends Layer {
 
 	#renderSingleTextObject(nodeData: XmlData, pageContainer: Element) {
 		// path的路径的绘制的对象
-		let svgEle = new TextSvg(this.ofdDocument, nodeData)
+		let svgEle = new TextElement(this.ofdDocument, nodeData)
 		let nodeEle = svgEle.getContainerSvg()
 
 

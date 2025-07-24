@@ -144,7 +144,6 @@ export const createTextSpan = (nodeData: XmlData, textCodeData: XmlData, textNod
 	}
 }
 
-
 /**
  * 获取字体的文字大小
  * @param textObj
