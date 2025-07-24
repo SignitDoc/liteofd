@@ -21,6 +21,7 @@ export class OfdDocument {
 	signatureList: XmlData[] = [] // 签名数据列表，包含了signatures.xml里面所有签名组成的xmldata的数组
 	outlines: XmlData = new XmlData() // 大纲数据列表，包含了ofd:Outlines里面所有大纲数据
 	annots: XmlData = new XmlData() // 注释数据列表，包含了ofd:Annotations
+	isTextLayer: boolean = true // 是否是textlayer层，textlayer层的text使用div和span进行文字渲染
 
 	constructor() {
 		this.loadedMediaFile = new Map()
@@ -71,7 +72,7 @@ export class OfdDocument {
 	/**
 	 * 获取内容文本
 	 * @param page 页码，如果为null，则获取全部文本
-	 * @returns 
+	 * @returns
 	 */
 	getContentText(page: number | null) {
 		if(page == null){

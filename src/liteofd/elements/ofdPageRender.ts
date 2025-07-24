@@ -86,8 +86,10 @@ export class OfdPageRender {
 		console.log("content render type", rendererConfig.isCanvasRender(), pageData, pageContainer)
 		// canvas绘制内容
 		this.#renderCanvasContentLayer(pageData, pageContainer)
-		// div绘制文字层，进行选择
-		this.#renderContentLayer(pageData, pageContainer)
+		if (this.ofdDocument.isTextLayer) {
+			// div绘制文字层，进行选择
+			this.#renderContentLayer(pageData, pageContainer)
+		}
 
 		// 渲染内容层
 		// if (rendererConfig.isCanvasRender()) {

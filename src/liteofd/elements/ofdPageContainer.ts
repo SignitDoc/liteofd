@@ -100,7 +100,9 @@ export class OfdPageContainer {
 								let pageData = parser.findValueByTagName(templateFileData, OFD_KEY.Page)
 
 								pageData && this.#renderCanvasContentLayer(pageData, pageContainer, zOrderValue)
-								pageData && this.#renderContentLayer(pageData, pageContainer, zOrderValue)
+								if (this.ofdDocument.isTextLayer) {
+									pageData && this.#renderContentLayer(pageData, pageContainer, zOrderValue)
+								}
 
 								// if (rendererConfig.isCanvasRender()) {
 								// 	pageData && this.#renderCanvasContentLayer(pageData, pageContainer, zOrderValue)
@@ -165,12 +167,14 @@ export class OfdPageContainer {
 		annotLayer.setAttribute("class", "annotionLayer")
 		pageContainer.appendChild(annotLayer)
 		this.annotionLayer = annotLayer
-		// 添加选择文本层
-		let textLayer = document.createElement("div")
-		textLayer.setAttribute("style", subLayerStyle)
-		textLayer.setAttribute("class", "textLayer")
-		pageContainer.appendChild(textLayer)
-		this.textLayer = textLayer
+		if (this.ofdDocument.isTextLayer) {
+			// 添加选择文本层
+			let textLayer = document.createElement("div")
+			textLayer.setAttribute("style", subLayerStyle)
+			textLayer.setAttribute("class", "textLayer")
+			pageContainer.appendChild(textLayer)
+			this.textLayer = textLayer
+		}
 
 		return pageContainer
 	}

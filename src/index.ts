@@ -7,6 +7,7 @@ import { PathSvg } from './liteofd/elements/PathSvg';
 import { OfdPageRender } from './liteofd/elements/ofdPageRender';
 import { SignatureElement } from './liteofd/elements/SignatureElement';
 import { TextSvg } from './liteofd/elements/TextSvg';
+import {TextElement} from "./liteofd/elements/TextElement"
 import { ImageSvg } from './liteofd/elements/ImageSvg';
 import { AnnotLayer } from './liteofd/annotLayer';
 import { ContentLayer } from './liteofd/contentLayer';
@@ -26,6 +27,7 @@ export {
   OfdPageRender,
   SignatureElement,
   TextSvg,
+  TextElement,
   ImageSvg,
   AnnotLayer,
   ContentLayer,

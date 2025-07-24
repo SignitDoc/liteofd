@@ -54,6 +54,7 @@ export class SignatureElement {
 	 */
 	#addOFDSignature(ofdDocument: OfdDocument){
 		console.log("render signature ", ofdDocument)
+		ofdDocument.isTextLayer = false
 		// 包含签名数据
 		this.viewContainer = document.createElement("div")
 		this.#addSvgIDAndZIndex()
