@@ -1,9 +1,9 @@
 // The `name` naming table.
 // https://www.microsoft.com/typography/OTSPEC/name.htm
 
-import { decode, encode } from '../types';
-import parse from '../parse';
-import table from '../table';
+import { decode, encode } from '../types.js';
+import parse from '../parse.js';
+import table from '../table.js';
 
 // NameIDs for the name table.
 const nameTableNames = [
@@ -154,7 +154,7 @@ const macLanguages = {
     151: 'nn'
 };
 
-// MacOS language ID → MacOS script ID
+// MacOS language ID �?MacOS script ID
 //
 // Note that the script ID is not sufficient to determine what encoding
 // to use in TrueType files. For some languages, MacOS used a modification
@@ -167,125 +167,125 @@ const macLanguages = {
 //
 // http://unicode.org/Public/MAPPINGS/VENDORS/APPLE/Readme.txt
 const macLanguageToScript = {
-    0: 0,  // langEnglish → smRoman
-    1: 0,  // langFrench → smRoman
-    2: 0,  // langGerman → smRoman
-    3: 0,  // langItalian → smRoman
-    4: 0,  // langDutch → smRoman
-    5: 0,  // langSwedish → smRoman
-    6: 0,  // langSpanish → smRoman
-    7: 0,  // langDanish → smRoman
-    8: 0,  // langPortuguese → smRoman
-    9: 0,  // langNorwegian → smRoman
-    10: 5,  // langHebrew → smHebrew
-    11: 1,  // langJapanese → smJapanese
-    12: 4,  // langArabic → smArabic
-    13: 0,  // langFinnish → smRoman
-    14: 6,  // langGreek → smGreek
-    15: 0,  // langIcelandic → smRoman (modified)
-    16: 0,  // langMaltese → smRoman
-    17: 0,  // langTurkish → smRoman (modified)
-    18: 0,  // langCroatian → smRoman (modified)
-    19: 2,  // langTradChinese → smTradChinese
-    20: 4,  // langUrdu → smArabic
-    21: 9,  // langHindi → smDevanagari
-    22: 21,  // langThai → smThai
-    23: 3,  // langKorean → smKorean
-    24: 29,  // langLithuanian → smCentralEuroRoman
-    25: 29,  // langPolish → smCentralEuroRoman
-    26: 29,  // langHungarian → smCentralEuroRoman
-    27: 29,  // langEstonian → smCentralEuroRoman
-    28: 29,  // langLatvian → smCentralEuroRoman
-    29: 0,  // langSami → smRoman
-    30: 0,  // langFaroese → smRoman (modified)
-    31: 4,  // langFarsi → smArabic (modified)
-    32: 7,  // langRussian → smCyrillic
-    33: 25,  // langSimpChinese → smSimpChinese
-    34: 0,  // langFlemish → smRoman
-    35: 0,  // langIrishGaelic → smRoman (modified)
-    36: 0,  // langAlbanian → smRoman
-    37: 0,  // langRomanian → smRoman (modified)
-    38: 29,  // langCzech → smCentralEuroRoman
-    39: 29,  // langSlovak → smCentralEuroRoman
-    40: 0,  // langSlovenian → smRoman (modified)
-    41: 5,  // langYiddish → smHebrew
-    42: 7,  // langSerbian → smCyrillic
-    43: 7,  // langMacedonian → smCyrillic
-    44: 7,  // langBulgarian → smCyrillic
-    45: 7,  // langUkrainian → smCyrillic (modified)
-    46: 7,  // langByelorussian → smCyrillic
-    47: 7,  // langUzbek → smCyrillic
-    48: 7,  // langKazakh → smCyrillic
-    49: 7,  // langAzerbaijani → smCyrillic
-    50: 4,  // langAzerbaijanAr → smArabic
-    51: 24,  // langArmenian → smArmenian
-    52: 23,  // langGeorgian → smGeorgian
-    53: 7,  // langMoldavian → smCyrillic
-    54: 7,  // langKirghiz → smCyrillic
-    55: 7,  // langTajiki → smCyrillic
-    56: 7,  // langTurkmen → smCyrillic
-    57: 27,  // langMongolian → smMongolian
-    58: 7,  // langMongolianCyr → smCyrillic
-    59: 4,  // langPashto → smArabic
-    60: 4,  // langKurdish → smArabic
-    61: 4,  // langKashmiri → smArabic
-    62: 4,  // langSindhi → smArabic
-    63: 26,  // langTibetan → smTibetan
-    64: 9,  // langNepali → smDevanagari
-    65: 9,  // langSanskrit → smDevanagari
-    66: 9,  // langMarathi → smDevanagari
-    67: 13,  // langBengali → smBengali
-    68: 13,  // langAssamese → smBengali
-    69: 11,  // langGujarati → smGujarati
-    70: 10,  // langPunjabi → smGurmukhi
-    71: 12,  // langOriya → smOriya
-    72: 17,  // langMalayalam → smMalayalam
-    73: 16,  // langKannada → smKannada
-    74: 14,  // langTamil → smTamil
-    75: 15,  // langTelugu → smTelugu
-    76: 18,  // langSinhalese → smSinhalese
-    77: 19,  // langBurmese → smBurmese
-    78: 20,  // langKhmer → smKhmer
-    79: 22,  // langLao → smLao
-    80: 30,  // langVietnamese → smVietnamese
-    81: 0,  // langIndonesian → smRoman
-    82: 0,  // langTagalog → smRoman
-    83: 0,  // langMalayRoman → smRoman
-    84: 4,  // langMalayArabic → smArabic
-    85: 28,  // langAmharic → smEthiopic
-    86: 28,  // langTigrinya → smEthiopic
-    87: 28,  // langOromo → smEthiopic
-    88: 0,  // langSomali → smRoman
-    89: 0,  // langSwahili → smRoman
-    90: 0,  // langKinyarwanda → smRoman
-    91: 0,  // langRundi → smRoman
-    92: 0,  // langNyanja → smRoman
-    93: 0,  // langMalagasy → smRoman
-    94: 0,  // langEsperanto → smRoman
-    128: 0,  // langWelsh → smRoman (modified)
-    129: 0,  // langBasque → smRoman
-    130: 0,  // langCatalan → smRoman
-    131: 0,  // langLatin → smRoman
-    132: 0,  // langQuechua → smRoman
-    133: 0,  // langGuarani → smRoman
-    134: 0,  // langAymara → smRoman
-    135: 7,  // langTatar → smCyrillic
-    136: 4,  // langUighur → smArabic
-    137: 26,  // langDzongkha → smTibetan
-    138: 0,  // langJavaneseRom → smRoman
-    139: 0,  // langSundaneseRom → smRoman
-    140: 0,  // langGalician → smRoman
-    141: 0,  // langAfrikaans → smRoman
-    142: 0,  // langBreton → smRoman (modified)
-    143: 28,  // langInuktitut → smEthiopic (modified)
-    144: 0,  // langScottishGaelic → smRoman (modified)
-    145: 0,  // langManxGaelic → smRoman (modified)
-    146: 0,  // langIrishGaelicScript → smRoman (modified)
-    147: 0,  // langTongan → smRoman
-    148: 6,  // langGreekAncient → smRoman
-    149: 0,  // langGreenlandic → smRoman
-    150: 0,  // langAzerbaijanRoman → smRoman
-    151: 0   // langNynorsk → smRoman
+    0: 0,  // langEnglish �?smRoman
+    1: 0,  // langFrench �?smRoman
+    2: 0,  // langGerman �?smRoman
+    3: 0,  // langItalian �?smRoman
+    4: 0,  // langDutch �?smRoman
+    5: 0,  // langSwedish �?smRoman
+    6: 0,  // langSpanish �?smRoman
+    7: 0,  // langDanish �?smRoman
+    8: 0,  // langPortuguese �?smRoman
+    9: 0,  // langNorwegian �?smRoman
+    10: 5,  // langHebrew �?smHebrew
+    11: 1,  // langJapanese �?smJapanese
+    12: 4,  // langArabic �?smArabic
+    13: 0,  // langFinnish �?smRoman
+    14: 6,  // langGreek �?smGreek
+    15: 0,  // langIcelandic �?smRoman (modified)
+    16: 0,  // langMaltese �?smRoman
+    17: 0,  // langTurkish �?smRoman (modified)
+    18: 0,  // langCroatian �?smRoman (modified)
+    19: 2,  // langTradChinese �?smTradChinese
+    20: 4,  // langUrdu �?smArabic
+    21: 9,  // langHindi �?smDevanagari
+    22: 21,  // langThai �?smThai
+    23: 3,  // langKorean �?smKorean
+    24: 29,  // langLithuanian �?smCentralEuroRoman
+    25: 29,  // langPolish �?smCentralEuroRoman
+    26: 29,  // langHungarian �?smCentralEuroRoman
+    27: 29,  // langEstonian �?smCentralEuroRoman
+    28: 29,  // langLatvian �?smCentralEuroRoman
+    29: 0,  // langSami �?smRoman
+    30: 0,  // langFaroese �?smRoman (modified)
+    31: 4,  // langFarsi �?smArabic (modified)
+    32: 7,  // langRussian �?smCyrillic
+    33: 25,  // langSimpChinese �?smSimpChinese
+    34: 0,  // langFlemish �?smRoman
+    35: 0,  // langIrishGaelic �?smRoman (modified)
+    36: 0,  // langAlbanian �?smRoman
+    37: 0,  // langRomanian �?smRoman (modified)
+    38: 29,  // langCzech �?smCentralEuroRoman
+    39: 29,  // langSlovak �?smCentralEuroRoman
+    40: 0,  // langSlovenian �?smRoman (modified)
+    41: 5,  // langYiddish �?smHebrew
+    42: 7,  // langSerbian �?smCyrillic
+    43: 7,  // langMacedonian �?smCyrillic
+    44: 7,  // langBulgarian �?smCyrillic
+    45: 7,  // langUkrainian �?smCyrillic (modified)
+    46: 7,  // langByelorussian �?smCyrillic
+    47: 7,  // langUzbek �?smCyrillic
+    48: 7,  // langKazakh �?smCyrillic
+    49: 7,  // langAzerbaijani �?smCyrillic
+    50: 4,  // langAzerbaijanAr �?smArabic
+    51: 24,  // langArmenian �?smArmenian
+    52: 23,  // langGeorgian �?smGeorgian
+    53: 7,  // langMoldavian �?smCyrillic
+    54: 7,  // langKirghiz �?smCyrillic
+    55: 7,  // langTajiki �?smCyrillic
+    56: 7,  // langTurkmen �?smCyrillic
+    57: 27,  // langMongolian �?smMongolian
+    58: 7,  // langMongolianCyr �?smCyrillic
+    59: 4,  // langPashto �?smArabic
+    60: 4,  // langKurdish �?smArabic
+    61: 4,  // langKashmiri �?smArabic
+    62: 4,  // langSindhi �?smArabic
+    63: 26,  // langTibetan �?smTibetan
+    64: 9,  // langNepali �?smDevanagari
+    65: 9,  // langSanskrit �?smDevanagari
+    66: 9,  // langMarathi �?smDevanagari
+    67: 13,  // langBengali �?smBengali
+    68: 13,  // langAssamese �?smBengali
+    69: 11,  // langGujarati �?smGujarati
+    70: 10,  // langPunjabi �?smGurmukhi
+    71: 12,  // langOriya �?smOriya
+    72: 17,  // langMalayalam �?smMalayalam
+    73: 16,  // langKannada �?smKannada
+    74: 14,  // langTamil �?smTamil
+    75: 15,  // langTelugu �?smTelugu
+    76: 18,  // langSinhalese �?smSinhalese
+    77: 19,  // langBurmese �?smBurmese
+    78: 20,  // langKhmer �?smKhmer
+    79: 22,  // langLao �?smLao
+    80: 30,  // langVietnamese �?smVietnamese
+    81: 0,  // langIndonesian �?smRoman
+    82: 0,  // langTagalog �?smRoman
+    83: 0,  // langMalayRoman �?smRoman
+    84: 4,  // langMalayArabic �?smArabic
+    85: 28,  // langAmharic �?smEthiopic
+    86: 28,  // langTigrinya �?smEthiopic
+    87: 28,  // langOromo �?smEthiopic
+    88: 0,  // langSomali �?smRoman
+    89: 0,  // langSwahili �?smRoman
+    90: 0,  // langKinyarwanda �?smRoman
+    91: 0,  // langRundi �?smRoman
+    92: 0,  // langNyanja �?smRoman
+    93: 0,  // langMalagasy �?smRoman
+    94: 0,  // langEsperanto �?smRoman
+    128: 0,  // langWelsh �?smRoman (modified)
+    129: 0,  // langBasque �?smRoman
+    130: 0,  // langCatalan �?smRoman
+    131: 0,  // langLatin �?smRoman
+    132: 0,  // langQuechua �?smRoman
+    133: 0,  // langGuarani �?smRoman
+    134: 0,  // langAymara �?smRoman
+    135: 7,  // langTatar �?smCyrillic
+    136: 4,  // langUighur �?smArabic
+    137: 26,  // langDzongkha �?smTibetan
+    138: 0,  // langJavaneseRom �?smRoman
+    139: 0,  // langSundaneseRom �?smRoman
+    140: 0,  // langGalician �?smRoman
+    141: 0,  // langAfrikaans �?smRoman
+    142: 0,  // langBreton �?smRoman (modified)
+    143: 28,  // langInuktitut �?smEthiopic (modified)
+    144: 0,  // langScottishGaelic �?smRoman (modified)
+    145: 0,  // langManxGaelic �?smRoman (modified)
+    146: 0,  // langIrishGaelicScript �?smRoman (modified)
+    147: 0,  // langTongan �?smRoman
+    148: 6,  // langGreekAncient �?smRoman
+    149: 0,  // langGreenlandic �?smRoman
+    150: 0,  // langAzerbaijanRoman �?smRoman
+    151: 0   // langNynorsk �?smRoman
 };
 
 // While Microsoft indicates a region/country for all its language
@@ -483,12 +483,12 @@ const windowsLanguages = {
     0x500A: 'es-PR',
 
     // Microsoft has defined two different language codes for
-    // “Spanish with modern sorting” and “Spanish with traditional
-    // sorting”. This makes sense for collation APIs, and it would be
+    // “Spanish with modern sorting�?and “Spanish with traditional
+    // sorting�? This makes sense for collation APIs, and it would be
     // possible to express this in BCP 47 language tags via Unicode
     // extensions (eg., es-u-co-trad is Spanish with traditional
     // sorting). However, for storing names in fonts, the distinction
-    // does not make sense, so we give “es” in both cases.
+    // does not make sense, so we give “es�?in both cases.
     0x0C0A: 'es',
     0x040A: 'es',
 
@@ -546,7 +546,7 @@ function getLanguageCode(platformID, languageID, ltag) {
 
 const utf16 = 'utf-16';
 
-// MacOS script ID → encoding. This table stores the default case,
+// MacOS script ID �?encoding. This table stores the default case,
 // which can be overridden by macLanguageEncodings.
 const macScriptEncodings = {
     0: 'macintosh',           // smRoman
@@ -580,7 +580,7 @@ const macScriptEncodings = {
     31: 'x-mac-extarabic'     // smExtArabic
 };
 
-// MacOS language ID → encoding. This table stores the exceptional
+// MacOS language ID �?encoding. This table stores the exceptional
 // cases, which override macScriptEncodings. For writing MacOS naming
 // tables, we need to emit a MacOS script ID. Therefore, we cannot
 // merge macScriptEncodings into macLanguageEncodings.
@@ -670,8 +670,8 @@ function parseNameTable(data, start, ltag) {
     return name;
 }
 
-// {23: 'foo'} → {'foo': 23}
-// ['bar', 'baz'] → {'bar': 0, 'baz': 1}
+// {23: 'foo'} �?{'foo': 23}
+// ['bar', 'baz'] �?{'bar': 0, 'baz': 1}
 function reverseDict(dict) {
     const result = {};
     for (let key in dict) {

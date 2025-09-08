@@ -1,6 +1,6 @@
-// ╭─┄┄┄────────────────────────┄─────────────────────────────────────────────╮
-// ┊ Character Class Assertions ┊ Checks if a char belongs to a certain class ┊
-// ╰─╾──────────────────────────┄─────────────────────────────────────────────╯
+// ╭─┄┄┄────────────────────────┄─────────────────────────────────────────────�?
+// �?Character Class Assertions �?Checks if a char belongs to a certain class �?
+// ╰─╾──────────────────────────┄─────────────────────────────────────────────�?
 // jscs:disable maximumLineLength
 /**
  * Check if a char is Arabic
