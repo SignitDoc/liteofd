@@ -5,6 +5,7 @@ import { OFD_KEY } from "../attrType"
 import { OfdDocument } from "../ofdDocument"
 import { CanvasContentLayer } from "../canvasContentLayer"
 import { rendererConfig } from "../rendererConfig"
+import { ConfigManager } from "../../config/configManager"
 
 
 /**
@@ -86,7 +87,7 @@ export class OfdPageRender {
 		console.log("content render type", rendererConfig.isCanvasRender(), pageData, pageContainer)
 		// canvas绘制内容
 		this.#renderCanvasContentLayer(pageData, pageContainer)
-		if (this.ofdDocument.isTextLayer) {
+		if (this.ofdDocument.isTextLayer && ConfigManager.getInstance().getFeaturesConfig().enableTextSelection) {
 			// div绘制文字层，进行选择
 			this.#renderContentLayer(pageData, pageContainer)
 		}
