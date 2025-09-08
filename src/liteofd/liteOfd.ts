@@ -77,6 +77,11 @@ export default class LiteOfd {
     if (pageElement) {
       pageElement.scrollIntoView({ behavior: 'smooth' })
     }
+    // 创建并分发自定义事件
+    const event = new CustomEvent('ofdPageChange', {
+      detail: { pageIndex: pageIndex, pageId: pageId }
+    });
+    window.dispatchEvent(event);
   }
 
   /**
