@@ -56,13 +56,11 @@ export class TextSvg extends BaseSvg {
 			// let ofdFontList = parser.findValueByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
 			let allFontList = parser.findAllNodesByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
 			// console.log("find public res ofd list", ofdFontList)
-			console.log("find public res allFontList", allFontList)
 			// 根据字体id查找对应publicres的font数据
 			// let findedFont = parser.findNodeByAttributeKeyValue(fontID, AttributeKey.ID, ofdFontList!!)
 			// 从字体列表中查找字体
 			let findedFont = parser.findNodeByAttributeKeyValueInList(fontID, AttributeKey.ID, allFontList!!)
 			parser.findNodeByAttributeKeyValueWithTagName(fontID, AttributeKey.ID, this.ofdDocument.publicRes, OFD_KEY.Font)
-			console.log("find text font ", findedFont)
 			if (findedFont) {
 				// 添加字体内容
 				let fontName = parser.findAttributeValueByKey(findedFont, AttributeKey.FontName)
@@ -94,7 +92,6 @@ export class TextSvg extends BaseSvg {
 				}
 				// 添加字体斜体
 				let fontItalic = parser.findAttributeValueByKey(findedFont, AttributeKey.Italic)
-				console.log("font italic:", fontID, findedFont, fontItalic, node)
 				if (fontItalic) {
 					this.textStyle += `font-style: italic;`
 				}

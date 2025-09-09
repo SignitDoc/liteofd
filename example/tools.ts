@@ -28,7 +28,7 @@ function parseOfdFile(file: File) {
 function handleFileChange(event: Event) {
     const fileInput = event.target as HTMLInputElement;
     const file = fileInput.files?.[0];
-    
+
     if (file) {
         if (file.name.toLowerCase().endsWith('.ofd')) {
             console.log('选中的 OFD 文件:', file.name);
@@ -50,7 +50,7 @@ function handleFileChange(event: Event) {
                 fileNameElement.textContent = '';
             }
         }
-        
+
         // 清除文件输入，允许选择相同的文件
         fileInput.value = '';
     }
@@ -77,40 +77,39 @@ function getFontMap(page: XmlData, index: number, pageItem: HTMLElement) {
             }
          })
      })
- 
+
      // 创建字体组件
      const fontComponent = document.createElement('div');
      fontComponent.className = 'font-component';
-     
+
      // 创建字体树
      const fontTree = document.createElement('ul');
      fontTree.className = 'font-tree';
-     
+
      // 将fontMap中的fontID和fontName进行树形展示
      fontMap.forEach((fontChild: XmlData, fontID: string) => {
         const fontName = findAttributeValueByKey(fontChild, AttributeKey.FontName)
         const fontItem = document.createElement('li');
         fontItem.className = 'font-item';
-        
+
         const fontHeader = document.createElement('span');
         fontHeader.textContent = `${fontID} : ${fontName}`;
         fontItem.appendChild(fontHeader);
-        
+
         fontItem.addEventListener('click', (event) => {
             event.stopPropagation(); // 阻止事件冒泡到pageItem
-            
+
             console.log(`点击了字体: ${fontID} - ${fontName}`);
             // 预览字体
             previewFont(fontID, fontName)
         });
-        
+
         fontTree.appendChild(fontItem);
      })
-     
+
      // 将字体树添加到字体组件
      fontComponent.appendChild(fontTree);
-     console.log("fontMap :", fontMap)
-     
+
      return fontComponent;
 }
 
@@ -253,7 +252,7 @@ export function showSignatures() {
         alert('请先选择一个 OFD 文件');
         return;
     }
-    
+
 }
 
 // 显示注释

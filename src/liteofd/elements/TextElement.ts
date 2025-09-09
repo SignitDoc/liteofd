@@ -55,13 +55,11 @@ export class TextElement {
 			// let ofdFontList = parser.findValueByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
 			let allFontList = parser.findAllNodesByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
 			// console.log("find public res ofd list", ofdFontList)
-			console.log("find public res allFontList", allFontList)
 			// 根据字体id查找对应publicres的font数据
 			// let findedFont = parser.findNodeByAttributeKeyValue(fontID, AttributeKey.ID, ofdFontList!!)
 			// 从字体列表中查找字体
 			let findedFont = parser.findNodeByAttributeKeyValueInList(fontID, AttributeKey.ID, allFontList!!)
 			parser.findNodeByAttributeKeyValueWithTagName(fontID, AttributeKey.ID, this.ofdDocument.publicRes, OFD_KEY.Font)
-			console.log("find text font ", findedFont)
 			if (findedFont) {
 				// 添加字体内容
 				let fontName = parser.findAttributeValueByKey(findedFont, AttributeKey.FontName)
@@ -93,7 +91,6 @@ export class TextElement {
 				}
 				// 添加字体斜体
 				let fontItalic = parser.findAttributeValueByKey(findedFont, AttributeKey.Italic)
-				console.log("font italic:", fontID, findedFont, fontItalic, node)
 				if (fontItalic) {
 					this.textStyle += `font-style: italic;`
 				}
@@ -106,7 +103,6 @@ export class TextElement {
 		let tempCtm = this.#getTextCTM(nodeData)
 		if (tempCtm) {
 			this.textStyle += `transform: ${tempCtm};`
-			console.log("text ele style", this.textStyle)
 		}
 	}
 
@@ -186,7 +182,6 @@ export class TextElement {
 
 
 	#createDivTextSpan(nodeData: XmlData, textCodeData: XmlData, textNode: Element) {
-		console.log("test converttodpi : ", convertToDpi(9.22 - 5.6))
 		let scaleStyle = ""
 		// 根据scale计算tspan的位置
 		let hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale)
@@ -232,10 +227,8 @@ export class TextElement {
 		this.#addCTM(nodeData, eleSvg)
 		// 添加字体颜色和大小
 		this.#addTextStyle(nodeData)
-		console.log("text ele style", this.textStyle)
 		// 添加drawparam
 		this.#addDrawParam(nodeData)
-		console.log("text ele style", this.textStyle)
 		// 给字体添加字体
 		this.#addFont(nodeData, eleSvg)
 		// 添加字体内容

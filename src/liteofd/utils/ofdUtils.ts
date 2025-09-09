@@ -205,7 +205,6 @@ const loadAnnots = async (ofdFiles: any, ofdDocument: OfdDocument, annoteRes: Xm
  */
 export const convertNonStandardFont = (fontName: string): string => {
 	// 处理带有前缀的字体名称
-	console.log("convert fontName", fontName, loadedFonts)
 	if(loadedFonts.has(fontName)) {
 		return fontName
 	}
