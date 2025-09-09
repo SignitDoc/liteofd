@@ -129,7 +129,7 @@ liteOfd.nextPage();
 liteOfd.prevPage();
 ```
 
-### 2.7 scrollToPage(pageIndex: number)
+### 2.7 gotoPage(pageIndex: number)
 
 描述：滚动到指定页面。
 
@@ -138,7 +138,7 @@ liteOfd.prevPage();
 
 示例：
 ```typescript
-liteOfd.scrollToPage(1); // 跳转到第一页
+liteOfd.gotoPage(1); // 跳转到第一页
 ```
 
 ### 2.8 zoomIn()

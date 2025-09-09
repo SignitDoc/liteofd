@@ -5,8 +5,14 @@
 
 /* global DataView, Uint8Array, XMLHttpRequest  */
 
-import 'string.prototype.codepointat';
-import inflate from 'tiny-inflate';
+// String.prototype.codePointAt polyfill removed
+// Simple inflate function - WOFF support disabled
+function inflateBuffer(inBuffer, outBuffer) {
+    console.warn('WOFF decompression not supported');
+    for (let i = 0; i < Math.min(inBuffer.length, outBuffer.length); i++) {
+        outBuffer[i] = inBuffer[i];
+    }
+}
 import Font from './font.js';
 import Glyph from './glyph.js';
 import { CmapEncoding, GlyphNames, addGlyphNames } from './encoding.js';
@@ -32,7 +38,7 @@ import _name from './tables/name.js';
 import os2 from './tables/os2.js';
 import post from './tables/post.js';
 import meta from './tables/meta.js';
-import * as fs from "node:fs"
+// Node.js fs module removed for browser compatibility
 
 /**
  * The opentype library.
@@ -149,7 +155,7 @@ function uncompressTable(data, tableEntry) {
     if (tableEntry.compression === 'WOFF') {
         const inBuffer = new Uint8Array(data.buffer, tableEntry.offset + 2, tableEntry.compressedLength - 2);
         const outBuffer = new Uint8Array(tableEntry.length);
-        inflate(inBuffer, outBuffer);
+        inflateBuffer(inBuffer, outBuffer);
         if (outBuffer.byteLength !== tableEntry.length) {
             throw new Error('Decompression error: ' + tableEntry.tag + ' decompressed length doesn\'t match recorded length');
         }

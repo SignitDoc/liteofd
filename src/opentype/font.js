@@ -9,7 +9,6 @@ import Substitution from './substitution.js';
 import { isBrowser, checkArgument, arrayBufferToNodeBuffer } from './util.js';
 import HintingTrueType from './hintingtt.js';
 import Bidi from './bidi.js';
-import * as fs from "node:fs"
 
 /**
  * @typedef FontOptions
@@ -535,7 +534,7 @@ Font.prototype.download = function(fileName) {
     } else {
         // const fs = require('fs');
         const buffer = arrayBufferToNodeBuffer(arrayBuffer);
-        fs.writeFileSync(fileName, buffer);
+        // fs.writeFileSync(fileName, buffer);
     }
 };
 /**

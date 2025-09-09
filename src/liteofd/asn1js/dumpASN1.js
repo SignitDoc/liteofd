@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import * as fs from 'node:fs';
 import { Base64 } from './base64.js';
 import { ASN1 } from './asn1.js';
 import { Defs } from './defs.js';
@@ -45,7 +44,7 @@ const filename = process.argv[2];
 const match = reDataURI.exec(filename);
 let content = match
     ? Buffer.from(match[1])
-    : fs.readFileSync(filename);
+    : null;
 try { // try PEM first
     content = Base64.unarmor(content);
 } catch (e) { // try DER/BER then
