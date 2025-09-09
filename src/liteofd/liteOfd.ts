@@ -6,6 +6,7 @@ import { XmlData } from "./ofdData"
 import * as ofdActions from "./ofdActions"
 import { loadLocalDefaultFonts } from "./ofdFont"
 import { ConfigUI } from "../config/configUI"
+import { ConfigManager } from "../config/configManager"
 
 /**
  * LiteOfd 类是一个用于处理 OFD 文件的轻量级库。
@@ -206,6 +207,11 @@ export default class LiteOfd {
     } else {
       this.configUI.show()
     }
+  }
+
+  getConfigManager(): ConfigManager {
+    ConfigManager.getInstance().logConfig()
+    return ConfigManager.getInstance()
   }
 
   /**

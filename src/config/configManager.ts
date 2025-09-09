@@ -53,6 +53,10 @@ export class ConfigManager {
     return ConfigManager.instance
   }
 
+  logConfig() {
+    console.log("current config", this.config)
+  }
+
   private loadConfig(): GlobalConfig {
     try {
       // 尝试从localStorage加载用户自定义配置
@@ -64,13 +68,13 @@ export class ConfigManager {
     } catch (error) {
       console.warn('Failed to load saved config, using default:', error)
     }
-    
+
     return defaultConfig as GlobalConfig
   }
 
   private mergeConfig(defaultConfig: any, userConfig: any): GlobalConfig {
     const merged = { ...defaultConfig }
-    
+
     // 深度合并配置
     for (const key in userConfig) {
       if (userConfig.hasOwnProperty(key) && typeof userConfig[key] === 'object') {
@@ -79,7 +83,7 @@ export class ConfigManager {
         merged[key] = userConfig[key]
       }
     }
-    
+
     return merged as GlobalConfig
   }
 
@@ -174,4 +178,4 @@ export class ConfigManager {
   public shouldLogFontLoading(): boolean {
     return this.config.debug.logFontLoading
   }
-} 
+}

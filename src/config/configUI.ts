@@ -41,10 +41,10 @@ export class ConfigUI {
 
 		// 创建调试配置区域
 		this.createDebugSection()
-		
+
 		// 创建渲染配置区域
 		this.createRenderingSection()
-		
+
 		// 创建功能配置区域
 		this.createFeaturesSection()
 
@@ -68,7 +68,7 @@ export class ConfigUI {
 		section.appendChild(title)
 
 		const debugConfig = this.configManager.getDebugConfig()
-		
+
 		// 文本边界框
 		this.createCheckbox(section, '绘制文本边界框', debugConfig.drawTextBoundaryBox, (checked) => {
 			this.configManager.updateDebugConfig({ drawTextBoundaryBox: checked })
@@ -238,7 +238,7 @@ export class ConfigUI {
 					.filter(s => s !== '')
 					.map(s => parseInt(s))
 					.filter(n => !isNaN(n))
-				
+
 				if (pageIndexes.length > 0) {
 					this.configManager.updateRenderPagesConfig(pageIndexes)
 					this.showSaveSuccess()
@@ -387,14 +387,14 @@ export class ConfigUI {
 			opacity: 0;
 			transition: opacity 0.3s;
 		`
-		
+
 		document.body.appendChild(toast)
-		
+
 		// 显示提示
 		setTimeout(() => {
 			toast.style.opacity = '1'
 		}, 10)
-		
+
 		// 2秒后自动移除
 		this.saveSuccessTimer = window.setTimeout(() => {
 			toast.style.opacity = '0'
@@ -405,4 +405,8 @@ export class ConfigUI {
 			}, 300)
 		}, 2000)
 	}
-} 
+
+	getConfigManager(): ConfigManager {
+		return this.configManager
+	}
+}
