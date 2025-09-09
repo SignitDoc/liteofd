@@ -118,7 +118,6 @@ export const convertPathAbbreviatedDatatoPoint = (abbreviatedData: string) => {
 				});
 				i += 3;
 			}
-			console.log("command s is #2", command, pointList)
 			break;
 		case 'Q':
 		case 'q':
@@ -235,7 +234,7 @@ export const convertPathAbbreviatedDatatoPoint2 = (abbreviatedData: string) => {
 export const calPathPoint = function (abbreviatedPoint: any) {
 	let pointList = [];
 	let currentX = 0, currentY = 0;
-  
+
 	for (let i = 0; i < abbreviatedPoint.length; i++) {
 	  let point = abbreviatedPoint[i];
 	  switch (point.type) {

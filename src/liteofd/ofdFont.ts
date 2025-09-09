@@ -433,7 +433,6 @@ export const loadDefaultFont = async (fontName: string) => {
 
 export const loadLocalDefaultFont = async (fontName: string, fontPath: string) => {
 	try {
-		console.log('load local font', fontName, fontPath)
 		await loadOTFFont(fontName, fontPath)
 	} catch (error) {
 		console.error(`加载字体 ${fontName} 时出错:`, error);

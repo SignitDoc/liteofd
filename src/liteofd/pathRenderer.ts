@@ -78,7 +78,6 @@ export class PathRenderer {
 			// 绘制路径 - 在boundaryBox位置绘制
 			this.drawCanvasPath(points, boundaryBox)
 			this.pageCanvasCtx.restore()
-			console.log("Canvas绘制路径:", nodeData, "点数:", points.length, "boundaryBox:", boundaryBox)
 		} catch (e) {
 			console.error("draw path error", e)
 			this.pageCanvasCtx.restore()
@@ -119,7 +118,6 @@ export class PathRenderer {
 	 */
 	#addDrawParam(nodeData: XmlData) {
 		let drawParamID = parser.findAttributeValueByKey(nodeData, AttributeKey.DrawParam)
-		console.log("add path draw params", drawParamID)
 		// 直接根据节点的填充来进行绘制设置颜色
 		let fillColor = parser.findAttributeValueByKey(nodeData, AttributeKey.Fill)
 		let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
@@ -148,7 +146,6 @@ export class PathRenderer {
 				this.#addLineWidth(drawParamNode)
 				// 添加虚线模式
 				this.#addDashPattern(drawParamNode)
-				console.log("path drawParamNode", drawParamNode)
 			}
 		}
 	}
@@ -462,7 +459,6 @@ export class PathRenderer {
 			this.pageCanvasCtx.stroke()
 		} else {
 			// 如果没有设置描边颜色，使用默认黑色进行描边
-			console.log("Path没有设置描边颜色，使用默认黑色描边")
 			this.pageCanvasCtx.strokeStyle = 'black'
 			this.pageCanvasCtx.stroke()
 		}

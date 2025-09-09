@@ -374,7 +374,6 @@ export class TextRenderer {
 	// 字体文件中暂时去掉drawParam的渲染
 	#addDrawParam(nodeData: XmlData) {
 		let drawParamID = parser.findAttributeValueByKey(nodeData, AttributeKey.DrawParam)
-		console.log("add text draw params", drawParamID)
 		if (drawParamID) {
 			let drawParamNode = parser.findNodeByAttributeKeyValue(drawParamID, AttributeKey.ID, this.ofdDocument.publicRes)
 			if (drawParamNode) {
@@ -382,7 +381,6 @@ export class TextRenderer {
 				this.#addFillColor(drawParamNode)
 				// 添加线宽度和线条颜色
 				this.#addStrokeColor(drawParamNode)
-				console.log("textsvg drawParamNode", drawParamNode)
 				// 添加字体粗细
 				let fontWeight = parser.findAttributeValueByKey(drawParamNode, AttributeKey.Weight)
 				if (fontWeight) {

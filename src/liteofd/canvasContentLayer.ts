@@ -102,7 +102,6 @@ export class CanvasContentLayer extends Layer {
 	}
 
 	#renderPageContent(contentData: XmlData, pageContainer: Element) {
-		console.log("canvas render data", contentData, pageContainer)
 		let layers = contentData.children
 		for (let i = 0; i < layers.length; i++) {
 			let layer = layers[i]
@@ -119,7 +118,7 @@ export class CanvasContentLayer extends Layer {
 				this.#renderPageContent(contentData, pageContainer)
 			}
 		} catch (e) {
-			console.log("render page content error", e, pageData)
+			console.error("render page content error", e, pageData)
 			return null
 		}
 	}

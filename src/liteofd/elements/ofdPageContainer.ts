@@ -54,7 +54,6 @@ export class OfdPageContainer {
 
 	// 渲染内容层
 	#renderCanvasContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
-		console.log("create canvas content layer 2")
 		if (!this.canvasContentLayer) {
 			this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument, this.pageContainer, this.pageCanvas)
 		}
@@ -279,7 +278,6 @@ export class OfdPageContainer {
 			// 注释层通常应该放在最上层
 			annotationElement.render()
 		} else {
-			console.log("该页面没有注释数据");
 		}
 	}
 }
