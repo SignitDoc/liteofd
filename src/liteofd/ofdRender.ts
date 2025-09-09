@@ -47,11 +47,12 @@ export class OfdRender {
 	 * @param customDiv 自定义的div
 	 * @param pageWrapStyle 页面的样式
 	 * @param pageIndexes 指定渲染的页面索引数组，可选
+	 * @param scrollListener 自定义ofd的滑动外层
 	 */
-	renderOfdWithCustomDiv(customDiv: HTMLDivElement, pageWrapStyle: string | null = null, pageIndexes?: number[]) {
+	renderOfdWithCustomDiv(customDiv: HTMLDivElement, pageWrapStyle: string | null = null, pageIndexes?: number[], scrollListener?: HTMLDivElement) {
 		// 获取默认缩放比例
 		let scale = getDefaultScale(this.ofdDocument);
-		this.renderOfdWithScale(customDiv, scale, pageWrapStyle, pageIndexes)
+		this.renderOfdWithScale(customDiv, scale, pageWrapStyle, pageIndexes, scrollListener)
 		return this.scrollContainer
 	}
 
@@ -68,29 +69,34 @@ export class OfdRender {
 		setPageScal(scale)
 	}
 
-	renderOfdWithScale(rootDiv: HTMLDivElement, scale: number, pageWrapStyle: string | null = null, pageIndexes?: number[]) {
+	renderOfdWithScale(rootDiv: HTMLDivElement, scale: number, pageWrapStyle: string | null = null, pageIndexes?: number[], scrollListener?: HTMLDivElement) {
 		setPageScal(scale)
 		// 新建一个根的div来包裹整个渲染的ofd文档的内容
 		this.ofdDocument.rootContainer = rootDiv
-		this.render(rootDiv, pageWrapStyle, pageIndexes)
+		this.render(rootDiv, pageWrapStyle, pageIndexes, scrollListener)
 	}
 
-	render(rootContainer: HTMLDivElement, wrapStyle: string | null, pageIndexes?: number[]) {
+	render(rootContainer: HTMLDivElement, wrapStyle: string | null, pageIndexes?: number[], scrollListener?: HTMLDivElement) {
 		this.rootContainer = rootContainer
 		// 渲染页面
 		this.#renderPages(rootContainer, wrapStyle, pageIndexes)
-		// 给scrollContainer添加滑动的css
-		this.scrollContainer.style.cssText = `
+		if (scrollListener) {
+			this.scrollContainer = scrollListener
+			this.scrollContainer.appendChild(rootContainer)
+		} else {
+			// 给scrollContainer添加滑动的css
+			this.scrollContainer.style.cssText = `
 			overflow: auto;
 			height: 100%;
 			width: 100%;
 			scroll-behavior: smooth;
 		`;
-		this.scrollContainer.appendChild(rootContainer)
-		// 只有当页面数量大于1时才添加滚动页面监听
-		if (this.pages.length > 1) {
-			// 渲染完之后给scrollContainer添加滚动事件
-			this.addScrollListener(this.scrollContainer);
+			this.scrollContainer.appendChild(rootContainer)
+			// 只有当页面数量大于1时才添加滚动页面监听
+			if (this.pages.length > 1) {
+				// 渲染完之后给scrollContainer添加滚动事件
+				this.addScrollListener(this.scrollContainer);
+			}
 		}
 	}
 
