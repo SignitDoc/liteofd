@@ -78,45 +78,163 @@ function displaySignatureDetails(nodeData: XmlData, sealObject: any) {
     overlay.style.display = 'block';
   }
 }
-
 function renderOutlines(outlines: XmlData) {
   const outlinesContainer = document.getElementById('outlines');
   if (!outlinesContainer) return;
 
-  function createOutlineElement(outlineData: XmlData): HTMLElement {
+  /**
+   * 递归创建大纲元素
+   * @param outlineData 大纲数据
+   * @param level 当前层级（用于缩进）
+   * @returns 创建的大纲元素
+   */
+  function createOutlineElement(outlineData: XmlData, level: number = 0): HTMLElement {
+    console.log(`大纲数据 (层级 ${level}):`, outlineData);
+
     const outlineElement = document.createElement('div');
     outlineElement.className = 'outline-item';
+    outlineElement.style.paddingLeft = `${level * 20}px`; // 根据层级添加缩进
 
+    // 创建标题容器
+    const titleContainer = document.createElement('div');
+    titleContainer.className = 'outline-title-container';
+    titleContainer.style.display = 'flex';
+    titleContainer.style.alignItems = 'center';
+
+    // 创建标题元素
     const titleElement = document.createElement('span');
-    titleElement.textContent = parser.findAttributeValueByKey(outlineData, AttributeKey.Title) || "无标题";
+    const title = parser.findAttributeValueByKey(outlineData, AttributeKey.Title) || "无标题";
+    titleElement.textContent = title;
     titleElement.className = 'outline-title';
-    outlineElement.appendChild(titleElement);
+    titleElement.style.cursor = 'pointer';
+    titleElement.style.flex = '1';
 
+    // 查找所有子大纲（递归查找）
+    const subOutlines = findAllSubOutlines(outlineData);
 
-    // 查找actions
-    let actions = parser.findValueByTagName(outlineData, OFD_KEY.Actions)
-    if (actions) {
-      console.log("actions", actions)
-    }
-    let actionListObj = actions?.children[0]
-    if (actionListObj) {
-      console.log("actionListObj", actionListObj)
-    }
-    actionListObj?.children.forEach(action => {
-      titleElement.addEventListener('click', () => {
-        liteOfd.executeAction(action)
+    // 如果有子大纲，添加展开/折叠按钮
+    if (subOutlines.length > 0) {
+      const expandButton = document.createElement('span');
+      expandButton.className = 'outline-expand-btn';
+      expandButton.textContent = '▶';
+      expandButton.style.cursor = 'pointer';
+      expandButton.style.marginRight = '5px';
+      expandButton.style.userSelect = 'none';
+
+      // 创建子大纲容器
+      const subContainer = document.createElement('div');
+      subContainer.className = 'outline-sub-container';
+      subContainer.style.display = 'none'; // 默认折叠
+
+      // 展开/折叠功能
+      expandButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isExpanded = subContainer.style.display !== 'none';
+        subContainer.style.display = isExpanded ? 'none' : 'block';
+        expandButton.textContent = isExpanded ? '▶' : '▼';
       });
-    })
+
+      titleContainer.appendChild(expandButton);
+
+      // 递归创建子大纲
+      subOutlines.forEach(subOutline => {
+        const subElement = createOutlineElement(subOutline, level + 1);
+        subContainer.appendChild(subElement);
+      });
+
+      // 先添加标题容器到 outlineElement
+      outlineElement.appendChild(titleContainer);
+      // 然后添加子大纲容器
+      outlineElement.appendChild(subContainer);
+    } else {
+      // 没有子大纲时，只添加标题容器
+      outlineElement.appendChild(titleContainer);
+    }
+
+    titleContainer.appendChild(titleElement);
+
+    // 处理 Actions
+    setupActions(outlineData, titleElement);
 
     return outlineElement;
   }
+  /**
+   * 递归查找所有子大纲
+   * @param outlineData 大纲数据
+   * @returns 所有子大纲的数组
+   */
+  function findAllSubOutlines(outlineData: XmlData): XmlData[] {
+    const subOutlines: XmlData[] = [];
 
+    // 直接查找子大纲
+    const directSubOutlines = parser.findValueByTagName(outlineData, OFD_KEY.OutlineElem);
+    if (directSubOutlines && directSubOutlines.children) {
+      subOutlines.push(...directSubOutlines.children);
+    }
+
+    // 递归查找更深层级的子大纲
+    if (outlineData.children) {
+      outlineData.children.forEach(child => {
+        if (child.tagName === OFD_KEY.OutlineElem) {
+          // 如果当前子元素本身就是大纲元素，递归查找其子大纲
+          const nestedSubOutlines = findAllSubOutlines(child);
+          subOutlines.push(...nestedSubOutlines);
+        }
+      });
+    }
+
+    return subOutlines;
+  }
+
+  /**
+   * 设置大纲项的 Actions
+   * @param outlineData 大纲数据
+   * @param titleElement 标题元素
+   */
+  function setupActions(outlineData: XmlData, titleElement: HTMLElement) {
+    try {
+      const actions = parser.findValueByTagName(outlineData, OFD_KEY.Actions);
+      if (actions && actions.children && actions.children.length > 0) {
+        console.log("找到 Actions:", actions);
+
+        const actionListObj = actions.children[0];
+        if (actionListObj && actionListObj.children) {
+          console.log("ActionList 对象:", actionListObj);
+
+          // 为每个 action 添加点击事件
+          actionListObj.children.forEach(action => {
+            titleElement.addEventListener('click', (e) => {
+              e.stopPropagation();
+              console.log('执行 Action:', action);
+              liteOfd.executeAction(action);
+            });
+          });
+
+          // 添加视觉提示（有 action 的大纲项）
+          titleElement.style.color = '#0066cc';
+          titleElement.title = '点击执行操作';
+        }
+      }
+    } catch (error) {
+      console.warn('处理 Actions 时出错:', error);
+    }
+  }
+
+  // 清空容器并重新渲染
   outlinesContainer.innerHTML = '';
+
   if (outlines && outlines.children && outlines.children.length > 0) {
-    outlines.children.forEach(outline => {
-      outlinesContainer.appendChild(createOutlineElement(outline));
+    console.log('开始渲染大纲，共', outlines.children.length, '个顶级大纲项');
+
+    outlines.children.forEach((outline, index) => {
+      console.log(`渲染第 ${index + 1} 个大纲项:`, outline);
+      const outlineElement = createOutlineElement(outline, 0);
+      outlinesContainer.appendChild(outlineElement);
     });
+
     toggleOutlines(); // 如果有大纲数据，初始显示大纲
+  } else {
+    console.log('没有找到大纲数据');
   }
 }
 
