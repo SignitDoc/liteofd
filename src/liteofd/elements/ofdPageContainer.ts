@@ -6,7 +6,7 @@ import { XmlData } from "../ofdData"
 import { AttributeKey, OFD_KEY } from "../attrType"
 import { OfdPageRender } from "./ofdPageRender"
 import * as parser from "../parser"
-import { convertToBox } from "../utils/utils"
+import { convertToBox, convertToDpi } from "../utils/utils"
 import { ContentLayer } from "../contentLayer"
 import { getNodeAttributeMaxAndMinID } from "../utils/elementUtils"
 import { RootDocPath } from "../parser"
@@ -30,6 +30,7 @@ export class OfdPageContainer {
 
 	private pageContainer!: HTMLDivElement // 包裹canvas的div组件
 	private pageCanvas!: HTMLCanvasElement // 绘制内容的canvas组件
+	private pagePhysicBox:{x: number, y: number, width: number, height: number} = {x: 0, y: 0, width: 0, height: 0} // 当前页面的容器宽度
 
 	/**
 	 * 初始化页面
@@ -124,9 +125,16 @@ export class OfdPageContainer {
 			physicsBoxObj = parser.findValueByTagName(this.ofdDocument.documentData, OFD_KEY.PhysicalBox)
 		}
 
-		let physicBox = convertToBox(physicsBoxObj!!.value)
-		let pageStyle = `width: ${physicBox.width}px; height: ${physicBox.height}px; position: relative;`
+		this.pagePhysicBox = convertToBox(physicsBoxObj!!.value)
+		let pageStyle = `width: ${this.pagePhysicBox.width}px; height: ${this.pagePhysicBox.height}px; position: relative;`
 		return pageStyle
+	}
+
+	/**
+	 * 获取当前页面的宽高尺寸
+	 */
+	getPageBox() {
+		return this.pagePhysicBox
 	}
 
 	#getSubLayerBox(pageData: XmlData){

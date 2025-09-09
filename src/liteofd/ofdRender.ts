@@ -135,6 +135,18 @@ export class OfdRender {
 			tempStyle += wrapStyle
 			pageView.setAttribute("style", tempStyle)
 		}
+		console.log("current page minwidth", pageContainer.getPageBox())
+		console.log("pages container", rootContainer, rootContainer.style)
+		let minWidth = pageContainer.getPageBox().width
+		let tempPagesMinWidth = rootContainer.style.minWidth
+		if (!tempPagesMinWidth) {
+			rootContainer.style.minWidth = minWidth + "px"
+		} else {
+			if (tempPagesMinWidth.replace("px", "") < minWidth) {
+				rootContainer.style.minWidth = minWidth + "px"
+			}
+		}
+		console.log("pages container", rootContainer.style.minWidth)
 		rootContainer!.appendChild(pageView)
 	}
 
