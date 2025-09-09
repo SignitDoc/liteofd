@@ -4,9 +4,9 @@
     "drawTextBoundaryBox": false,
     "drawPathBoundaryBox": false,
     "drawImageBoundaryBox": false,
-    "logCTMTransform": true,
-    "logTextRendering": true,
-    "logFontLoading": true,
+    "logCTMTransform": false,
+    "logTextRendering": false,
+    "logFontLoading": false,
     "showFPS": false
   },
   "rendering": {

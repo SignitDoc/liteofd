@@ -210,7 +210,6 @@ export default class LiteOfd {
   }
 
   getConfigManager(): ConfigManager {
-    ConfigManager.getInstance().logConfig()
     return ConfigManager.getInstance()
   }
 
