@@ -220,7 +220,8 @@ export class SignatureElement {
 				const customEvent = new CustomEvent('signature-element-click', {
 					detail: {
 						nodeData: this.nodeData,
-						sealObject: this.sealObject
+						sealObject: this.sealObject,
+						boundaryBox: this.boundaryBox
 					},
 					bubbles: true,
 					cancelable: true
