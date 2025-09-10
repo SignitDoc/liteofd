@@ -41,6 +41,24 @@ export default class LiteOfd {
   }
 
   /**
+   * 通过传入Document进行渲染
+   * @param ofdDocument 渲染的ofddocument对象
+   * @param container 可选的自定义容器
+   * @param pageWrapStyle 可选的页面包装样式
+   * @param pageIndexes 指定渲染的页面索引数组，可选
+   * @param scrollListener 自定义的滑动
+   * @returns 渲染后的 HTMLDivElement
+   */
+  renderWithDocument(ofdDocument: OfdDocument, container?: HTMLDivElement, pageWrapStyle?: string, pageIndexes?: number[], scrollListener?: HTMLDivElement): HTMLDivElement {
+    if (!ofdDocument) {
+      throw new Error("OfdDocument 为空")
+    }
+    this.ofdDocument = ofdDocument
+    return this.render(container, pageWrapStyle, pageIndexes, scrollListener)
+  }
+
+
+  /**
    * 渲染对应页面
    * @param pageIndex 页面位置
    */
@@ -205,6 +223,13 @@ export default class LiteOfd {
       throw new Error('OFD文档尚未解析，请先调用parse方法');
     }
     return this.ofdDocument;
+  }
+
+  setOfdDocument(ofdDocument: OfdDocument) {
+    if (!ofdDocument) {
+      throw new Error("OfdDocument为空")
+    }
+    this.ofdDocument = ofdDocument
   }
 
   /**

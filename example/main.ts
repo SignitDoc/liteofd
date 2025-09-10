@@ -49,8 +49,8 @@ function initOfdEventListeners() {
   appContent.addEventListener('signature-element-click', (event: Event) => {
     event.stopPropagation(); // 阻止事件冒泡
     const customEvent = event as CustomEvent;
-    const { nodeData, sealObject } = customEvent.detail;
-    console.log('Clicked Signature Element:', nodeData);
+    const { nodeData, sealObject, boundaryBox } = customEvent.detail;
+    console.log('Clicked Signature Element:', nodeData, boundaryBox);
     console.log('Seal Object:', sealObject);
     displaySignatureDetails(nodeData, sealObject);
   });
