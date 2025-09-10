@@ -11,6 +11,7 @@ import { ConfigManager } from '../src/config/configManager'
 const appContent = document.getElementById('content') as HTMLDivElement
 
 const liteOfd = new LiteOfd()
+liteOfd.toggleRenderTextLayer(false)
 
 export function uploadFile() {
   const fileInput = document.getElementById('fileInput') as HTMLInputElement;

@@ -43,7 +43,13 @@ export class OfdPageContainer {
 		this.pageData = pageData
 	}
 
-	// 渲染内容层
+	/**
+	 * 渲染textlayer的内容曾，用来进行文本选择等div内容的文本
+	 * @param pageData
+	 * @param pageContainer
+	 * @param zOrder
+	 * @private
+	 */
 	#renderContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
 		this.contentLayer = new ContentLayer(this.ofdDocument, this.textLayer)
 		if (zOrder) {
@@ -53,7 +59,13 @@ export class OfdPageContainer {
 		}
 	}
 
-	// 渲染内容层
+	/**
+	 * 渲染canvas的内容层
+	 * @param pageData
+	 * @param pageContainer
+	 * @param zOrder
+	 * @private
+	 */
 	#renderCanvasContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
 		if (!this.canvasContentLayer) {
 			this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument, this.pageContainer, this.pageCanvas)
@@ -100,7 +112,7 @@ export class OfdPageContainer {
 								let pageData = parser.findValueByTagName(templateFileData, OFD_KEY.Page)
 
 								pageData && this.#renderCanvasContentLayer(pageData, pageContainer, zOrderValue)
-								if (this.ofdDocument.isTextLayer) {
+								if (this.ofdDocument.isTextLayer && this.ofdDocument.renderTextLayer) {
 									pageData && this.#renderContentLayer(pageData, pageContainer, zOrderValue)
 								}
 
@@ -174,7 +186,7 @@ export class OfdPageContainer {
 		annotLayer.setAttribute("class", "annotionLayer")
 		pageContainer.appendChild(annotLayer)
 		this.annotionLayer = annotLayer
-		if (this.ofdDocument.isTextLayer) {
+		if (this.ofdDocument.isTextLayer && this.ofdDocument.renderTextLayer) {
 			// 添加选择文本层
 			let textLayer = document.createElement("div")
 			textLayer.setAttribute("style", subLayerStyle)

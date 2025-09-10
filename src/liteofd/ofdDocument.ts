@@ -22,6 +22,7 @@ export class OfdDocument {
 	outlines: XmlData = new XmlData() // 大纲数据列表，包含了ofd:Outlines里面所有大纲数据
 	annots: XmlData = new XmlData() // 注释数据列表，包含了ofd:Annotations
 	isTextLayer: boolean = true // 是否是textlayer层，textlayer层的text使用div和span进行文字渲染
+	renderTextLayer: boolean = true // 是否渲染文本选择层，这个用来控制缩略图的渲染
 
 	constructor() {
 		this.loadedMediaFile = new Map()

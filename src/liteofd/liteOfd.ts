@@ -18,6 +18,7 @@ export default class LiteOfd {
   private currentScale: number = 1
   private configUI: ConfigUI | null = null
   private containerDiv: HTMLDivElement
+  private renderTextLayer: boolean = true
 
   constructor() {
     this.ofdDocument = new OfdDocument()
@@ -48,6 +49,14 @@ export default class LiteOfd {
     const containerDiv = document.createElement('div')
     this.ofdRender.renderOfdWithPageIndexWithScale(pageIndex, containerDiv, pageWrapStyle, 2)
     return containerDiv
+  }
+
+  /**
+   * 是否liteofd渲染文本选择层，默认开启正常渲染，关闭则是缩略图层的渲染
+   * @param renderTextLayer 渲染文本曾开关
+   */
+  toggleRenderTextLayer(renderTextLayer: boolean){
+    this.renderTextLayer = renderTextLayer
   }
 
   /**
@@ -146,6 +155,7 @@ export default class LiteOfd {
       // 添加本地的simSun等字体
       await loadLocalDefaultFonts()
       this.ofdDocument = await parser.parseOFDFile(file).promise
+      this.ofdDocument.renderTextLayer = this.renderTextLayer
       return this.ofdDocument
     } catch (e) {
       console.error("解析文件错误", e)
