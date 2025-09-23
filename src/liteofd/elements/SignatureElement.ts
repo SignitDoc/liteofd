@@ -22,7 +22,7 @@ export class SignatureElement {
 		width: number,
 		height: number,
 	}
-	private signZIndex = 9998 // 最高的
+	private signZIndex = 999 // 最高的
 	private mediaNodeList: XmlData[] // 多媒体节点的数组
 	private sealObject: any // 签名数据
 
@@ -85,6 +85,7 @@ export class SignatureElement {
 				let boundaryStr = parser.findAttributeValueByKey(tempData, AttributeKey.Boundary)
 				if (boundaryStr) {
 					this.boundaryBox = convertToBox(boundaryStr)
+					node.boundaryBox = this.boundaryBox
 
 					let svgStyle = `left: ${this.boundaryBox.x}px;top: ${this.boundaryBox.y}px;
 	width: ${this.boundaryBox.width}px;height: ${this.boundaryBox.height}px;`
@@ -221,7 +222,8 @@ export class SignatureElement {
 					detail: {
 						nodeData: this.nodeData,
 						sealObject: this.sealObject,
-						boundaryBox: this.boundaryBox
+						boundaryBox: this.boundaryBox,
+						page: this.ofdPage
 					},
 					bubbles: true,
 					cancelable: true
