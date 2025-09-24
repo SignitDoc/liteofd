@@ -23,6 +23,8 @@ export class OfdDocument {
 	annots: XmlData = new XmlData() // 注释数据列表，包含了ofd:Annotations
 	isTextLayer: boolean = true // 是否是textlayer层，textlayer层的text使用div和span进行文字渲染
 	renderTextLayer: boolean = true // 是否渲染文本选择层，这个用来控制缩略图的渲染
+	supportZoom: boolean = true // 是否支持缩放，比如缩略图是不支持缩放的，只能根据容器大小进行渲染
+	currentScale: number = 1 // 当前的缩放值，页面缩放，每个ofddocument都有一个单独的缩放值进行控制缩放
 
 	constructor() {
 		this.loadedMediaFile = new Map()
@@ -107,5 +109,12 @@ export class OfdDocument {
 		})
 
 		return content
+	}
+
+	/**
+	 * 返回ofd的文档中最大的id，这个作为最大的层的值，用来进行签名渲染的最大的zindex使用
+	 */
+	getMaxId(){
+
 	}
 }

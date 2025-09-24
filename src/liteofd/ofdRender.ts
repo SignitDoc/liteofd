@@ -3,7 +3,7 @@ import { OfdDocument } from "./ofdDocument"
 import { OfdPageContainer } from "./elements/ofdPageContainer"
 import { setPageScal } from "./utils/utils"
 import { AttributeKey } from "./attrType"
-import { getDefaultScale } from "./utils/elementUtils"
+import { getCustomScale, getDefaultScale } from "./utils/elementUtils"
 
 /**
  * OfdRender 类用于渲染 OFD 文档。
@@ -32,12 +32,13 @@ export class OfdRender {
 	 * @param pageWrapStyle 页面的样式
 	 * @returns
 	 */
-	renderOfdWithSize(width: string, height: string, pageWrapStyle: string | null = null): HTMLDivElement {
+	renderOfdWithSize(width: number, height: number, pageWrapStyle: string | null = null): HTMLDivElement {
 		// 创建外层容器div
 		const containerDiv = document.createElement('div');
-		containerDiv.style.cssText = `height: ${height}; width: ${width};`;
+		containerDiv.style.cssText = `height: ${height}px; width: ${width}px;`;
 		// 设置默认scale
-		let scale = getDefaultScale(this.ofdDocument);
+		let scale = getCustomScale(this.ofdDocument, width, height);
+		this.ofdDocument.currentScale = scale
 		this.renderOfdWithScale(containerDiv, scale, pageWrapStyle);
 		return containerDiv
 	}

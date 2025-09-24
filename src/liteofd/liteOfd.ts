@@ -40,6 +40,14 @@ export default class LiteOfd {
     return this.ofdRender.renderOfdWithCustomDiv(containerDiv, pageWrapStyle, pageIndexes, scrollListener)
   }
 
+  renderWithSize(container?: HTMLDivElement, pageWrapStyle?: string, pageIndexes?: number[], scrollListener?: HTMLDivElement): HTMLDivElement {
+    this.ofdRender = new OfdRender(this.ofdDocument)
+    const containerDiv = container || document.createElement('div')
+    containerDiv.setAttribute("class", "pages-container")
+    this.containerDiv = containerDiv
+    return this.ofdRender.renderOfdWithSize(200, 200)
+  }
+
   /**
    * 通过传入Document进行渲染
    * @param ofdDocument 渲染的ofddocument对象

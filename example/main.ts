@@ -9,9 +9,11 @@ import { ChildProcess } from 'child_process';
 import { ConfigManager } from '../src/config/configManager'
 
 const appContent = document.getElementById('content') as HTMLDivElement
+const thumbContent = document.getElementById('thumb') as HTMLDivElement
 
 const liteOfd = new LiteOfd()
-liteOfd.toggleRenderTextLayer(false)
+const thumbOfd = new LiteOfd()
+thumbOfd.toggleRenderTextLayer(false)
 
 export function uploadFile() {
   const fileInput = document.getElementById('fileInput') as HTMLInputElement;
@@ -49,8 +51,8 @@ function initOfdEventListeners() {
   appContent.addEventListener('signature-element-click', (event: Event) => {
     event.stopPropagation(); // 阻止事件冒泡
     const customEvent = event as CustomEvent;
-    const { nodeData, sealObject, boundaryBox } = customEvent.detail;
-    console.log('Clicked Signature Element:', nodeData, boundaryBox);
+    const { nodeData, sealObject, boundaryBox, page } = customEvent.detail;
+    console.log('Clicked Signature Element:', page);
     console.log('Seal Object:', sealObject);
     displaySignatureDetails(nodeData, sealObject);
   });
@@ -258,6 +260,10 @@ function parseOfdFile(file: File) {
     ofdTools = new OfdTools(data);
     // 将 ofdTools 添加到 window 对象，使其可以从 iframe 中访问
     (window as any).ofdTools = ofdTools;
+
+    // // 渲染缩略图
+    // let thumbDiv = thumbOfd.renderWithDocument(data, undefined, 'background-color: white; margin-top: 12px;', renderPages)
+    // thumbContent.appendChild(thumbDiv)
   }).catch((error) => {
     console.error('解析OFD文件失败:', error);
     alert('解析OFD文件失败，请检查文件是否正确');
@@ -266,6 +272,19 @@ function parseOfdFile(file: File) {
     if (fileNameElement) {
       fileNameElement.textContent = '';
     }
+  });
+  // 重新解析用缩略图的
+  thumbOfd.parse(file).then((data: OfdDocument) => {
+    data.supportZoom = false
+    data.renderTextLayer = false
+    // 读取 configManager 的 renderPages 配置
+    const configManager = ConfigManager.getInstance();
+    const renderPages = configManager.getRenderPagesConfig();
+    // 渲染缩略图
+    let div = thumbOfd.renderWithSize(undefined, "",   renderPages)
+    thumbContent.appendChild(div)
+  }).catch((error) => {
+    console.error('缩略图OFD文件失败:', error);
   });
 }
 

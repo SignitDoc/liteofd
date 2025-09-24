@@ -403,3 +403,25 @@ export const getOFDFilePath = (path: string) => {
 		// 如果物理盒不存在，则返回1
 		return 1
 	}
+
+	/**
+	 * 获取默认的缩放比例
+	 * @returns {number} 默认的缩放比例
+	 */
+	export const getCustomScale = (ofdDocument: OfdDocument, width: number, height: number): number => {
+		let physicalBoxObj = parser.findValueByTagName(ofdDocument.documentData, OFD_KEY.PhysicalBox)
+		console.log("physicalBoxObj", physicalBoxObj);
+		if(physicalBoxObj){
+			let physicalBox = physicalBoxObj.value.split(" ")
+			let ofdWidth = parseFloat(physicalBox[2])
+
+			let newofdWidth = convertToDpi(ofdWidth)
+			console.log("screen width and ofdWidth", width, ofdWidth, newofdWidth, width);
+			// 计算缩放比例
+			let scale = width / ofdWidth
+			console.log("current custom page scale", scale)
+			return scale
+		}
+		// 如果物理盒不存在，则返回1
+		return 1
+	}

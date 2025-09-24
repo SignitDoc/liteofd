@@ -37,6 +37,10 @@ export const convertToDpi = function (width: number) {
 	return millimetersToPixel(width, Scale * 25.4);
 }
 
+export const convertToScaleDpi = function (width: number, scale: number) {
+	return millimetersToPixel(width, scale * 25.4);
+}
+
 const millimetersToPixel = function (mm: number, dpi: number) {
 	//毫米转像素：mm * dpi / 25.4
 	return ((mm * dpi / 25.4));
