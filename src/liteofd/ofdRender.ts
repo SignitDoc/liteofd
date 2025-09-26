@@ -1,7 +1,6 @@
 import { XmlData } from "./ofdData"
 import { OfdDocument } from "./ofdDocument"
 import { OfdPageContainer } from "./elements/ofdPageContainer"
-import { setPageScal } from "./utils/utils"
 import { AttributeKey } from "./attrType"
 import { getCustomScale, getDefaultScale } from "./utils/elementUtils"
 
@@ -38,6 +37,7 @@ export class OfdRender {
 		containerDiv.style.cssText = `height: ${height}px; width: ${width}px;`;
 		// 设置默认scale
 		let scale = getCustomScale(this.ofdDocument, width, height);
+		// 渲染时根据宽度获取默认的一个渲染的scale缩放
 		this.ofdDocument.currentScale = scale
 		this.renderOfdWithScale(containerDiv, scale, pageWrapStyle);
 		return containerDiv
@@ -58,7 +58,7 @@ export class OfdRender {
 	}
 
 	renderOfdWithPageIndexWithScale(pageIndex: number, customDiv: HTMLDivElement, pageWrapStyle: string | null = null, scale: number) {
-		setPageScal(scale)
+		this.ofdDocument.setPageScal(scale)
 		this.renderOfdWithPageIndex(pageIndex, customDiv, pageWrapStyle)
 	}
 
@@ -67,11 +67,11 @@ export class OfdRender {
 	}
 
 	changeScale(scale: number){
-		setPageScal(scale)
+		this.ofdDocument.setPageScal(scale)
 	}
 
 	renderOfdWithScale(rootDiv: HTMLDivElement, scale: number, pageWrapStyle: string | null = null, pageIndexes?: number[], scrollListener?: HTMLDivElement) {
-		setPageScal(scale)
+		this.ofdDocument.setPageScal(scale)
 		// 新建一个根的div来包裹整个渲染的ofd文档的内容
 		this.ofdDocument.rootContainer = rootDiv
 		this.render(rootDiv, pageWrapStyle, pageIndexes, scrollListener)

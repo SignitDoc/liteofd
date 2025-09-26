@@ -4,8 +4,6 @@ import * as parser from "./parser"
 import { AttributeKey, OFD_KEY } from "./attrType"
 import { fontIdWithName, opentypeFonts } from "./ofdFont"
 import { getFontSize, parseColor, getDeltaList, extractTextToCharArray, decodeHtmlEntities } from "./utils/elementUtils"
-import { convertToBox, convertToDpi } from "./utils/utils"
-import opentype from "../opentype"
 import { ConfigManager } from "../config/configManager"
 
 // 文本渲染器类
@@ -84,7 +82,7 @@ export class TextRenderer {
 			let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
 			let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
 			if (boundaryStr) {
-				boundaryBox = convertToBox(boundaryStr)
+				boundaryBox = this.ofdDocument.convertToBox(boundaryStr)
 			}
 
 			if (boundaryBox) {
@@ -150,14 +148,14 @@ export class TextRenderer {
 						}
 					}
 					// 计算每个字符的位置（基于boundaryBox的坐标系统）
-					const charList = extractTextToCharArray(text, deltaX, deltaY, originX, originY)
-					const fontSize = getFontSize(nodeData)
+					const charList = extractTextToCharArray(this.ofdDocument, text, deltaX, deltaY, originX, originY)
+					const fontSize = getFontSize(this.ofdDocument, nodeData)
 					// 获取当前canvas的fillStyle
 					const currentFillStyle = this.pageCanvasCtx.fillStyle
 					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
-					let currentX = boundaryBox.x + convertToDpi(parseFloat(originX))
+					let currentX = boundaryBox.x + this.ofdDocument.convertToDpi(parseFloat(originX))
 					// Y位置从boundaryBox顶部开始，到字符串的基线位置
-					let currentY = boundaryBox.y + convertToDpi(parseFloat(originY))
+					let currentY = boundaryBox.y + this.ofdDocument.convertToDpi(parseFloat(originY))
 
 					for (let i = 0; i < text.length; i++) {
 						const charText = text[i]
@@ -182,8 +180,8 @@ export class TextRenderer {
 							}
 
 							// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
-							currentX += convertToDpi(deltaXValue / hScaleValue)
-							currentY += convertToDpi(deltaYValue / vScaleValue)
+							currentX += this.ofdDocument.convertToDpi(deltaXValue / hScaleValue)
+							currentY += this.ofdDocument.convertToDpi(deltaYValue / vScaleValue)
 						}
 					}
 					if (this.configManager.shouldLogTextRendering()) {
@@ -191,9 +189,9 @@ export class TextRenderer {
 					}
 				} else {
 					// 逐个绘制每个字符，DeltaX和DeltaY表示每个字符的位置偏移
-					let currentX = boundaryBox.x + convertToDpi(parseFloat(originX))
+					let currentX = boundaryBox.x + this.ofdDocument.convertToDpi(parseFloat(originX))
 					// Y位置从boundaryBox顶部开始，到字符串的基线位置
-					let currentY = boundaryBox.y + convertToDpi(parseFloat(originY))
+					let currentY = boundaryBox.y + this.ofdDocument.convertToDpi(parseFloat(originY))
 
 					for (let i = 0; i < text.length; i++) {
 						const charText = text[i]
@@ -215,8 +213,8 @@ export class TextRenderer {
 							}
 
 							// 下一个字符位置 = 当前字符位置 + DeltaX和DeltaY值
-							currentX += convertToDpi(deltaXValue / hScaleValue)
-							currentY += convertToDpi(deltaYValue / vScaleValue)
+							currentX += this.ofdDocument.convertToDpi(deltaXValue / hScaleValue)
+							currentY += this.ofdDocument.convertToDpi(deltaYValue / vScaleValue)
 						}
 					}
 
@@ -407,7 +405,7 @@ export class TextRenderer {
 	 */
 	private setCanvasFont(nodeData: XmlData, fontId: string) {
 		// 获取字体大小
-		const fontSize = getFontSize(nodeData)
+		const fontSize = getFontSize(this.ofdDocument, nodeData)
 		let fontStyle = fontSize ? `${fontSize}px` : '12px'
 		// 获取字体名称
 		if (fontId) {

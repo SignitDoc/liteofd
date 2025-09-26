@@ -2,8 +2,7 @@ import { BaseSvg } from "./BaseSvg"
 import { XmlData } from "../ofdData"
 import * as parser from "../parser"
 import { AttributeKey, OFD_KEY } from "../attrType"
-import { convertToBox, convertToDpi } from "../utils/utils"
-import { createDivTextSpan, decodeHtmlEntities, extractTextToCharArray, getCTM, getDeltaList, getFontSize, parseColor } from "../utils/elementUtils"
+import { decodeHtmlEntities, extractTextToCharArray, getFontSize, getDeltaList, parseColor } from "../utils/elementUtils"
 import { OfdDocument } from "../ofdDocument"
 import { CommonFont } from "../utils/commonFont"
 import { convertNonStandardFont, normalizeFontName } from "../utils/ofdUtils"
@@ -39,7 +38,7 @@ export class TextElement {
 	#addBoundary(node: XmlData) {
 		let boundaryStr = parser.findAttributeValueByKey(node, AttributeKey.Boundary)
 		if (boundaryStr) {
-			this.boundaryBox = convertToBox(boundaryStr)
+			this.boundaryBox = this.ofdDocument.convertToBox(boundaryStr)
 
 			let svgStyle = `left: ${this.boundaryBox.x}px;top: ${this.boundaryBox.y}px;
 	width: ${this.boundaryBox.width}px;height: ${this.boundaryBox.height}px;`
@@ -110,7 +109,7 @@ export class TextElement {
 		let ctmStr = parser.findAttributeValueByKey(obj, AttributeKey.CTM)
 		if (ctmStr) {
 			let ctms = ctmStr.split(' ');
-			return `matrix(${ ctms[0] }, ${ ctms[1] }, ${ ctms[2] }, ${ ctms[3] }, ${ convertToDpi(parseFloat(ctms[4])) }, ${ convertToDpi(parseFloat(ctms[5])) })`
+			return `matrix(${ ctms[0] }, ${ ctms[1] }, ${ ctms[2] }, ${ ctms[3] }, ${ this.ofdDocument.convertToDpi(parseFloat(ctms[4])) }, ${ this.ofdDocument.convertToDpi(parseFloat(ctms[5])) })`
 		}
 
 		return null
@@ -120,7 +119,7 @@ export class TextElement {
 	// 给pathsvg添加ctm矩阵
 	#addTextStyle(nodeData: XmlData) {
 		// 设置字体大小
-		let fontSize = getFontSize(nodeData)
+		let fontSize = getFontSize(this.ofdDocument, nodeData)
 		this.textStyle += `font-size: ${fontSize}px;`
 		// 设置font-weight
 		let fontWeight = parser.findAttributeValueByKey(nodeData, AttributeKey.Weight)
@@ -141,7 +140,7 @@ export class TextElement {
 		let lineWidth = parser.findAttributeValueByKey(nodeData, AttributeKey.LineWidth)
 		if (lineWidth) {
 			let lineWidthValue = parseFloat(lineWidth)
-			this.textStyle += `stroke-width: ${convertToDpi(lineWidthValue)}px;`
+			this.textStyle += `stroke-width: ${this.ofdDocument.convertToDpi(lineWidthValue)}px;`
 		} else {
 			this.textStyle += `stroke-width: 0;`
 		}
@@ -194,14 +193,14 @@ export class TextElement {
 		let y = parser.findAttributeValueByKey(textCodeData, AttributeKey.Y)
 
 		let textCode = parser.findValueByTagName(textCodeData, OFD_KEY.TextCode)
-		let textStr = textCode.value.toString()
+		let textStr = textCode?.value.toString()
 		textStr = decodeHtmlEntities(textStr)
 		// 根据node的deltax和deltay进行创建字符位置
 		let deltaX = getDeltaList(textStr, textCode, AttributeKey.DeltaX)
 		let deltaY = getDeltaList(textStr, textCode, AttributeKey.DeltaY)
 
 		// 将char分割，并且添加上x和y的值
-		let charList = extractTextToCharArray(textStr, deltaX, deltaY, x, y)
+		let charList = extractTextToCharArray(this.ofdDocument, textStr, deltaX, deltaY, x, y)
 		for (let i = 0; i < charList.length; i++) {
 			let charObj = charList[i]
 			let charSpanStyle = ""

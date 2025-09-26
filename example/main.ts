@@ -244,6 +244,7 @@ function renderOutlines(outlines: XmlData) {
 
 function parseOfdFile(file: File) {
 	appContent.innerHTML = ''
+    thumbContent.innerHTML = ''
     liteOfd.parse(file).then((data: OfdDocument) => {
     console.log('解析OFD文件成功:', data);
     updatePageInfo()
@@ -281,7 +282,7 @@ function parseOfdFile(file: File) {
     const configManager = ConfigManager.getInstance();
     const renderPages = configManager.getRenderPagesConfig();
     // 渲染缩略图
-    let div = thumbOfd.renderWithSize(undefined, "",   renderPages)
+    let div = thumbOfd.renderWithSize(undefined, "#ffffff",   renderPages)
     thumbContent.appendChild(div)
   }).catch((error) => {
     console.error('缩略图OFD文件失败:', error);

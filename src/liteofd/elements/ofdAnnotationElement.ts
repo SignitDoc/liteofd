@@ -1,7 +1,6 @@
 import { XmlData } from "../ofdData"
 import * as parser from "../parser"
 import { ANNOT_TYPE, AttributeKey, OFD_KEY } from "../attrType"
-import { convertToBox, convertToDpi } from "../utils/utils"
 import { OfdDocument } from "../ofdDocument"
 import { AnnotationPathSvg } from "./AnnotationPathSvg"
 import { ImageSvg } from "./ImageSvg"
@@ -23,7 +22,7 @@ export class OfdAnnotationElement {
 
 	/**
 	 * 初始化注释组件
-	 * @param ofdDocument 
+	 * @param ofdDocument
 	 * @param ofdPage 当前页面数据
 	 * @param viewContainer 页面容器
 	 */
@@ -48,7 +47,7 @@ export class OfdAnnotationElement {
 
 
 	private addClickListener() {
-		
+
 	}
 
 	render() {

@@ -2,7 +2,6 @@ import { XmlData } from "./ofdData"
 import { OfdDocument } from "./ofdDocument"
 import * as parser from "./parser"
 import { AttributeKey, OFD_KEY } from "./attrType"
-import { convertToBox, convertToDpi } from "./utils/utils"
 import PromiseCapability from "./promiseCapability"
 import { ConfigManager } from "../config/configManager"
 
@@ -50,7 +49,7 @@ export class ImageRenderer {
 		let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
 		let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
 		if (boundaryStr) {
-			boundaryBox = convertToBox(boundaryStr)
+			boundaryBox = this.ofdDocument.convertToBox(boundaryStr)
 		}
 
 		// 获取图片资源ID
@@ -276,8 +275,8 @@ export class ImageRenderer {
 				const b = parseFloat(ctms[1])
 				const c = parseFloat(ctms[2])
 				const d = parseFloat(ctms[3])
-				const e = convertToDpi(parseFloat(ctms[4]))
-				const f = convertToDpi(parseFloat(ctms[5]))
+				const e = this.ofdDocument.convertToDpi(parseFloat(ctms[4]))
+				const f = this.ofdDocument.convertToDpi(parseFloat(ctms[5]))
 				this.pageCanvasCtx.save()
 				this.pageCanvasCtx.setTransform(a, b, c, d, e, f)
 				this.pageCanvasCtx.restore()

@@ -1,7 +1,6 @@
 import { XmlData } from "../ofdData"
 import * as parser from "../parser"
 import { ANNOT_TYPE, AttributeKey, OFD_KEY } from "../attrType"
-import { convertToBox } from "../utils/utils"
 import { OfdDocument } from "../ofdDocument"
 import { PathSvg } from "./PathSvg"
 
@@ -90,7 +89,7 @@ export class AnnotationPathSvg {
 				})
 			}
 		}
-	
+
 		return pathContainer
 	}
 
@@ -107,13 +106,13 @@ export class AnnotationPathSvg {
 		}
 
 	}
-		
+
 	// 添加boundary范围
 	#addBoundary(node: XmlData) {
 		let boundaryStr = parser.findAttributeValueByKey(node, AttributeKey.Boundary)
 		if (boundaryStr) {
-			this.boundaryBox = convertToBox(boundaryStr)
-	
+			this.boundaryBox = this.ofdDocument.convertToBox(boundaryStr)
+
 		let svgStyle = `left: ${this.boundaryBox.x}px;top: ${this.boundaryBox.y}px;
 		width: ${this.boundaryBox.width}px;height: ${this.boundaryBox.height}px;`
 				this.pathContainerStyle += svgStyle

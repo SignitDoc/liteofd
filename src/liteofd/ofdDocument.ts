@@ -117,4 +117,32 @@ export class OfdDocument {
 	getMaxId(){
 
 	}
+
+	convertToDpi(width: number) {
+		return this.millimetersToPixel(width, this.currentScale * 25.4);
+	}
+
+	millimetersToPixel(mm: number, dpi: number) {
+		//毫米转像素：mm * dpi / 25.4
+		return ((mm * dpi / 25.4));
+	}
+
+	convertToBox(valueStr: string) {
+		let size = valueStr.split(" ")
+		let x = parseFloat(size[0])
+		let y = parseFloat(size[1])
+		let width = parseFloat(size[2])
+		let height = parseFloat(size[3])
+
+		return {
+			x: this.convertToDpi(x),
+			y: this.convertToDpi(y),
+			width: this.convertToDpi(width),
+			height: this.convertToDpi(height),
+		}
+	}
+
+	setPageScal(scale){
+		this.currentScale = scale
+	}
 }

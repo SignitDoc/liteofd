@@ -6,11 +6,10 @@ import { XmlData } from "../ofdData"
 import { AttributeKey, OFD_KEY } from "../attrType"
 import { OfdPageRender } from "./ofdPageRender"
 import * as parser from "../parser"
-import { convertToBox, convertToDpi } from "../utils/utils"
 import { ContentLayer } from "../contentLayer"
 import { getNodeAttributeMaxAndMinID } from "../utils/elementUtils"
 import { RootDocPath } from "../parser"
-import { SignatureElement } from "../elements/SignatureElement"
+import { SignatureElement } from "./SignatureElement"
 import { OfdAnnotationElement } from "./ofdAnnotationElement"
 import { CanvasContentLayer } from "../canvasContentLayer"
 
@@ -137,7 +136,7 @@ export class OfdPageContainer {
 			physicsBoxObj = parser.findValueByTagName(this.ofdDocument.documentData, OFD_KEY.PhysicalBox)
 		}
 
-		this.pagePhysicBox = convertToBox(physicsBoxObj!!.value)
+		this.pagePhysicBox = this.ofdDocument.convertToBox(physicsBoxObj!!.value)
 		let pageStyle = `width: ${this.pagePhysicBox.width}px; height: ${this.pagePhysicBox.height}px; position: relative;`
 		return pageStyle
 	}
@@ -156,7 +155,7 @@ export class OfdPageContainer {
 			physicsBoxObj = parser.findValueByTagName(this.ofdDocument.documentData, OFD_KEY.PhysicalBox)
 		}
 
-		let physicBox = convertToBox(physicsBoxObj!!.value)
+		let physicBox = this.ofdDocument.convertToBox(physicsBoxObj!!.value)
 		let pageStyle = `width: ${physicBox.width}px; height: ${physicBox.height}px; position: absolute; left: 0; top: 0`
 		return pageStyle
 	}
@@ -214,7 +213,7 @@ export class OfdPageContainer {
 			physicsBoxObj = parser.findValueByTagName(this.ofdDocument.documentData, OFD_KEY.PhysicalBox)
 		}
 
-		let physicBox = convertToBox(physicsBoxObj!!.value)
+		let physicBox = this.ofdDocument.convertToBox(physicsBoxObj!!.value)
 		pageCanvas.width = physicBox.width
 		pageCanvas.height = physicBox.height
 

@@ -3,7 +3,7 @@ import { OfdDocument } from "./ofdDocument"
 import * as parser from "./parser"
 import { AttributeKey, OFD_KEY } from "./attrType"
 import { parseColor } from "./utils/elementUtils"
-import { convertToBox, convertToDpi, calPathPoint, convertPathAbbreviatedDatatoPoint } from "./utils/utils"
+import { calPathPoint, convertPathAbbreviatedDatatoPoint } from "./utils/utils"
 import { ConfigManager } from "../config/configManager"
 
 // 路径渲染器类
@@ -48,7 +48,7 @@ export class PathRenderer {
 			let boundaryStr = parser.findAttributeValueByKey(nodeData, AttributeKey.Boundary)
 			let boundaryBox: { x: number; y: number; width: number; height: number; } | null = null
 			if (boundaryStr) {
-				boundaryBox = convertToBox(boundaryStr)
+				boundaryBox = this.ofdDocument.convertToBox(boundaryStr)
 			}
 			// 获取路径数据
 			let abbreviatedData = parser.findValueByTagNameOfFirstNode(nodeData, OFD_KEY.AbbreviatedData)
@@ -56,7 +56,7 @@ export class PathRenderer {
 				return
 			}
 			// 计算路径点
-			const points = calPathPoint(convertPathAbbreviatedDatatoPoint(abbreviatedData.value))
+			const points = calPathPoint(this.ofdDocument, convertPathAbbreviatedDatatoPoint(abbreviatedData.value))
 
 			if (idValue == 81) {
 				console.log("ID=81 路径调试信息:")
@@ -103,8 +103,8 @@ export class PathRenderer {
 				const b = parseFloat(ctms[1])
 				const c = parseFloat(ctms[2])
 				const d = parseFloat(ctms[3])
-				const e = convertToDpi(parseFloat(ctms[4]))
-				const f = convertToDpi(parseFloat(ctms[5]))
+				const e = this.ofdDocument.convertToDpi(parseFloat(ctms[4]))
+				const f = this.ofdDocument.convertToDpi(parseFloat(ctms[5]))
 				this.pageCanvasCtx.translate(boundaryBox?.x, boundaryBox?.y)
 				this.pageCanvasCtx.transform(a, b, c, d, e, f)
 				this.pageCanvasCtx.translate(-boundaryBox?.x, -(boundaryBox?.y))
@@ -185,7 +185,7 @@ export class PathRenderer {
 	#addLineWidth(nodeData: XmlData) {
 		let lineWidthStr = parser.findAttributeValueByKey(nodeData, AttributeKey.LineWidth)
 		if (lineWidthStr) {
-			let lineWidth = convertToDpi(parseFloat(lineWidthStr))
+			let lineWidth = this.ofdDocument.convertToDpi(parseFloat(lineWidthStr))
 			this.pageCanvasCtx.lineWidth = lineWidth
 		}
 	}
@@ -197,7 +197,7 @@ export class PathRenderer {
 	#addDashPattern(nodeData: XmlData) {
 		const dashPattern = parser.findAttributeValueByKey(nodeData, AttributeKey.DashPattern)
 		if (dashPattern) {
-			const dashArray = dashPattern.split(' ').map(value => convertToDpi(parseFloat(value)))
+			const dashArray = dashPattern.split(' ').map(value => this.ofdDocument.convertToDpi(parseFloat(value)))
 			this.pageCanvasCtx.setLineDash(dashArray)
 		} else {
 			this.pageCanvasCtx.setLineDash([])
@@ -214,14 +214,14 @@ export class PathRenderer {
 		// 设置线宽
 		let lineWidthStr = parser.findAttributeValueByKey(nodeData, AttributeKey.LineWidth)
 		if (lineWidthStr) {
-			let lineWidth = convertToDpi(parseFloat(lineWidthStr))
+			let lineWidth = this.ofdDocument.convertToDpi(parseFloat(lineWidthStr))
 			ctx.lineWidth = lineWidth
 		}
 
 		// 设置虚线模式
 		const dashPattern = parser.findAttributeValueByKey(nodeData, AttributeKey.DashPattern)
 		if (dashPattern) {
-			const dashArray = dashPattern.split(' ').map(value => convertToDpi(parseFloat(value)))
+			const dashArray = dashPattern.split(' ').map(value => this.ofdDocument.convertToDpi(parseFloat(value)))
 			ctx.setLineDash(dashArray)
 		}
 

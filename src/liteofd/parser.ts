@@ -311,12 +311,12 @@ export const findNodeListByTagName = (xmlData:XmlData, tagName: string): XmlData
 }
 
 // 查找ofd节点的属性值
-export const findAttributeValueByKey = (xmlData:XmlData, key: string): string => {
+export const findAttributeValueByKey = (xmlData:XmlData | undefined | null, key: string): string => {
 	let findKey = key
 	if (!findKey.startsWith("@_")) {
 		findKey = `@_${key}`
 	}
-	let attrsMap = xmlData.attrsMap
+	let attrsMap = xmlData?.attrsMap
 	if (attrsMap && attrsMap.size > 0) {
 		for (let i = 0; i < attrsMap.size; i++) {
 			if(attrsMap.has(findKey)){
@@ -324,7 +324,7 @@ export const findAttributeValueByKey = (xmlData:XmlData, key: string): string =>
 			}
 		}
 	}
-	if (xmlData.children && xmlData.children.length > 0) {
+	if (xmlData?.children && xmlData.children.length > 0) {
 		for (let i = 0; i < xmlData.children.length; i++) {
 			let subNode = xmlData.children[i]
 			let findData = findAttributeValueByKey(subNode, findKey)

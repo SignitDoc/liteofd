@@ -1,6 +1,5 @@
 import * as parser from "../parser"
 import { AttributeKey, OFD_KEY } from "../attrType"
-import { convertToDpi } from "./utils"
 import { XmlData } from "../ofdData"
 import { OfdDocument } from "../ofdDocument"
 
@@ -22,13 +21,14 @@ function decodeHTML(html) {
 
 /**
  * 将textcode字符串转换为待坐标也就是deltax和deltau的值的数组
+ * @param ofdDocument
  * @param textStr
  * @param deltaXList
  * @param deltaYList
  * @param originX
  * @param originY
  */
-export const extractTextToCharArray = (textStr: string, deltaXList: any[], deltaYList: any[], originX: any, originY: any): Array<{x: number, y: number, text: string, deltaX: number, deltaY: number}> => {
+export const extractTextToCharArray = (ofdDocument: OfdDocument, textStr: string, deltaXList: any[], deltaYList: any[], originX: any, originY: any): Array<{x: number, y: number, text: string, deltaX: number, deltaY: number}> => {
 	let textCodePointList = []
 	let lastXDeltaIndex = 0
 	let lastYDeltaIndex = 0
@@ -71,7 +71,7 @@ export const extractTextToCharArray = (textStr: string, deltaXList: any[], delta
 		}
 		let text = textStr.substring(i, i + 1)
 
-		let textCodePoint = { 'x': convertToDpi(x), 'y': convertToDpi(y), 'text': text, deltaX: tempDeltaX, deltaY: tempDeltaY  }
+		let textCodePoint = { 'x': ofdDocument.convertToDpi(x), 'y': ofdDocument.convertToDpi(y), 'text': text, deltaX: tempDeltaX, deltaY: tempDeltaY  }
 		textCodePointList.push(textCodePoint)
 	}
 	return textCodePointList
@@ -101,11 +101,12 @@ export const decodeHtmlEntities = (text: string): string => {
 
 /**
  * 根据textcode来创建显示字符串的tspan
+ * @param ofdDocument 文本工具
  * @param nodeData 文本的textCode标签
  * @param node 文本的textCode标签
  * @param textNode 文本的textCode标签
  */
-export const createTextSpan = (nodeData: XmlData, textCodeData: XmlData, textNode: Element) => {
+export const createTextSpan = (ofdDocument, nodeData: XmlData, textCodeData: XmlData, textNode: Element) => {
 	// 根据scale计算tspan的位置
 	let hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale)
 	let vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale)
@@ -117,14 +118,14 @@ export const createTextSpan = (nodeData: XmlData, textCodeData: XmlData, textNod
 	let y = parser.findAttributeValueByKey(textCodeData, AttributeKey.Y)
 
 	let textCode = parser.findValueByTagName(textCodeData, OFD_KEY.TextCode)
-	let textStr = textCode.value.toString()
+	let textStr = textCode?.value.toString()
 	textStr = decodeHtmlEntities(textStr)
 	// 根据node的deltax和deltay进行创建字符位置
 	let deltaX = getDeltaList(textStr, textCode, AttributeKey.DeltaX)
 	let deltaY = getDeltaList(textStr, textCode, AttributeKey.DeltaY)
 
 	// 将char分割，并且添加上x和y的值
-	let charList = extractTextToCharArray(textStr, deltaX, deltaY, x, y)
+	let charList = extractTextToCharArray(ofdDocument, textStr, deltaX, deltaY, x, y)
 	for (let i = 0; i < charList.length; i++) {
 		let charObj = charList[i]
 		let nodeEle = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
@@ -146,13 +147,13 @@ export const createTextSpan = (nodeData: XmlData, textCodeData: XmlData, textNod
 
 /**
  * 获取字体的文字大小
+ * @param ofdDocument
  * @param textObj
  */
-export const getFontSize = (textObj: XmlData) => {
+export const getFontSize = (ofdDocument: OfdDocument, textObj: XmlData) => {
 	let originSize = parser.findAttributeValueByKey(textObj, AttributeKey.FontSize)
 	if (originSize) {
-		originSize = convertToDpi(originSize)
-		return originSize
+		return ofdDocument.convertToDpi(parseFloat(originSize))
 	} else {
 		return null
 	}
@@ -160,13 +161,23 @@ export const getFontSize = (textObj: XmlData) => {
 
 /**
  * 获取ctm，进行转换
+ * @param ofdDocument
  * @param obj
  */
-export const getCTM = (obj: XmlData) => {
+export const getCTM = (ofdDocument: OfdDocument, obj: XmlData | null | undefined) => {
 	let ctmStr = parser.findAttributeValueByKey(obj, AttributeKey.CTM)
 	if (ctmStr) {
 		let ctms = ctmStr.split(' ');
-		return `matrix(${ ctms[0] } ${ ctms[1] } ${ ctms[2] } ${ ctms[3] } ${ convertToDpi(ctms[4]) } ${ convertToDpi(ctms[5]) })`
+		return `matrix(${ ctms[0] } ${ ctms[1] } ${ ctms[2] } ${ ctms[3] } ${ ofdDocument.convertToDpi(ctms[4]) } ${ ofdDocument.convertToDpi(ctms[5]) })`
+	}
+
+	return null
+}
+
+export const getCTMByStr = (ofdDocument: OfdDocument, ctmStr: string) => {
+	if (ctmStr) {
+		let ctms = ctmStr.split(' ');
+		return `matrix(${ ctms[0] } ${ ctms[1] } ${ ctms[2] } ${ ctms[3] } ${ ofdDocument.convertToDpi(ctms[4]) } ${ ofdDocument.convertToDpi(ctms[5]) })`
 	}
 
 	return null
@@ -393,7 +404,7 @@ export const getOFDFilePath = (path: string) => {
 			let physicalBox = physicalBoxObj.value.split(" ")
 			let ofdWidth = parseFloat(physicalBox[2])
 
-			let newofdWidth = convertToDpi(ofdWidth)
+			let newofdWidth = ofdDocument.convertToDpi(ofdWidth)
 			console.log("screen width and ofdWidth", screenWidth, ofdWidth, newofdWidth, screenWidth);
 			// 计算缩放比例
 			let scale = (screenWidth - 100) / ofdWidth
@@ -415,7 +426,7 @@ export const getOFDFilePath = (path: string) => {
 			let physicalBox = physicalBoxObj.value.split(" ")
 			let ofdWidth = parseFloat(physicalBox[2])
 
-			let newofdWidth = convertToDpi(ofdWidth)
+			let newofdWidth = ofdDocument.convertToDpi(ofdWidth)
 			console.log("screen width and ofdWidth", width, ofdWidth, newofdWidth, width);
 			// 计算缩放比例
 			let scale = width / ofdWidth
