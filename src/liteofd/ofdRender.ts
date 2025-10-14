@@ -17,6 +17,7 @@ export class OfdRender {
 	pages: XmlData[]
 	scrollContainer: HTMLDivElement = document.createElement('div') // 滚动容器，用于监听滚动事件
 	rootContainer: HTMLDivElement = document.createElement('div') // 整个渲染的根页面，要放置到这个上面来
+	sealContainer: HTMLDivElement = document.createElement('div') // 整个渲染的根页面，要放置到这个上面来
 	currentPageIndex: number = 1; // 当前页面索引
 
 	constructor(ofdDocument: OfdDocument) {
@@ -34,7 +35,9 @@ export class OfdRender {
 	renderOfdWithSize(width: number, height: number, pageWrapStyle: string | null = null): HTMLDivElement {
 		// 创建外层容器div
 		const containerDiv = document.createElement('div');
-		containerDiv.style.cssText = `height: ${height}px; width: ${width}px;`;
+		// containerDiv.style.cssText = `height: ${height}px; width: ${width}px;`;
+		// 去掉高度
+		containerDiv.style.cssText = `width: ${width}px;`;
 		// 设置默认scale
 		let scale = getCustomScale(this.ofdDocument, width, height);
 		// 渲染时根据宽度获取默认的一个渲染的scale缩放
@@ -74,6 +77,10 @@ export class OfdRender {
 		this.ofdDocument.setPageScal(scale)
 		// 新建一个根的div来包裹整个渲染的ofd文档的内容
 		this.ofdDocument.rootContainer = rootDiv
+		this.sealContainer.setAttribute("class", "sign-pages-container")
+		if (scrollListener) {
+			scrollListener.appendChild(this.sealContainer)
+		}
 		this.render(rootDiv, pageWrapStyle, pageIndexes, scrollListener)
 	}
 
@@ -81,6 +88,7 @@ export class OfdRender {
 		this.rootContainer = rootContainer
 		// 渲染页面
 		this.#renderPages(rootContainer, wrapStyle, pageIndexes)
+		console.log("render scrolllistener ele", scrollListener)
 		if (scrollListener) {
 			this.scrollContainer = scrollListener
 			this.scrollContainer.appendChild(rootContainer)
@@ -188,6 +196,11 @@ export class OfdRender {
 			rootContainer.style.transformOrigin = 'center top';
 			// 调整父容器和内容位置
 			// this.adjustContainerAndPosition(rootContainer, originalWidth, newScale);
+		}
+		if (this.sealContainer) {
+			// 应用缩放
+			this.sealContainer.style.transform = `scale(${newScale})`;
+			this.sealContainer.style.transformOrigin = 'center top';
 		}
 	}
 

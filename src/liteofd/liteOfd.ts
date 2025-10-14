@@ -7,6 +7,7 @@ import * as ofdActions from "./ofdActions"
 import { loadLocalDefaultFonts } from "./ofdFont"
 import { ConfigUI } from "../config/configUI"
 import { ConfigManager } from "../config/configManager"
+import { numberToString } from "./font/core_utils"
 
 /**
  * LiteOfd 类是一个用于处理 OFD 文件的轻量级库。
@@ -40,12 +41,12 @@ export default class LiteOfd {
     return this.ofdRender.renderOfdWithCustomDiv(containerDiv, pageWrapStyle, pageIndexes, scrollListener)
   }
 
-  renderWithSize(container?: HTMLDivElement, pageWrapStyle?: string, pageIndexes?: number[], scrollListener?: HTMLDivElement): HTMLDivElement {
+  renderWithSize(container?: HTMLDivElement, width: number = 200, height: number = 200, pageWrapStyle?: string, pageIndexes?: number[], scrollListener?: HTMLDivElement): HTMLDivElement {
     this.ofdRender = new OfdRender(this.ofdDocument)
     const containerDiv = container || document.createElement('div')
     containerDiv.setAttribute("class", "pages-container")
     this.containerDiv = containerDiv
-    return this.ofdRender.renderOfdWithSize(200, 200)
+    return this.ofdRender.renderOfdWithSize(width, height)
   }
 
   /**
@@ -279,6 +280,10 @@ export default class LiteOfd {
 
   getContainer() {
     return this.containerDiv
+  }
+
+  getSealContainer(){
+    return this.ofdRender?.sealContainer
   }
 
   /**

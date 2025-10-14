@@ -282,7 +282,7 @@ function parseOfdFile(file: File) {
     const configManager = ConfigManager.getInstance();
     const renderPages = configManager.getRenderPagesConfig();
     // 渲染缩略图
-    let div = thumbOfd.renderWithSize(undefined, "#ffffff",   renderPages)
+    let div = thumbOfd.renderWithSize(undefined, 100 , 200, "#ffffff",   renderPages)
     thumbContent.appendChild(div)
   }).catch((error) => {
     console.error('缩略图OFD文件失败:', error);
