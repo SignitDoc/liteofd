@@ -19,6 +19,7 @@ export class OfdRender {
 	rootContainer: HTMLDivElement = document.createElement('div') // 整个渲染的根页面，要放置到这个上面来
 	sealContainer: HTMLDivElement = document.createElement('div') // 整个渲染的根页面，要放置到这个上面来
 	currentPageIndex: number = 1; // 当前页面索引
+	pagesContainerList = [] // 包裹了页面的数组
 
 	constructor(ofdDocument: OfdDocument) {
 		this.ofdDocument = ofdDocument
@@ -66,6 +67,7 @@ export class OfdRender {
 	}
 
 	renderOfdWithPageIndex(pageIndex: number, customDiv: HTMLDivElement, pageWrapStyle: string | null = null) {
+		this.pagesContainerList = []
 		this.#renderPage(pageIndex, customDiv, pageWrapStyle)
 	}
 
@@ -116,6 +118,7 @@ export class OfdRender {
 	 */
 	#renderPages(rootContainer: HTMLDivElement, wrapStyle: string | null, pageIndexes?: number[]) {
 		try {
+			this.pagesContainerList = []
 			if (Array.isArray(pageIndexes) && pageIndexes.length > 0) {
 				for (const i of pageIndexes) {
 					if (i >= 0 && i < this.pages.length) {
@@ -145,6 +148,7 @@ export class OfdRender {
 			pageView.setAttribute("style", tempStyle)
 		}
 		console.log("current page minwidth", pageContainer.getPageBox())
+		console.log("rootContainer minwidth", rootContainer.style.minWidth)
 		console.log("pages container", rootContainer, rootContainer.style)
 		let minWidth = pageContainer.getPageBox().width
 		let tempPagesMinWidth = rootContainer.style.minWidth
@@ -157,6 +161,11 @@ export class OfdRender {
 		}
 		console.log("pages container", rootContainer.style.minWidth)
 		rootContainer!.appendChild(pageView)
+		this.pagesContainerList.push(pageView)
+	}
+
+	getPagesContainerList(){
+		return this.pagesContainerList
 	}
 
 	/**

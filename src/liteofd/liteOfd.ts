@@ -286,6 +286,10 @@ export default class LiteOfd {
     return this.ofdRender?.sealContainer
   }
 
+  getPagesContainerList() {
+    return this.ofdRender?.getPagesContainerList()
+  }
+
   /**
    * 销毁配置UI
    */
