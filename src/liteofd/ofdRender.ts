@@ -20,6 +20,7 @@ export class OfdRender {
 	sealContainer: HTMLDivElement = document.createElement('div') // 整个渲染的根页面，要放置到这个上面来
 	currentPageIndex: number = 1; // 当前页面索引
 	pagesContainerList = [] // 包裹了页面的数组
+	minWidth = -1 // 页面的最低宽度，自定义设置，如果设置了就使用这个自定义最小宽度
 
 	constructor(ofdDocument: OfdDocument) {
 		this.ofdDocument = ofdDocument
@@ -56,7 +57,7 @@ export class OfdRender {
 	 */
 	renderOfdWithCustomDiv(customDiv: HTMLDivElement, pageWrapStyle: string | null = null, pageIndexes?: number[], scrollListener?: HTMLDivElement) {
 		// 获取默认缩放比例
-		let scale = getDefaultScale(this.ofdDocument);
+		let scale = getDefaultScale(this.ofdDocument, this.minWidth);
 		this.renderOfdWithScale(customDiv, scale, pageWrapStyle, pageIndexes, scrollListener)
 		return this.scrollContainer
 	}
@@ -135,6 +136,13 @@ export class OfdRender {
 		}
 	}
 
+	/**
+	 * 渲染每个页面的单个页面
+	 * @param pageIndex 当前页面的索引index
+	 * @param rootContainer 包裹页面的container
+	 * @param wrapStyle 页面的包裹样式，自定义样式
+	 * @private
+	 */
 	#renderPage(pageIndex: number, rootContainer: HTMLDivElement, wrapStyle: string | null = null) {
 		let pageData = this.pages[pageIndex]
 		let pageContainer = new OfdPageContainer(this.ofdDocument, pageData, rootContainer)
@@ -152,13 +160,18 @@ export class OfdRender {
 		console.log("pages container", rootContainer, rootContainer.style)
 		let minWidth = pageContainer.getPageBox().width
 		let tempPagesMinWidth = rootContainer.style.minWidth
-		if (!tempPagesMinWidth) {
-			rootContainer.style.minWidth = minWidth + "px"
+		if (this.minWidth > 0) {
+			rootContainer.style.minWidth = this.minWidth + "px"
 		} else {
-			if (tempPagesMinWidth.replace("px", "") < minWidth) {
+			if (!tempPagesMinWidth) {
 				rootContainer.style.minWidth = minWidth + "px"
+			} else {
+				if (tempPagesMinWidth.replace("px", "") < minWidth) {
+					rootContainer.style.minWidth = minWidth + "px"
+				}
 			}
 		}
+
 		console.log("pages container", rootContainer.style.minWidth)
 		rootContainer!.appendChild(pageView)
 		this.pagesContainerList.push(pageView)

@@ -396,8 +396,13 @@ export const getOFDFilePath = (path: string) => {
 	 * 获取默认的缩放比例
 	 * @returns {number} 默认的缩放比例
 	 */
-	export const getDefaultScale = (ofdDocument: OfdDocument): number => {
-		let screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+	export const getDefaultScale = (ofdDocument: OfdDocument, minWidth: number | null): number => {
+		let screenWidth
+		if (minWidth && minWidth > 0) {
+			screenWidth = minWidth
+		} else {
+			screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+		}
 		let physicalBoxObj = parser.findValueByTagName(ofdDocument.documentData, OFD_KEY.PhysicalBox)
 		console.log("physicalBoxObj", physicalBoxObj);
 		if(physicalBoxObj){
@@ -407,7 +412,7 @@ export const getOFDFilePath = (path: string) => {
 			let newofdWidth = ofdDocument.convertToDpi(ofdWidth)
 			console.log("screen width and ofdWidth", screenWidth, ofdWidth, newofdWidth, screenWidth);
 			// 计算缩放比例
-			let scale = (screenWidth - 100) / ofdWidth
+			let scale = (screenWidth) / ofdWidth
 			console.log("current page scale", scale)
 			return scale
 		}
