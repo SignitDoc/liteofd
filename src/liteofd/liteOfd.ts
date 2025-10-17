@@ -20,6 +20,7 @@ export default class LiteOfd {
   private configUI: ConfigUI | null = null
   private containerDiv: HTMLDivElement
   private renderTextLayer: boolean = true
+  private minWidth: number = -1
 
   constructor() {
     this.ofdDocument = new OfdDocument()
@@ -35,6 +36,10 @@ export default class LiteOfd {
    */
   render(container?: HTMLDivElement, pageWrapStyle?: string, pageIndexes?: number[], scrollListener?: HTMLDivElement): HTMLDivElement {
     this.ofdRender = new OfdRender(this.ofdDocument)
+    // 设置页面自定义最小宽度
+    if (this.minWidth > 0) {
+      this.ofdRender.minWidth = this.minWidth
+    }
     const containerDiv = container || document.createElement('div')
     containerDiv.setAttribute("class", "pages-container")
     this.containerDiv = containerDiv
@@ -43,6 +48,10 @@ export default class LiteOfd {
 
   renderWithSize(container?: HTMLDivElement, width: number = 200, height: number = 200, pageWrapStyle?: string, pageIndexes?: number[], scrollListener?: HTMLDivElement): HTMLDivElement {
     this.ofdRender = new OfdRender(this.ofdDocument)
+    // 设置页面自定义最小宽度
+    if (this.minWidth > 0) {
+      this.ofdRender.minWidth = this.minWidth
+    }
     const containerDiv = container || document.createElement('div')
     containerDiv.setAttribute("class", "pages-container")
     this.containerDiv = containerDiv
@@ -73,9 +82,17 @@ export default class LiteOfd {
    */
   renderPage(pageIndex: number, pageWrapStyle?: string){
     this.ofdRender = new OfdRender(this.ofdDocument)
+    // 设置页面自定义最小宽度
+    if (this.minWidth > 0) {
+      this.ofdRender.minWidth = this.minWidth
+    }
     const containerDiv = document.createElement('div')
     this.ofdRender.renderOfdWithPageIndexWithScale(pageIndex, containerDiv, pageWrapStyle, 2)
     return containerDiv
+  }
+
+  setPageMinWidth(minWidth: number){
+    this.minWidth = minWidth
   }
 
   /**
@@ -220,6 +237,7 @@ export default class LiteOfd {
    * @param action 动作数据
    */
   executeAction(action: XmlData): void {
+    console.log("execute action", action)
     ofdActions.executeAction(this, this.ofdDocument, action)
   }
 
@@ -288,6 +306,10 @@ export default class LiteOfd {
 
   getPagesContainerList() {
     return this.ofdRender?.getPagesContainerList()
+  }
+
+  getZoomValue(){
+    return this.ofdDocument?.currentScale
   }
 
   /**
