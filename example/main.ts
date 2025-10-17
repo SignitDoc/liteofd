@@ -9,7 +9,7 @@ import { ChildProcess } from 'child_process';
 import { ConfigManager } from '../src/config/configManager'
 
 const appContent = document.getElementById('content') as HTMLDivElement
-const thumbContent = document.getElementById('thumb') as HTMLDivElement
+// const thumbContent = document.getElementById('thumb') as HTMLDivElement
 
 const liteOfd = new LiteOfd()
 const thumbOfd = new LiteOfd()
@@ -196,7 +196,19 @@ function renderOutlines(outlines: XmlData) {
    */
   function setupActions(outlineData: XmlData, titleElement: HTMLElement) {
     try {
-      const actions = parser.findValueByTagName(outlineData, OFD_KEY.Actions);
+      // 这里要获取到第一层的actions而不是下一层的actions
+      let actions
+      if (outlineData.children.length > 1) {
+        outlineData.children.forEach(value => {
+          if (value.tagName === OFD_KEY.Actions) {
+            actions = value
+          }
+        })
+      } else {
+        actions = parser.findValueByTagName(outlineData, OFD_KEY.Actions);
+      }
+      console.log("setup outlines actions ", outlineData)
+      console.log("outlien item actions", actions)
       if (actions && actions.children && actions.children.length > 0) {
         console.log("找到 Actions:", actions);
 
@@ -244,13 +256,14 @@ function renderOutlines(outlines: XmlData) {
 
 function parseOfdFile(file: File) {
 	appContent.innerHTML = ''
-    thumbContent.innerHTML = ''
+    // thumbContent.innerHTML = ''
     liteOfd.parse(file).then((data: OfdDocument) => {
     console.log('解析OFD文件成功:', data);
     updatePageInfo()
       // 读取 configManager 的 renderPages 配置
       const configManager = ConfigManager.getInstance();
       const renderPages = configManager.getRenderPagesConfig();
+      liteOfd.setPageMinWidth(500)
       let temp = liteOfd.render(undefined, 'background-color: white; margin-top: 12px;', renderPages)
       appContent.appendChild(temp)
 	  initOfdEventListeners(); // 在渲染完成后初始化事件监听器
