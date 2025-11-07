@@ -197,7 +197,7 @@ export default class LiteOfd {
   async parse(file: string | File | ArrayBuffer): Promise<OfdDocument> {
     try {
       // 添加本地的simSun等字体
-      await loadLocalDefaultFonts()
+      // await loadLocalDefaultFonts()
       this.ofdDocument = await parser.parseOFDFile(file).promise
       this.ofdDocument.renderTextLayer = this.renderTextLayer
       return this.ofdDocument
