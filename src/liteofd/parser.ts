@@ -102,7 +102,6 @@ const parseSignatureData = async (ofdDocument: OfdDocument, signList: XmlData[],
 				// 一个signature.xml文件中的签名信息数据
 				let tempSign = signList[j]
 				// 查找signature.xml中的stampannot的列表
-				let tempStampAnnotObj = findValueByTagName(tempSign, OFD_KEY.StampAnnot)
 				let signPathObj = findValueByTagName(tempSign, OFD_KEY.SignedValue)
 				let signPath = signPathObj.value
 				signPath = getOFDFilePath(signPath)
@@ -121,14 +120,18 @@ const parseSignatureData = async (ofdDocument: OfdDocument, signList: XmlData[],
 
 				tempSign.sealObject = sealObj
 
-				// 将签章的列表添加到对应的pageData里面，也就是把页面数据匹配到对应的签章数据
-				for (let k = 0; k < tempStampAnnotObj.children.length; k++) {
-					let tempStampAnnot = tempStampAnnotObj.children[k]
-					let pageRefID = findAttributeValueByKey(tempStampAnnot, AttributeKey.PageRef)
-					console.log("get pagerefid", pageRefID, pageID)
-					// 页面id和签章上面的引用id匹配就可以
-					if (pageRefID === pageID) {
-						pageData.signList.push(tempSign)
+				if (ofdDocument.getSignList) {
+					let tempStampAnnotObj = findValueByTagName(tempSign, OFD_KEY.StampAnnot)
+
+					// 将签章的列表添加到对应的pageData里面，也就是把页面数据匹配到对应的签章数据
+					for (let k = 0; k < tempStampAnnotObj.children.length; k++) {
+						let tempStampAnnot = tempStampAnnotObj.children[k]
+						let pageRefID = findAttributeValueByKey(tempStampAnnot, AttributeKey.PageRef)
+						console.log("get pagerefid", pageRefID, pageID)
+						// 页面id和签章上面的引用id匹配就可以
+						if (pageRefID === pageID) {
+							pageData.signList.push(tempSign)
+						}
 					}
 				}
 			} catch (e) {
@@ -176,7 +179,9 @@ export const parseOFDPages = async (ofdDocument: OfdDocument, pages: XmlData) =>
 		let pageData = await parseXmlByFileName(files, pagePath)
 		if (pageData) {
 			pageID && (pageData.id = pageID)
-			await parseSignatureData(ofdDocument, signList, pageID, pageData)
+			if (ofdDocument.getPageSignList) {
+				await parseSignatureData(ofdDocument, signList, pageID, pageData)
+			}
 			ofdPages.push(pageData)
 		}
 

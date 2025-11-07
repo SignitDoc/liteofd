@@ -25,6 +25,7 @@ export class OfdDocument {
 	renderTextLayer: boolean = true // 是否渲染文本选择层，这个用来控制缩略图的渲染
 	supportZoom: boolean = true // 是否支持缩放，比如缩略图是不支持缩放的，只能根据容器大小进行渲染
 	currentScale: number = 1 // 当前的缩放值，页面缩放，每个ofddocument都有一个单独的缩放值进行控制缩放
+	getPageSignList: boolean = false // 是否从本地查找页面对应的印章，如果是则本地liteofd需要匹配查找印章
 
 	constructor() {
 		this.loadedMediaFile = new Map()
@@ -144,5 +145,9 @@ export class OfdDocument {
 
 	setPageScal(scale){
 		this.currentScale = scale
+	}
+
+	toggleGetPageSignList(open: boolean) {
+		this.getPageSignList = open
 	}
 }
