@@ -20,6 +20,7 @@ export class OfdDocument {
 	signatures: XmlData = new XmlData() // 签名数据，这个是signatures.xml文件的数据
 	signatureList: XmlData[] = [] // 签名数据列表，包含了signatures.xml里面所有签名组成的xmldata的数组
 	parsedSignData: Map<string, any> // 保存已经解析了的签名数据，这样就不用再去解析了，下次直接使用
+	parsedPageData: Map<string, XmlData> // 保存已经解析了的页面数据，避免重复解析
 	outlines: XmlData = new XmlData() // 大纲数据列表，包含了ofd:Outlines里面所有大纲数据
 	annots: XmlData = new XmlData() // 注释数据列表，包含了ofd:Annotations
 	isTextLayer: boolean = true // 是否是textlayer层，textlayer层的text使用div和span进行文字渲染
@@ -30,6 +31,7 @@ export class OfdDocument {
 	constructor() {
 		this.loadedMediaFile = new Map()
 		this.parsedSignData = new Map()
+		this.parsedPageData = new Map()
 	}
 
 	/**

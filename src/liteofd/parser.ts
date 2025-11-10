@@ -88,14 +88,80 @@ const convertToOFDData = (xmlObj: any, fileName: string) => {
 }
 
 /**
- * 获取签名
+ * 预先解析所有签名数据，并行解析并存入缓存
+ * @param ofdDocument 根据files提取到签名文件中的数据
+ * @param signList 签名列表
+ */
+const preParseAllSignatures = async (ofdDocument: OfdDocument, signList: XmlData[]) => {
+	if (!signList || signList.length === 0) {
+		return
+	}
+	
+	console.log("开始预解析所有签名数据，共", signList.length, "个签名")
+	
+	// 收集所有需要解析的签名信息
+	const signParseTasks: Array<{tempSign: XmlData, signPath: string}> = []
+	for (let j = 0; j < signList.length; j++) {
+		try {
+			let tempSign = signList[j]
+			let signPathObj = findValueByTagName(tempSign, OFD_KEY.SignedValue)
+			if (!signPathObj) {
+				continue
+			}
+			let signPath = signPathObj.value
+			signPath = getOFDFilePath(signPath)
+			
+			// 检查缓存中是否已有解析过的签名数据
+			if (!ofdDocument.parsedSignData.has(signPath)) {
+				signParseTasks.push({ tempSign, signPath })
+			}
+		} catch (e) {
+			console.error("收集签名解析任务错误", e)
+		}
+	}
+	
+	// 并行解析所有签名
+	const signParsePromises = signParseTasks.map(async ({ tempSign, signPath }) => {
+		try {
+			// 读取数据
+			let signData = await ofdDocument.files[signPath].async("base64")
+			let sealObj = await decodeSignatureStringData(signData) // 获取签名文件中解析的签名数据
+			
+				// 将解析结果存入缓存
+				if (sealObj) {
+					ofdDocument.parsedSignData.set(signPath, sealObj)
+					
+					// 处理签名数据
+					if (sealObj.type === "ofd") {
+						// 需要对签名数据进行解压
+						await parseSignatureOFDData(sealObj, tempSign)
+					} else if (sealObj.type === "png") {
+						// 图片类型签名
+						let img = 'data:image/png;base64,' + btoa(String.fromCharCode.apply(null, sealObj.ofdArray));
+						tempSign.sealData = img
+					}
+					
+					// 设置签名对象（sealObject 类型为 any，可以接受任何值）
+					;(tempSign as any).sealObject = sealObj
+				}
+		} catch (e) {
+			console.error("预解析签名错误:", signPath, e)
+		}
+	})
+	
+	// 等待所有签名解析完成
+	await Promise.all(signParsePromises)
+	console.log("所有签名数据预解析完成")
+}
+
+/**
+ * 将签名数据匹配到页面（从缓存中获取已解析的签名数据）
  * @param ofdDocument 根据files提取到签名文件中的数据
  * @param signList
  * @param pageID
  * @param pageData
  */
-const parseSignatureData = async (ofdDocument: OfdDocument, signList: XmlData[], pageID, pageData: XmlData) => {
-	console.log("current ofd signlist", signList)
+const matchSignatureToPage = (ofdDocument: OfdDocument, signList: XmlData[], pageID, pageData: XmlData) => {
 	// 根据pageID来匹配对应的签名
 	if (signList && signList.length > 0) {
 		for (let j = 0; j < signList.length; j++) {
@@ -110,32 +176,16 @@ const parseSignatureData = async (ofdDocument: OfdDocument, signList: XmlData[],
 				let signPath = signPathObj.value
 				signPath = getOFDFilePath(signPath)
 				
-				// 检查缓存中是否已有解析过的签名数据
+				// 从缓存中获取已解析的签名数据
 				let sealObj = ofdDocument.parsedSignData.get(signPath)
-				
 				if (!sealObj) {
-					// 缓存中没有，需要重新解析
-					// 读取数据
-					let signData = await ofdDocument.files[signPath].async("base64")
-					sealObj = await decodeSignatureStringData(signData) // 获取签名文件中解析的签名数据
-					// 将解析结果存入缓存
-					ofdDocument.parsedSignData.set(signPath, sealObj)
-				} else {
-					console.log("使用缓存的签名数据:", signPath)
+					// 如果缓存中没有，说明预解析时出错了，跳过
+					continue
 				}
 				
-				// await unzipOfd(stampAnnot.sealObj.ofdArray) // 将ofd类型的数据进行解压，获取到需要渲染的印章内容
-				if (sealObj && sealObj.type === "ofd") {
-					// 需要对签名数据进行解压
-					await parseSignatureOFDData(sealObj, tempSign)
-				} else if (sealObj && sealObj.type === "png") {
-					// 图片类型签名
-					let img = 'data:image/png;base64,' + btoa(String.fromCharCode.apply(null, sealObj.ofdArray));
-					tempSign.sealData = img
-				}
-
+				// 确保签名对象已设置
 				tempSign.sealObject = sealObj
-
+				
 				let tempStampAnnotObj = findValueByTagName(tempSign, OFD_KEY.StampAnnot)
 				if (!tempStampAnnotObj) {
 					continue
@@ -152,7 +202,7 @@ const parseSignatureData = async (ofdDocument: OfdDocument, signList: XmlData[],
 					}
 				}
 			} catch (e) {
-				console.error("parse sign error", e)
+				console.error("匹配签名到页面错误", e)
 			}
 		}
 	}
@@ -182,25 +232,63 @@ export const parseOFDPages = async (ofdDocument: OfdDocument, pages: XmlData) =>
 	if (!pageSubPages) {
 		return ofdPages
 	}
-	// 多页面
+	
+	// 第一步：预先解析所有签名数据（并行解析并存入缓存）
+	await preParseAllSignatures(ofdDocument, signList)
+	
+	// 第二步：收集所有需要解析的页面信息
+	const pageParseTasks: Array<{pageID: string, pagePath: string, index: number}> = []
 	for (let i = 0; i < pageSubPages.children.length; i++) {
 		let page = pageSubPages.children[i]
 		if (!page) {
 			continue
 		}
 		let pageLoc = findAttributeValueByKey(page, AttributeKey.BaseLoc)
-		// 签名需要根据页面id和对应的pageRef进行匹配，一样的就给页面添加一个签名
 		let pageID = findAttributeValueByKey(page, AttributeKey.ID)
 		let pagePath = `${RootDocPath}/${pageLoc}`
-		// 解析单个页面
-		let pageData = await parseXmlByFileName(files, pagePath)
-		if (pageData) {
-			pageID && (pageData.id = pageID)
-			await parseSignatureData(ofdDocument, signList, pageID, pageData)
-			ofdPages.push(pageData)
-		}
-
+		pageParseTasks.push({ pageID, pagePath, index: i })
 	}
+	
+	// 第三步：并行解析所有页面（签名数据已从缓存中获取）
+	const pageDataPromises = pageParseTasks.map(async ({ pageID, pagePath, index }) => {
+		try {
+			// 检查缓存中是否已有解析过的页面数据
+			let pageData = ofdDocument.parsedPageData.get(pagePath)
+			
+			if (!pageData) {
+				// 缓存中没有，需要重新解析
+				pageData = await parseXmlByFileName(files, pagePath)
+				if (pageData) {
+					// 将解析结果存入缓存
+					ofdDocument.parsedPageData.set(pagePath, pageData)
+				}
+			} else {
+				console.log("使用缓存的页面数据:", pagePath)
+			}
+			
+			if (pageData) {
+				pageID && (pageData.id = pageID)
+				// 从缓存中匹配签名数据到页面（同步操作，不需要等待）
+				matchSignatureToPage(ofdDocument, signList, pageID, pageData)
+				return { pageData, index }
+			}
+		} catch (e) {
+			console.error("解析页面错误:", pagePath, e)
+		}
+		return null
+	})
+	
+	// 等待所有页面解析完成
+	const pageResults = await Promise.all(pageDataPromises)
+	
+	// 按照原始顺序添加到结果数组
+	const validPages = pageResults
+		.filter(result => result !== null)
+		.sort((a, b) => a!.index - b!.index)
+		.map(result => result!.pageData)
+	
+	ofdPages.push(...validPages)
+	
 	return ofdPages
 }
 

@@ -255,18 +255,18 @@ function renderOutlines(outlines: XmlData) {
 
 
 function parseOfdFile(file: File) {
-	appContent.innerHTML = ''
-    // thumbContent.innerHTML = ''
-    liteOfd.parse(file).then((data: OfdDocument) => {
+  appContent.innerHTML = ''
+  // thumbContent.innerHTML = ''
+  liteOfd.parse(file).then((data: OfdDocument) => {
     console.log('解析OFD文件成功:', data);
     updatePageInfo()
-      // 读取 configManager 的 renderPages 配置
-      const configManager = ConfigManager.getInstance();
-      const renderPages = configManager.getRenderPagesConfig();
-      liteOfd.setPageMinWidth(500)
-      let temp = liteOfd.render(undefined, 'background-color: white; margin-top: 12px;', renderPages)
-      appContent.appendChild(temp)
-	  initOfdEventListeners(); // 在渲染完成后初始化事件监听器
+    // 读取 configManager 的 renderPages 配置
+    const configManager = ConfigManager.getInstance();
+    const renderPages = configManager.getRenderPagesConfig();
+    liteOfd.setPageMinWidth(1000)
+    let temp = liteOfd.render(undefined, 'background-color: white; margin-top: 12px;', renderPages)
+    appContent.appendChild(temp)
+    initOfdEventListeners(); // 在渲染完成后初始化事件监听器
     // 添加大纲
     renderOutlines(data.outlines);
 
@@ -288,24 +288,24 @@ function parseOfdFile(file: File) {
     }
   });
   // 重新解析用缩略图的
-  thumbOfd.parse(file).then((data: OfdDocument) => {
-    data.supportZoom = false
-    data.renderTextLayer = false
-    // 读取 configManager 的 renderPages 配置
-    const configManager = ConfigManager.getInstance();
-    const renderPages = configManager.getRenderPagesConfig();
-    // 渲染缩略图
-    let div = thumbOfd.renderWithSize(undefined, 100 , 200, "#ffffff",   renderPages)
-    thumbContent.appendChild(div)
-  }).catch((error) => {
-    console.error('缩略图OFD文件失败:', error);
-  });
+  // thumbOfd.parse(file).then((data: OfdDocument) => {
+  //   data.supportZoom = false
+  //   data.renderTextLayer = false
+  //   // 读取 configManager 的 renderPages 配置
+  //   const configManager = ConfigManager.getInstance();
+  //   const renderPages = configManager.getRenderPagesConfig();
+  //   // 渲染缩略图
+  //   let div = thumbOfd.renderWithSize(undefined, 100 , 200, "#ffffff",   renderPages)
+  //   thumbContent.appendChild(div)
+  // }).catch((error) => {
+  //   console.error('缩略图OFD文件失败:', error);
+  // });
 }
 
 export function handleSaveOFD() {
   console.log('保存OFD文件');
   // 保存OFD文件的逻辑
-  	appContent.innerHTML = ''
+  appContent.innerHTML = ''
 }
 
 export function plus() {
