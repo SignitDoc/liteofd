@@ -40,6 +40,7 @@ export class SignatureElement {
 
 	private initViewContainer() {
 		if (this.sealObject.type === "ofd") {
+			this.nodeData.sealData.currentScale = this.ofdDocument.currentScale
 			this.#addOFDSignature(this.nodeData.sealData)
 		} else if (this.sealObject.type === "png") {
 			this.#addImageSvgAsync(this.nodeData)
