@@ -19,16 +19,17 @@ export class OfdDocument {
 	mediaFileList: any // 多媒体文件列表
 	signatures: XmlData = new XmlData() // 签名数据，这个是signatures.xml文件的数据
 	signatureList: XmlData[] = [] // 签名数据列表，包含了signatures.xml里面所有签名组成的xmldata的数组
+	parsedSignData: Map<string, any> // 保存已经解析了的签名数据，这样就不用再去解析了，下次直接使用
 	outlines: XmlData = new XmlData() // 大纲数据列表，包含了ofd:Outlines里面所有大纲数据
 	annots: XmlData = new XmlData() // 注释数据列表，包含了ofd:Annotations
 	isTextLayer: boolean = true // 是否是textlayer层，textlayer层的text使用div和span进行文字渲染
 	renderTextLayer: boolean = true // 是否渲染文本选择层，这个用来控制缩略图的渲染
 	supportZoom: boolean = true // 是否支持缩放，比如缩略图是不支持缩放的，只能根据容器大小进行渲染
 	currentScale: number = 1 // 当前的缩放值，页面缩放，每个ofddocument都有一个单独的缩放值进行控制缩放
-	getPageSignList: boolean = false // 是否从本地查找页面对应的印章，如果是则本地liteofd需要匹配查找印章
 
 	constructor() {
 		this.loadedMediaFile = new Map()
+		this.parsedSignData = new Map()
 	}
 
 	/**
@@ -145,9 +146,5 @@ export class OfdDocument {
 
 	setPageScal(scale){
 		this.currentScale = scale
-	}
-
-	toggleGetPageSignList(open: boolean) {
-		this.getPageSignList = open
 	}
 }
