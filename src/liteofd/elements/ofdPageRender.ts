@@ -3,29 +3,36 @@ import { XmlData } from "../ofdData"
 import PromiseCapability from "../promiseCapability"
 import { OFD_KEY } from "../attrType"
 import { OfdDocument } from "../ofdDocument"
+import { CanvasContentLayer } from "../canvasContentLayer"
+import { rendererConfig } from "../rendererConfig"
+import { ConfigManager } from "../../config/configManager"
 
 
 /**
  * ofd的页面渲染，包含内容，模板层，签名层等
  */
 export class OfdPageRender {
-	private contentLayer: ContentLayer // 内容层
+	private contentLayer!: ContentLayer // 使用svg进行绘制内容层
+	private canvasContentLayer: CanvasContentLayer | null = null // 使用canvas进行绘制内容层
+	private textLayer: HTMLDivElement
 	private ofdPage: XmlData // 页面数据，包含签名数据
-	private readonly renderPromise: PromiseCapability
+	private readonly renderPromise: PromiseCapability<any>
 	private ofdDocument: OfdDocument
-	private pageContainer: HTMLDivElement
+	private pageContainer!: HTMLDivElement
+	private pageCanvas!: HTMLCanvasElement
 
 
-	constructor(ofdDocument: OfdDocument, ofdPage: XmlData) {
+	constructor(ofdDocument: OfdDocument, ofdPage: XmlData, textLayer: HTMLDivElement) {
 		this.ofdPage = ofdPage
 		this.ofdDocument = ofdDocument
+		this.textLayer = textLayer
 		this.renderPromise = new PromiseCapability()
 	}
 
 
 	// 渲染内容层
 	#renderContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
-		this.contentLayer = new ContentLayer(this.ofdDocument)
+		this.contentLayer = new ContentLayer(this.ofdDocument, this.textLayer)
 		if (zOrder) {
 			this.contentLayer.renderWithZOrder(pageData, pageContainer, zOrder)
 		} else {
@@ -33,8 +40,19 @@ export class OfdPageRender {
 		}
 	}
 
-	render(container: HTMLDivElement) {
+	// 使用canvas进行绘制渲染
+	#renderCanvasContentLayer(pageData: XmlData, pageContainer: Element, zOrder: number = 0) {
+		this.canvasContentLayer?.render(pageData, pageContainer)
+	}
+
+	render(container: HTMLDivElement, canvasContentLayer: CanvasContentLayer | null = null, pageCanvas: HTMLCanvasElement) {
 		this.pageContainer = container
+		this.pageCanvas = pageCanvas
+		if (!canvasContentLayer) {
+			this.canvasContentLayer = canvasContentLayer
+		} else {
+			this.canvasContentLayer = new CanvasContentLayer(this.ofdDocument, this.pageContainer, this.pageCanvas)
+		}
 		this.#render()
 		// 开始进行渲染
 		return this.renderPromise
@@ -58,14 +76,26 @@ export class OfdPageRender {
 			} catch (e) {
 				this.renderPromise.reject(e)
 			}
-		}, 0)
+		}, 10)
 	}
 
 	/**
 	 * 渲染页面
 	 */
 	#renderLayers(pageData: XmlData, pageContainer: HTMLDivElement) {
+		console.log("content render type", rendererConfig.isCanvasRender(), pageData, pageContainer)
+		// canvas绘制内容
+		this.#renderCanvasContentLayer(pageData, pageContainer)
+		if (this.ofdDocument.isTextLayer && ConfigManager.getInstance().getFeaturesConfig().enableTextSelection) {
+			// div绘制文字层，进行选择
+			this.#renderContentLayer(pageData, pageContainer)
+		}
+
 		// 渲染内容层
-		this.#renderContentLayer(pageData, pageContainer)
+		// if (rendererConfig.isCanvasRender()) {
+		// 	this.#renderCanvasContentLayer(pageData, pageContainer)
+		// } else {
+		// 	this.#renderContentLayer(pageData, pageContainer)
+		// }
 	}
 }

@@ -90,13 +90,18 @@ body {
   display: block; /* 当添加 'show' 类时显示大纲 */
 }
 
+.thumb {
+  width: 200px;
+  background-color: #eeeeee;
+}
+
 .content {
   padding: 12px;
   flex: 1;
   width: 800px;
   background-color: #f5f5f5;
   margin-top: 80px; /* 调整这个值以匹配工具栏的高度 */
-  height: calc(100vh - 60px); /* 减去工具栏的高度 */
+  height: calc(100vh - 120px); /* 减去工具栏的高度 */
   transition: margin-left 0.3s ease; /* 添加过渡效果 */
 }
 

@@ -1,13 +1,12 @@
 import { XmlData } from "./ofdData"
 import { OfdDocument } from "./ofdDocument"
 import { OfdPageContainer } from "./elements/ofdPageContainer"
-import { setPageScal } from "./utils/utils"
 import { AttributeKey } from "./attrType"
-import { getDefaultScale } from "./utils/elementUtils"
+import { getCustomScale, getDefaultScale } from "./utils/elementUtils"
 
 /**
  * OfdRender 类用于渲染 OFD 文档。
- * 
+ *
  * @class OfdRender
  * @property {OfdDocument} ofdDocument - OFD 文档对象
  * @property {XmlData[]} pages - 文档的页面数据
@@ -18,7 +17,10 @@ export class OfdRender {
 	pages: XmlData[]
 	scrollContainer: HTMLDivElement = document.createElement('div') // 滚动容器，用于监听滚动事件
 	rootContainer: HTMLDivElement = document.createElement('div') // 整个渲染的根页面，要放置到这个上面来
+	sealContainer: HTMLDivElement = document.createElement('div') // 整个渲染的根页面，要放置到这个上面来
 	currentPageIndex: number = 1; // 当前页面索引
+	pagesContainerList = [] // 包裹了页面的数组
+	minWidth = -1 // 页面的最低宽度，自定义设置，如果设置了就使用这个自定义最小宽度
 
 	constructor(ofdDocument: OfdDocument) {
 		this.ofdDocument = ofdDocument
@@ -30,14 +32,18 @@ export class OfdRender {
 	 * @param width 宽度
 	 * @param height 高度
 	 * @param pageWrapStyle 页面的样式
-	 * @returns 
+	 * @returns
 	 */
-	renderOfdWithSize(width: string, height: string, pageWrapStyle: string | null = null): HTMLDivElement {
+	renderOfdWithSize(width: number, height: number, pageWrapStyle: string | null = null): HTMLDivElement {
 		// 创建外层容器div
 		const containerDiv = document.createElement('div');
-		containerDiv.style.cssText = `height: ${height}; width: ${width};`;
+		// containerDiv.style.cssText = `height: ${height}px; width: ${width}px;`;
+		// 去掉高度
+		containerDiv.style.cssText = `width: ${width}px;`;
 		// 设置默认scale
-		let scale = getDefaultScale(this.ofdDocument);
+		let scale = getCustomScale(this.ofdDocument, width, height);
+		// 渲染时根据宽度获取默认的一个渲染的scale缩放
+		this.ofdDocument.currentScale = scale
 		this.renderOfdWithScale(containerDiv, scale, pageWrapStyle);
 		return containerDiv
 	}
@@ -46,69 +52,98 @@ export class OfdRender {
 	 * 使用自定义的div来渲染OFD文档
 	 * @param customDiv 自定义的div
 	 * @param pageWrapStyle 页面的样式
+	 * @param pageIndexes 指定渲染的页面索引数组，可选
+	 * @param scrollListener 自定义ofd的滑动外层
 	 */
-	renderOfdWithCustomDiv(customDiv: HTMLDivElement, pageWrapStyle: string | null = null) {
+	renderOfdWithCustomDiv(customDiv: HTMLDivElement, pageWrapStyle: string | null = null, pageIndexes?: number[], scrollListener?: HTMLDivElement) {
 		// 获取默认缩放比例
-		let scale = getDefaultScale(this.ofdDocument);
-		this.renderOfdWithScale(customDiv, scale, pageWrapStyle)
+		let scale = getDefaultScale(this.ofdDocument, this.minWidth);
+		this.renderOfdWithScale(customDiv, scale, pageWrapStyle, pageIndexes, scrollListener)
 		return this.scrollContainer
 	}
 
 	renderOfdWithPageIndexWithScale(pageIndex: number, customDiv: HTMLDivElement, pageWrapStyle: string | null = null, scale: number) {
-		setPageScal(scale)
+		this.ofdDocument.setPageScal(scale)
 		this.renderOfdWithPageIndex(pageIndex, customDiv, pageWrapStyle)
 	}
 
 	renderOfdWithPageIndex(pageIndex: number, customDiv: HTMLDivElement, pageWrapStyle: string | null = null) {
+		this.pagesContainerList = []
 		this.#renderPage(pageIndex, customDiv, pageWrapStyle)
 	}
 
 	changeScale(scale: number){
-		setPageScal(scale)
+		this.ofdDocument.setPageScal(scale)
 	}
 
-	renderOfdWithScale(rootDiv: HTMLDivElement, scale: number, pageWrapStyle: string | null = null) {
-		setPageScal(scale)
+	renderOfdWithScale(rootDiv: HTMLDivElement, scale: number, pageWrapStyle: string | null = null, pageIndexes?: number[], scrollListener?: HTMLDivElement) {
+		this.ofdDocument.setPageScal(scale)
 		// 新建一个根的div来包裹整个渲染的ofd文档的内容
 		this.ofdDocument.rootContainer = rootDiv
-		this.render(rootDiv, pageWrapStyle)
+		this.sealContainer.setAttribute("class", "sign-pages-container")
+		if (scrollListener) {
+			scrollListener.appendChild(this.sealContainer)
+		}
+		this.render(rootDiv, pageWrapStyle, pageIndexes, scrollListener)
 	}
 
-	render(rootContainer: HTMLDivElement, wrapStyle: string | null) {
+	render(rootContainer: HTMLDivElement, wrapStyle: string | null, pageIndexes?: number[], scrollListener?: HTMLDivElement) {
 		this.rootContainer = rootContainer
 		// 渲染页面
-		this.#renderPages(rootContainer, wrapStyle)
-		// 给scrollContainer添加滑动的css
-		this.scrollContainer.style.cssText = `
-			overflow-y: auto;
-			overflow-x: hidden;
+		this.#renderPages(rootContainer, wrapStyle, pageIndexes)
+		console.log("render scrolllistener ele", scrollListener)
+		if (scrollListener) {
+			this.scrollContainer = scrollListener
+			this.scrollContainer.appendChild(rootContainer)
+		} else {
+			// 给scrollContainer添加滑动的css
+			this.scrollContainer.style.cssText = `
+			overflow: auto;
 			height: 100%;
 			width: 100%;
 			scroll-behavior: smooth;
 		`;
-		this.scrollContainer.appendChild(rootContainer)
-		// 只有当页面数量大于1时才添加滚动页面监听
-		if (this.pages.length > 1) {
-			// 渲染完之后给scrollContainer添加滚动事件
-			this.addScrollListener(this.scrollContainer);
+			this.scrollContainer.appendChild(rootContainer)
+			// 只有当页面数量大于1时才添加滚动页面监听
+			if (this.pages.length > 1) {
+				// 渲染完之后给scrollContainer添加滚动事件
+				this.addScrollListener(this.scrollContainer);
+			}
 		}
 	}
 
 	/**
 	 * 渲染页面内容，这里是根据每个page数据来渲染，而每个page包含了content和模板等
 	 * @private
+	 * @param pageIndexes 指定渲染的页面索引数组，可选
 	 */
-	#renderPages(rootContainer: HTMLDivElement, wrapStyle: string | null) {
+	#renderPages(rootContainer: HTMLDivElement, wrapStyle: string | null, pageIndexes?: number[]) {
 		try {
-			for (let i = 0; i < this.pages.length; i++) {
-				this.#renderPage(i, rootContainer, wrapStyle);
+			this.pagesContainerList = []
+			if (Array.isArray(pageIndexes) && pageIndexes.length > 0) {
+				for (const i of pageIndexes) {
+					if (i >= 0 && i < this.pages.length) {
+						this.#renderPage(i, rootContainer, wrapStyle);
+					}
+				}
+			} else {
+				for (let i = 0; i < this.pages.length; i++) {
+					this.#renderPage(i, rootContainer, wrapStyle);
+				}
 			}
 		} catch (error) {
 			console.log("render error", error)
 		}
 	}
 
-	#renderPage(pageIndex: number, rootContainer: HTMLDivElement, wrapStyle: string | null = null) {	
+	/**
+	 * 渲染每个页面的单个页面
+	 * @param pageIndex 当前页面的索引index
+	 * @param rootContainer 包裹页面的container
+	 * @param wrapStyle 页面的包裹样式，自定义样式
+	 * @private
+	 */
+	#renderPage(pageIndex: number, rootContainer: HTMLDivElement, wrapStyle: string | null = null) {
 		let pageData = this.pages[pageIndex]
 		let pageContainer = new OfdPageContainer(this.ofdDocument, pageData, rootContainer)
 		// 为每个页面容器添加一个独特的ID
@@ -120,7 +155,30 @@ export class OfdRender {
 			tempStyle += wrapStyle
 			pageView.setAttribute("style", tempStyle)
 		}
+		console.log("current page minwidth", pageContainer.getPageBox())
+		console.log("rootContainer minwidth", rootContainer.style.minWidth)
+		console.log("pages container", rootContainer, rootContainer.style)
+		let minWidth = pageContainer.getPageBox().width
+		let tempPagesMinWidth = rootContainer.style.minWidth
+		if (this.minWidth > 0) {
+			rootContainer.style.minWidth = this.minWidth + "px"
+		} else {
+			if (!tempPagesMinWidth) {
+				rootContainer.style.minWidth = minWidth + "px"
+			} else {
+				if (tempPagesMinWidth.replace("px", "") < minWidth) {
+					rootContainer.style.minWidth = minWidth + "px"
+				}
+			}
+		}
+
+		console.log("pages container", rootContainer.style.minWidth)
 		rootContainer!.appendChild(pageView)
+		this.pagesContainerList.push(pageView)
+	}
+
+	getPagesContainerList(){
+		return this.pagesContainerList
 	}
 
 	/**
@@ -128,13 +186,14 @@ export class OfdRender {
 	 * 每次放大 10%
 	 */
 	zoomIn(): void {
+		debugger
 		if (this.rootContainer) {
 			const currentScale = parseFloat(this.rootContainer.dataset.scale || '1');
 			const newScale = currentScale * 1.1; // 每次放大 10%
 			this.applyZoom(this.rootContainer, newScale);
 		}
 	}
-	
+
 	/**
 	 * 缩小文档
 	 * 每次缩小 10%，但不小于 0.1
@@ -146,32 +205,27 @@ export class OfdRender {
 			this.applyZoom(this.rootContainer, newScale);
 		}
 	}
-	
+
 	/**
 	 * 应用指定的缩放比例
 	 * @param newScale 新的缩放比例
 	 */
 	public applyZoom(rootContainer: HTMLDivElement, newScale: number): void {
+		debugger
 		if (rootContainer) {
-			if (!rootContainer.dataset.originalWidth) {
-				rootContainer.dataset.originalWidth = rootContainer.offsetWidth.toString();
-			}
-			const originalWidth = parseFloat(rootContainer.dataset.originalWidth);
-
 			// 应用缩放
 			rootContainer.style.transform = `scale(${newScale})`;
-			rootContainer.style.transformOrigin = 'top left';
-			rootContainer.dataset.scale = newScale.toString();
-
-			// 调整内容大小，但保持原始尺寸
-			rootContainer.style.width = `${originalWidth}px`;
-			rootContainer.style.height = 'auto';
-
+			rootContainer.style.transformOrigin = 'center top';
 			// 调整父容器和内容位置
-			this.adjustContainerAndPosition(rootContainer, originalWidth, newScale);
+			// this.adjustContainerAndPosition(rootContainer, originalWidth, newScale);
+		}
+		if (this.sealContainer) {
+			// 应用缩放
+			this.sealContainer.style.transform = `scale(${newScale})`;
+			this.sealContainer.style.transformOrigin = 'center top';
 		}
 	}
-	
+
 	/**
 	 * 调整容器和内容的位置
 	 * @param originalWidth 原始宽度
@@ -208,7 +262,7 @@ export class OfdRender {
 
 	/**
 	 * 获取滚动容器
-	 * @returns 
+	 * @returns
 	 */
 	public getScrollContainer(): HTMLDivElement {
 		return this.scrollContainer
@@ -216,14 +270,14 @@ export class OfdRender {
 
 	/**
 	 * 添加滚动页面监听
-	 * @param rootContainer 
+	 * @param rootContainer
 	 */
 	private addScrollListener(rootContainer: HTMLDivElement): void {
 		console.log("addScrollListener", rootContainer);
 		rootContainer.setAttribute(AttributeKey.ID, "ofd-scroll-container");
 		const pages = rootContainer.querySelectorAll('[id^="ofd-page-"]');
-		
-		let debounceTimer: number | null = null;
+
+		let debounceTimer;
 		const debounceDelay = 200; // 200毫秒的防抖延迟
 
 		rootContainer.addEventListener('scroll', () => {

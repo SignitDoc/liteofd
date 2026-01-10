@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>渲染器配置演示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button.secondary {
+            background-color: #6c757d;
+        }
+        .button.secondary:hover {
+            background-color: #545b62;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.canvas {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.svg {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .code {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>渲染器配置演示</h1>
+        <p>这个演示展示了如何使用全局的渲染器配置管理器来控制 OFD 文档的渲染方式。</p>
+
+        <div class="section">
+            <h2>当前渲染器状态</h2>
+            <div id="rendererStatus" class="status canvas">
+                当前渲染器: Canvas
+            </div>
+            <div class="code">
+// 获取当前渲染器状态
+const isCanvas = rendererConfig.isCanvasRender();
+const rendererType = rendererConfig.getRendererType();
+console.log('当前渲染器:', rendererType);
+console.log('是否使用Canvas:', isCanvas);
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>切换渲染器</h2>
+            <button class="button" onclick="switchToCanvas()">切换到 Canvas 渲染器</button>
+            <button class="button secondary" onclick="switchToSvg()">切换到 SVG 渲染器</button>
+            <button class="button secondary" onclick="resetToDefault()">重置为默认配置</button>
+            
+            <div class="code">
+// 切换渲染器类型
+rendererConfig.setRendererType('canvas'); // 或 'svg'
+// 或者直接设置
+rendererConfig.setCanvasRenderer(true); // 或 false
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>渲染器配置方法</h2>
+            <div class="code">
+// 获取渲染器类型
+rendererConfig.getRendererType(); // 返回 'canvas' 或 'svg'
+
+// 检查渲染器类型
+rendererConfig.isCanvasRender(); // 返回 true/false
+rendererConfig.isSvgRender();    // 返回 true/false
+
+// 设置渲染器
+rendererConfig.setRendererType('canvas'); // 设置为 Canvas
+rendererConfig.setRendererType('svg');    // 设置为 SVG
+
+// 重置配置
+rendererConfig.resetToDefault();
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>在 OFD 渲染中使用</h2>
+            <div class="code">
+// 在渲染页面时，系统会自动检查渲染器配置
+// 例如在 OfdPageContainer 中：
+if (rendererConfig.isCanvasRender()) {
+    // 使用 Canvas 渲染
+    this.#renderCanvasContentLayer(pageData, pageContainer);
+} else {
+    // 使用 SVG 渲染
+    this.#renderContentLayer(pageData, pageContainer);
+}
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // 这里需要在实际项目中导入
+        // import { rendererConfig } from './liteofd/index.js';
+        
+        // 模拟 rendererConfig 对象用于演示
+        const rendererConfig = {
+            isCanvasRenderer: true,
+            rendererType: 'canvas',
+            
+            setRendererType(type) {
+                this.rendererType = type;
+                this.isCanvasRenderer = type === 'canvas';
+                this.updateStatus();
+            },
+            
+            getRendererType() {
+                return this.rendererType;
+            },
+            
+            isCanvasRender() {
+                return this.isCanvasRenderer;
+            },
+            
+            isSvgRender() {
+                return !this.isCanvasRenderer;
+            },
+            
+            setCanvasRenderer(useCanvas) {
+                this.isCanvasRenderer = useCanvas;
+                this.rendererType = useCanvas ? 'canvas' : 'svg';
+                this.updateStatus();
+            },
+            
+            resetToDefault() {
+                this.isCanvasRenderer = true;
+                this.rendererType = 'canvas';
+                this.updateStatus();
+            },
+            
+            updateStatus() {
+                const statusElement = document.getElementById('rendererStatus');
+                if (this.isCanvasRenderer) {
+                    statusElement.className = 'status canvas';
+                    statusElement.textContent = '当前渲染器: Canvas';
+                } else {
+                    statusElement.className = 'status svg';
+                    statusElement.textContent = '当前渲染器: SVG';
+                }
+            }
+        };
+
+        // 全局函数供按钮调用
+        window.switchToCanvas = () => {
+            rendererConfig.setRendererType('canvas');
+            console.log('已切换到 Canvas 渲染器');
+        };
+
+        window.switchToSvg = () => {
+            rendererConfig.setRendererType('svg');
+            console.log('已切换到 SVG 渲染器');
+        };
+
+        window.resetToDefault = () => {
+            rendererConfig.resetToDefault();
+            console.log('已重置为默认配置');
+        };
+
+        // 初始化状态显示
+        rendererConfig.updateStatus();
+    </script>
+</body>
+</html> 

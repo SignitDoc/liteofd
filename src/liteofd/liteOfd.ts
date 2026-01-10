@@ -4,6 +4,8 @@ import * as parser from "./parser"
 import { OfdWriter } from "./ofdWriter"
 import { XmlData } from "./ofdData"
 import * as ofdActions from "./ofdActions"
+import { ConfigUI } from "../config/configUI"
+import { ConfigManager } from "../config/configManager"
 
 /**
  * LiteOfd 类是一个用于处理 OFD 文件的轻量级库。
@@ -13,7 +15,11 @@ export default class LiteOfd {
   private ofdDocument: OfdDocument
   private ofdRender: OfdRender | null = null
   private currentScale: number = 1
-  
+  private configUI: ConfigUI | null = null
+  private containerDiv: HTMLDivElement
+  private renderTextLayer: boolean = true
+  private minWidth: number = -1
+
   constructor() {
     this.ofdDocument = new OfdDocument()
   }
@@ -22,23 +28,77 @@ export default class LiteOfd {
    * 渲染 OFD 文档
    * @param container 可选的自定义容器
    * @param pageWrapStyle 可选的页面包装样式
+   * @param pageIndexes 指定渲染的页面索引数组，可选
+   * @param scrollListener 自定义的滑动
    * @returns 渲染后的 HTMLDivElement
    */
-  render(container?: HTMLDivElement, pageWrapStyle?: string): HTMLDivElement {
+  render(container?: HTMLDivElement, pageWrapStyle?: string, pageIndexes?: number[], scrollListener?: HTMLDivElement): HTMLDivElement {
     this.ofdRender = new OfdRender(this.ofdDocument)
+    // 设置页面自定义最小宽度
+    if (this.minWidth > 0) {
+      this.ofdRender.minWidth = this.minWidth
+    }
     const containerDiv = container || document.createElement('div')
-    return this.ofdRender.renderOfdWithCustomDiv(containerDiv, pageWrapStyle)
+    containerDiv.setAttribute("class", "pages-container")
+    this.containerDiv = containerDiv
+    return this.ofdRender.renderOfdWithCustomDiv(containerDiv, pageWrapStyle, pageIndexes, scrollListener)
+  }
+
+  renderWithSize(container?: HTMLDivElement, width: number = 200, height: number = 200, pageWrapStyle?: string, pageIndexes?: number[], scrollListener?: HTMLDivElement): HTMLDivElement {
+    this.ofdRender = new OfdRender(this.ofdDocument)
+    // 设置页面自定义最小宽度
+    if (this.minWidth > 0) {
+      this.ofdRender.minWidth = this.minWidth
+    }
+    const containerDiv = container || document.createElement('div')
+    containerDiv.setAttribute("class", "pages-container")
+    this.containerDiv = containerDiv
+    return this.ofdRender.renderOfdWithSize(width, height)
   }
 
   /**
+   * 通过传入Document进行渲染
+   * @param ofdDocument 渲染的ofddocument对象
+   * @param container 可选的自定义容器
+   * @param pageWrapStyle 可选的页面包装样式
+   * @param pageIndexes 指定渲染的页面索引数组，可选
+   * @param scrollListener 自定义的滑动
+   * @returns 渲染后的 HTMLDivElement
+   */
+  renderWithDocument(ofdDocument: OfdDocument, container?: HTMLDivElement, pageWrapStyle?: string, pageIndexes?: number[], scrollListener?: HTMLDivElement): HTMLDivElement {
+    if (!ofdDocument) {
+      throw new Error("OfdDocument 为空")
+    }
+    this.ofdDocument = ofdDocument
+    return this.render(container, pageWrapStyle, pageIndexes, scrollListener)
+  }
+
+
+  /**
    * 渲染对应页面
-   * @param pageIndex 页面位置 
+   * @param pageIndex 页面位置
    */
   renderPage(pageIndex: number, pageWrapStyle?: string){
     this.ofdRender = new OfdRender(this.ofdDocument)
+    // 设置页面自定义最小宽度
+    if (this.minWidth > 0) {
+      this.ofdRender.minWidth = this.minWidth
+    }
     const containerDiv = document.createElement('div')
     this.ofdRender.renderOfdWithPageIndexWithScale(pageIndex, containerDiv, pageWrapStyle, 2)
     return containerDiv
+  }
+
+  setPageMinWidth(minWidth: number){
+    this.minWidth = minWidth
+  }
+
+  /**
+   * 是否liteofd渲染文本选择层，默认开启正常渲染，关闭则是缩略图层的渲染
+   * @param renderTextLayer 渲染文本曾开关
+   */
+  toggleRenderTextLayer(renderTextLayer: boolean){
+    this.renderTextLayer = renderTextLayer
   }
 
   /**
@@ -70,6 +130,11 @@ export default class LiteOfd {
     if (pageElement) {
       pageElement.scrollIntoView({ behavior: 'smooth' })
     }
+    // 创建并分发自定义事件
+    const event = new CustomEvent('ofdPageChange', {
+      detail: { pageIndex: pageIndex, pageId: pageId }
+    });
+    window.dispatchEvent(event);
   }
 
   /**
@@ -94,6 +159,7 @@ export default class LiteOfd {
     if (this.ofdRender) {
       const newScale = Math.max(0.1, Math.min(scale, 5))
       this.ofdRender.applyZoom(this.ofdRender.rootContainer, newScale)
+      this.currentScale = newScale
     }
   }
 
@@ -104,7 +170,7 @@ export default class LiteOfd {
 	zoomIn(step: number = 0.1): void {
 		this.zoom(this.currentScale + step)
 	  }
-	
+
 	  /**
 	   * 缩小文档
 	   * @param step 缩小步长，默认为 0.1
@@ -129,6 +195,7 @@ export default class LiteOfd {
   async parse(file: string | File | ArrayBuffer): Promise<OfdDocument> {
     try {
       this.ofdDocument = await parser.parseOFDFile(file).promise
+      this.ofdDocument.renderTextLayer = this.renderTextLayer
       return this.ofdDocument
     } catch (e) {
       console.error("解析文件错误", e)
@@ -166,6 +233,7 @@ export default class LiteOfd {
    * @param action 动作数据
    */
   executeAction(action: XmlData): void {
+    console.log("execute action", action)
     ofdActions.executeAction(this, this.ofdDocument, action)
   }
 
@@ -178,5 +246,75 @@ export default class LiteOfd {
       throw new Error('OFD文档尚未解析，请先调用parse方法');
     }
     return this.ofdDocument;
+  }
+
+  setOfdDocument(ofdDocument: OfdDocument) {
+    if (!ofdDocument) {
+      throw new Error("OfdDocument为空")
+    }
+    this.ofdDocument = ofdDocument
+  }
+
+  /**
+   * 显示配置UI
+   * @param container 可选的容器元素，默认为document.body
+   */
+  showConfigUI(container?: HTMLElement): void {
+    if (!this.configUI) {
+      this.configUI = new ConfigUI()
+      this.configUI.createConfigUI(container || document.body)
+    } else {
+      this.configUI.show()
+    }
+  }
+
+  getConfigManager(): ConfigManager {
+    return ConfigManager.getInstance()
+  }
+
+  /**
+   * 隐藏配置UI
+   */
+  hideConfigUI(): void {
+    if (this.configUI) {
+      this.configUI.hide()
+    }
+  }
+
+  /**
+   * 切换配置UI显示状态
+   */
+  toggleConfigUI(container?: HTMLElement): void {
+    if (!this.configUI) {
+      this.showConfigUI(container)
+    } else {
+      this.configUI.toggle()
+    }
+  }
+
+  getContainer() {
+    return this.containerDiv
+  }
+
+  getSealContainer(){
+    return this.ofdRender?.sealContainer
+  }
+
+  getPagesContainerList() {
+    return this.ofdRender?.getPagesContainerList()
+  }
+
+  getZoomValue(){
+    return this.ofdDocument?.currentScale
+  }
+
+  /**
+   * 销毁配置UI
+   */
+  destroyConfigUI(): void {
+    if (this.configUI) {
+      this.configUI.destroy()
+      this.configUI = null
+    }
   }
 }

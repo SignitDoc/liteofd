@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>渲染器配置测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { background-color: #007bff; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>渲染器配置测试</h1>
+        <div id="testResults"></div>
+        <button onclick="runTests()">运行测试</button>
+    </div>
+
+    <script>
+        // 模拟 rendererConfig
+        const rendererConfig = {
+            isCanvasRenderer: true,
+            rendererType: 'canvas',
+            
+            setRendererType(type) {
+                this.rendererType = type;
+                this.isCanvasRenderer = type === 'canvas';
+            },
+            
+            getRendererType() {
+                return this.rendererType;
+            },
+            
+            isCanvasRender() {
+                return this.isCanvasRenderer;
+            },
+            
+            isSvgRender() {
+                return !this.isCanvasRenderer;
+            },
+            
+            resetToDefault() {
+                this.isCanvasRenderer = true;
+                this.rendererType = 'canvas';
+            }
+        };
+
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.textContent = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function runTests() {
+            document.getElementById('testResults').innerHTML = '';
+            
+            addTestResult('开始测试渲染器配置...', 'info');
+            
+            // 测试默认配置
+            if (rendererConfig.isCanvasRender()) {
+                addTestResult('✓ 默认配置正确：使用 Canvas 渲染器', 'success');
+            } else {
+                addTestResult('✗ 默认配置错误', 'error');
+            }
+            
+            // 测试切换
+            rendererConfig.setRendererType('svg');
+            if (rendererConfig.isSvgRender()) {
+                addTestResult('✓ SVG 渲染器设置成功', 'success');
+            } else {
+                addTestResult('✗ SVG 渲染器设置失败', 'error');
+            }
+            
+            rendererConfig.setRendererType('canvas');
+            if (rendererConfig.isCanvasRender()) {
+                addTestResult('✓ Canvas 渲染器设置成功', 'success');
+            } else {
+                addTestResult('✗ Canvas 渲染器设置失败', 'error');
+            }
+            
+            addTestResult('测试完成！', 'info');
+        }
+
+        window.runTests = runTests;
+    </script>
+</body>
+</html> 

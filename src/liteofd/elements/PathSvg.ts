@@ -2,8 +2,8 @@ import { BaseSvg } from "./BaseSvg"
 import { XmlData } from "../ofdData"
 import * as parser from "../parser"
 import { AttributeKey, OFD_KEY } from "../attrType"
-import { calPathPoint, convertPathAbbreviatedDatatoPoint, convertToBox, convertToDpi } from "../utils/utils"
-import { getCTM, parseColor, parseColorToHex } from "../utils/elementUtils"
+import { calPathPoint, convertPathAbbreviatedDatatoPoint } from "../utils/utils"
+import { getCTM, getCTMByStr, parseColor, parseColorToHex } from "../utils/elementUtils"
 import { OfdDocument } from "../ofdDocument"
 
 export class PathSvg extends BaseSvg {
@@ -39,7 +39,7 @@ export class PathSvg extends BaseSvg {
 	#addBoundary(node: XmlData) {
 		let boundaryStr = parser.findAttributeValueByKey(node, AttributeKey.Boundary)
 		if (boundaryStr) {
-			this.boundaryBox = convertToBox(boundaryStr)
+			this.boundaryBox = this.ofdDocument.convertToBox(boundaryStr)
 
 			let svgStyle = `left: ${this.boundaryBox.x}px;top: ${this.boundaryBox.y}px;
 	width: ${this.boundaryBox.width}px;height: ${this.boundaryBox.height}px;`
@@ -55,7 +55,7 @@ export class PathSvg extends BaseSvg {
 			return
 		}
 		// 查找node的ID属性值
-		const points = calPathPoint(convertPathAbbreviatedDatatoPoint(abbreviatedData.value))
+		const points = calPathPoint(this.ofdDocument, convertPathAbbreviatedDatatoPoint(abbreviatedData.value))
 		// path的路径
 		let pathD = ""
 		for (const point of points) {
@@ -155,7 +155,7 @@ export class PathSvg extends BaseSvg {
 		let pathStyle = "";
 		const dashPattern = parser.findAttributeValueByKey(nodeData, AttributeKey.DashPattern);
 		if (dashPattern) {
-			const dashArray = dashPattern.split(' ').map(value => convertToDpi(parseFloat(value)));
+			const dashArray = dashPattern.split(' ').map(value => this.ofdDocument.convertToDpi(parseFloat(value)));
 			pathStyle = `stroke-dasharray: ${dashArray.join(' ')};`;
 		}
 		return pathStyle;
@@ -200,7 +200,7 @@ export class PathSvg extends BaseSvg {
 		let pathStyle = ""
 		let lineWidthStr = parser.findAttributeValueByKey(nodeData, AttributeKey.LineWidth)
 		if (lineWidthStr) {
-			let lineWidth = convertToDpi(parseFloat(lineWidthStr))
+			let lineWidth = this.ofdDocument.convertToDpi(parseFloat(lineWidthStr))
 			pathStyle = `stroke-width: ${lineWidth}px;`
 		}
 		// 如果有宽度，那么就添加stroke的颜色
@@ -258,7 +258,7 @@ export class PathSvg extends BaseSvg {
 				let clipNode = clipList.children[i] // clips下面的多个clip的子节点
 				let clipArea = parser.findValueByTagName(clipNode, OFD_KEY.Area)
 				let ctm = parser.findAttributeValueByKey(clipArea, AttributeKey.CTM)
-				let clipCtm = getCTM(ctm)
+				let clipCtm = getCTMByStr(ctm)
 				// clip下面的path路径，就是裁剪的内容
 				let clipPathSvg = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 				// 这里的clip也可能是多个，现在只以一个处理
@@ -320,10 +320,10 @@ export class PathSvg extends BaseSvg {
 			if (startPoint && endPoint) {
 				let s1 = startPoint.split(' ')
 				let s2 = endPoint.split(' ')
-				let x1 = (convertToDpi(parseFloat(s1[0])) / this.boundaryBox.width) * 100 + '%'
-				let y1 = (convertToDpi(parseFloat(s1[1])) / this.boundaryBox.height) * 100 + '%'
-				let x2 = (convertToDpi(parseFloat(s2[0])) / this.boundaryBox.width) * 100 + '%'
-				let y2 = (convertToDpi(parseFloat(s2[1])) / this.boundaryBox.height) * 100 + '%'
+				let x1 = (this.ofdDocument.convertToDpi(parseFloat(s1[0])) / this.boundaryBox.width) * 100 + '%'
+				let y1 = (this.ofdDocument.convertToDpi(parseFloat(s1[1])) / this.boundaryBox.height) * 100 + '%'
+				let x2 = (this.ofdDocument.convertToDpi(parseFloat(s2[0])) / this.boundaryBox.width) * 100 + '%'
+				let y2 = (this.ofdDocument.convertToDpi(parseFloat(s2[1])) / this.boundaryBox.height) * 100 + '%'
 
 				linearGradient.setAttribute("x1", x1)
 				linearGradient.setAttribute("y1", y1)

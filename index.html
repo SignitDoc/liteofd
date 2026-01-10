@@ -5,7 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="public/assets/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LiteOFD</title>
-
+    <link rel="stylesheet" href="public/assets/main.css" />
 	</head>
   <body>
     <div id="app" class="app-container">
@@ -58,11 +58,15 @@
           <button class="tool-bar-btn" onclick="openToolsMenu()" title="工具">
             <i class="fas fa-tools"></i> 工具
           </button>
+					<button class="tool-bar-btn" onclick="toggleConfigUI()">
+						调试
+					</button>
         </div>
       </div>
       <div class="content-wrapper">
         <div id="outlines" class="outlines"></div>
         <div id="content" class="content"></div>
+        <div id="thumb" class="thumb"></div>
         <iframe id="ofdtools" class="ofdtools" src="tools.html" style="display: none; width: 1200px; border: none;"></iframe>
       </div>
       <div id="overlay" class="overlay"></div>

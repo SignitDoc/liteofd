@@ -1,7 +1,6 @@
 import { XmlData } from "../ofdData"
 import * as parser from "../parser"
 import { AttributeKey, OFD_KEY } from "../attrType"
-import { convertToBox, convertToDpi } from "../utils/utils"
 import { OfdDocument } from "../ofdDocument"
 import PromiseCapability from "../promiseCapability"
 import { OfdRender } from "../ofdRender"
@@ -22,7 +21,7 @@ export class SignatureElement {
 		width: number,
 		height: number,
 	}
-	private signZIndex = 9998 // 最高的
+	private signZIndex = 999 // 最高的
 	private mediaNodeList: XmlData[] // 多媒体节点的数组
 	private sealObject: any // 签名数据
 
@@ -41,6 +40,7 @@ export class SignatureElement {
 
 	private initViewContainer() {
 		if (this.sealObject.type === "ofd") {
+			this.nodeData.sealData.currentScale = this.ofdDocument.currentScale
 			this.#addOFDSignature(this.nodeData.sealData)
 		} else if (this.sealObject.type === "png") {
 			this.#addImageSvgAsync(this.nodeData)
@@ -54,6 +54,7 @@ export class SignatureElement {
 	 */
 	#addOFDSignature(ofdDocument: OfdDocument){
 		console.log("render signature ", ofdDocument)
+		ofdDocument.isTextLayer = false
 		// 包含签名数据
 		this.viewContainer = document.createElement("div")
 		this.#addSvgIDAndZIndex()
@@ -76,14 +77,15 @@ export class SignatureElement {
 	#addBoundary(node: XmlData) {
 		// 每个对应的是一个数组
 		let stampAnnotList = parser.findValueByTagName(node, OFD_KEY.StampAnnot)
-		for (let i = 0; i < stampAnnotList.children.length; i++) {
-			let tempData = stampAnnotList.children[i]
+		for (let i = 0; i < stampAnnotList?.children.length; i++) {
+			let tempData = stampAnnotList?.children[i]
 			let pageRefId = parser.findAttributeValueByKey(tempData, AttributeKey.PageRef)
 			if (pageRefId === this.ofdPage.id) {
 				// 查找到页面对应的签名引用
 				let boundaryStr = parser.findAttributeValueByKey(tempData, AttributeKey.Boundary)
 				if (boundaryStr) {
-					this.boundaryBox = convertToBox(boundaryStr)
+					this.boundaryBox = this.ofdDocument.convertToBox(boundaryStr)
+					node.boundaryBox = this.boundaryBox
 
 					let svgStyle = `left: ${this.boundaryBox.x}px;top: ${this.boundaryBox.y}px;
 	width: ${this.boundaryBox.width}px;height: ${this.boundaryBox.height}px;`
@@ -91,7 +93,7 @@ export class SignatureElement {
 				}
 				let clip = parser.findAttributeValueByKey(tempData, AttributeKey.Clip)
 				if (clip) {
-					let clipBox = convertToBox(clip)
+					let clipBox = this.ofdDocument.convertToBox(clip)
 					let clipStyle =	`clip: rect(${clipBox.y}px, ${clipBox.width + clipBox.x}px, ${clipBox.height + clipBox.y}px, ${clipBox.x}px);`
 					this.viewContainerStyle += clipStyle
 				}
@@ -219,7 +221,9 @@ export class SignatureElement {
 				const customEvent = new CustomEvent('signature-element-click', {
 					detail: {
 						nodeData: this.nodeData,
-						sealObject: this.sealObject
+						sealObject: this.sealObject,
+						boundaryBox: this.boundaryBox,
+						page: this.ofdPage
 					},
 					bubbles: true,
 					cancelable: true

@@ -6,10 +6,14 @@ import { AttributeKey, OFD_KEY } from '../src/liteofd/attrType.ts';
 import {OfdDocument} from "../src/liteofd/ofdDocument.ts";
 import { OfdTools } from '../src/liteofd/ofdtools.ts';
 import { ChildProcess } from 'child_process';
+import { ConfigManager } from '../src/config/configManager'
 
 const appContent = document.getElementById('content') as HTMLDivElement
+// const thumbContent = document.getElementById('thumb') as HTMLDivElement
 
 const liteOfd = new LiteOfd()
+const thumbOfd = new LiteOfd()
+thumbOfd.toggleRenderTextLayer(false)
 
 export function uploadFile() {
   const fileInput = document.getElementById('fileInput') as HTMLInputElement;
@@ -47,8 +51,8 @@ function initOfdEventListeners() {
   appContent.addEventListener('signature-element-click', (event: Event) => {
     event.stopPropagation(); // 阻止事件冒泡
     const customEvent = event as CustomEvent;
-    const { nodeData, sealObject } = customEvent.detail;
-    console.log('Clicked Signature Element:', nodeData);
+    const { nodeData, sealObject, boundaryBox, page } = customEvent.detail;
+    console.log('Clicked Signature Element:', page);
     console.log('Seal Object:', sealObject);
     displaySignatureDetails(nodeData, sealObject);
   });
@@ -77,57 +81,192 @@ function displaySignatureDetails(nodeData: XmlData, sealObject: any) {
     overlay.style.display = 'block';
   }
 }
-
 function renderOutlines(outlines: XmlData) {
   const outlinesContainer = document.getElementById('outlines');
   if (!outlinesContainer) return;
 
-  function createOutlineElement(outlineData: XmlData): HTMLElement {
+  /**
+   * 递归创建大纲元素
+   * @param outlineData 大纲数据
+   * @param level 当前层级（用于缩进）
+   * @returns 创建的大纲元素
+   */
+  function createOutlineElement(outlineData: XmlData, level: number = 0): HTMLElement {
+    console.log(`大纲数据 (层级 ${level}):`, outlineData);
+
     const outlineElement = document.createElement('div');
     outlineElement.className = 'outline-item';
+    outlineElement.style.paddingLeft = `${level * 20}px`; // 根据层级添加缩进
 
+    // 创建标题容器
+    const titleContainer = document.createElement('div');
+    titleContainer.className = 'outline-title-container';
+    titleContainer.style.display = 'flex';
+    titleContainer.style.alignItems = 'center';
+
+    // 创建标题元素
     const titleElement = document.createElement('span');
-    titleElement.textContent = parser.findAttributeValueByKey(outlineData, AttributeKey.Title) || "无标题";
+    const title = parser.findAttributeValueByKey(outlineData, AttributeKey.Title) || "无标题";
+    titleElement.textContent = title;
     titleElement.className = 'outline-title';
-    outlineElement.appendChild(titleElement);
+    titleElement.style.cursor = 'pointer';
+    titleElement.style.flex = '1';
 
+    // 查找所有子大纲（递归查找）
+    const subOutlines = findAllSubOutlines(outlineData);
 
-    // 查找actions
-    let actions = parser.findValueByTagName(outlineData, OFD_KEY.Actions)
-    if (actions) {
-      console.log("actions", actions)
-    }
-    let actionListObj = actions?.children[0]
-    if (actionListObj) {
-      console.log("actionListObj", actionListObj)
-    }
-    actionListObj?.children.forEach(action => {
-      titleElement.addEventListener('click', () => {
-        liteOfd.executeAction(action)
+    // 如果有子大纲，添加展开/折叠按钮
+    if (subOutlines.length > 0) {
+      const expandButton = document.createElement('span');
+      expandButton.className = 'outline-expand-btn';
+      expandButton.textContent = '▶';
+      expandButton.style.cursor = 'pointer';
+      expandButton.style.marginRight = '5px';
+      expandButton.style.userSelect = 'none';
+
+      // 创建子大纲容器
+      const subContainer = document.createElement('div');
+      subContainer.className = 'outline-sub-container';
+      subContainer.style.display = 'none'; // 默认折叠
+
+      // 展开/折叠功能
+      expandButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isExpanded = subContainer.style.display !== 'none';
+        subContainer.style.display = isExpanded ? 'none' : 'block';
+        expandButton.textContent = isExpanded ? '▶' : '▼';
       });
-    })
+
+      titleContainer.appendChild(expandButton);
+
+      // 递归创建子大纲
+      subOutlines.forEach(subOutline => {
+        const subElement = createOutlineElement(subOutline, level + 1);
+        subContainer.appendChild(subElement);
+      });
+
+      // 先添加标题容器到 outlineElement
+      outlineElement.appendChild(titleContainer);
+      // 然后添加子大纲容器
+      outlineElement.appendChild(subContainer);
+    } else {
+      // 没有子大纲时，只添加标题容器
+      outlineElement.appendChild(titleContainer);
+    }
+
+    titleContainer.appendChild(titleElement);
+
+    // 处理 Actions
+    setupActions(outlineData, titleElement);
 
     return outlineElement;
   }
+  /**
+   * 递归查找所有子大纲
+   * @param outlineData 大纲数据
+   * @returns 所有子大纲的数组
+   */
+  function findAllSubOutlines(outlineData: XmlData): XmlData[] {
+    const subOutlines: XmlData[] = [];
 
+    // 直接查找子大纲
+    const directSubOutlines = parser.findValueByTagName(outlineData, OFD_KEY.OutlineElem);
+    if (directSubOutlines && directSubOutlines.children) {
+      subOutlines.push(...directSubOutlines.children);
+    }
+
+    // 递归查找更深层级的子大纲
+    if (outlineData.children) {
+      outlineData.children.forEach(child => {
+        if (child.tagName === OFD_KEY.OutlineElem) {
+          // 如果当前子元素本身就是大纲元素，递归查找其子大纲
+          const nestedSubOutlines = findAllSubOutlines(child);
+          subOutlines.push(...nestedSubOutlines);
+        }
+      });
+    }
+
+    return subOutlines;
+  }
+
+  /**
+   * 设置大纲项的 Actions
+   * @param outlineData 大纲数据
+   * @param titleElement 标题元素
+   */
+  function setupActions(outlineData: XmlData, titleElement: HTMLElement) {
+    try {
+      // 这里要获取到第一层的actions而不是下一层的actions
+      let actions
+      if (outlineData.children.length > 1) {
+        outlineData.children.forEach(value => {
+          if (value.tagName === OFD_KEY.Actions) {
+            actions = value
+          }
+        })
+      } else {
+        actions = parser.findValueByTagName(outlineData, OFD_KEY.Actions);
+      }
+      console.log("setup outlines actions ", outlineData)
+      console.log("outlien item actions", actions)
+      if (actions && actions.children && actions.children.length > 0) {
+        console.log("找到 Actions:", actions);
+
+        const actionListObj = actions.children[0];
+        if (actionListObj && actionListObj.children) {
+          console.log("ActionList 对象:", actionListObj);
+
+          // 为每个 action 添加点击事件
+          actionListObj.children.forEach(action => {
+            titleElement.addEventListener('click', (e) => {
+              e.stopPropagation();
+              console.log('执行 Action:', action);
+              liteOfd.executeAction(action);
+            });
+          });
+
+          // 添加视觉提示（有 action 的大纲项）
+          titleElement.style.color = '#0066cc';
+          titleElement.title = '点击执行操作';
+        }
+      }
+    } catch (error) {
+      console.warn('处理 Actions 时出错:', error);
+    }
+  }
+
+  // 清空容器并重新渲染
   outlinesContainer.innerHTML = '';
+
   if (outlines && outlines.children && outlines.children.length > 0) {
-    outlines.children.forEach(outline => {
-      outlinesContainer.appendChild(createOutlineElement(outline));
+    console.log('开始渲染大纲，共', outlines.children.length, '个顶级大纲项');
+
+    outlines.children.forEach((outline, index) => {
+      console.log(`渲染第 ${index + 1} 个大纲项:`, outline);
+      const outlineElement = createOutlineElement(outline, 0);
+      outlinesContainer.appendChild(outlineElement);
     });
+
     toggleOutlines(); // 如果有大纲数据，初始显示大纲
+  } else {
+    console.log('没有找到大纲数据');
   }
 }
 
 
 function parseOfdFile(file: File) {
-	appContent.innerHTML = ''
-    liteOfd.parse(file).then((data: OfdDocument) => {
+  appContent.innerHTML = ''
+  // thumbContent.innerHTML = ''
+  liteOfd.parse(file).then((data: OfdDocument) => {
     console.log('解析OFD文件成功:', data);
     updatePageInfo()
-      let temp = liteOfd.render(undefined, 'background-color: white; margin-top: 12px;')
-      appContent.appendChild(temp)
-	  initOfdEventListeners(); // 在渲染完成后初始化事件监听器
+    // 读取 configManager 的 renderPages 配置
+    const configManager = ConfigManager.getInstance();
+    const renderPages = configManager.getRenderPagesConfig();
+    liteOfd.setPageMinWidth(1000)
+    let temp = liteOfd.render(undefined, 'background-color: white; margin-top: 12px;', renderPages)
+    appContent.appendChild(temp)
+    initOfdEventListeners(); // 在渲染完成后初始化事件监听器
     // 添加大纲
     renderOutlines(data.outlines);
 
@@ -135,6 +274,10 @@ function parseOfdFile(file: File) {
     ofdTools = new OfdTools(data);
     // 将 ofdTools 添加到 window 对象，使其可以从 iframe 中访问
     (window as any).ofdTools = ofdTools;
+
+    // // 渲染缩略图
+    // let thumbDiv = thumbOfd.renderWithDocument(data, undefined, 'background-color: white; margin-top: 12px;', renderPages)
+    // thumbContent.appendChild(thumbDiv)
   }).catch((error) => {
     console.error('解析OFD文件失败:', error);
     alert('解析OFD文件失败，请检查文件是否正确');
@@ -144,12 +287,25 @@ function parseOfdFile(file: File) {
       fileNameElement.textContent = '';
     }
   });
+  // 重新解析用缩略图的
+  // thumbOfd.parse(file).then((data: OfdDocument) => {
+  //   data.supportZoom = false
+  //   data.renderTextLayer = false
+  //   // 读取 configManager 的 renderPages 配置
+  //   const configManager = ConfigManager.getInstance();
+  //   const renderPages = configManager.getRenderPagesConfig();
+  //   // 渲染缩略图
+  //   let div = thumbOfd.renderWithSize(undefined, 100 , 200, "#ffffff",   renderPages)
+  //   thumbContent.appendChild(div)
+  // }).catch((error) => {
+  //   console.error('缩略图OFD文件失败:', error);
+  // });
 }
 
 export function handleSaveOFD() {
   console.log('保存OFD文件');
   // 保存OFD文件的逻辑
-  	appContent.innerHTML = ''
+  appContent.innerHTML = ''
 }
 
 export function plus() {
@@ -229,6 +385,10 @@ export function toggleOutlines() {
   }
 }
 
+export function toggleConfigUI() {
+  liteOfd.toggleConfigUI()
+}
+
 // 添加新的函数来处理工具按钮点击
 export function openToolsMenu() {
   console.log('切换工具菜单');
@@ -279,4 +439,5 @@ Object.assign(window, {
   lastPage,
   toggleOutlines,  // 添加 toggleOutlines 到这里
   openToolsMenu,
+  toggleConfigUI
 });

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>路径渲染 Demo</title>
+    <style>
+        body { margin: 20px; font-family: Arial, sans-serif; }
+        .canvas-container { display: flex; gap: 20px; margin: 20px 0; }
+        .canvas-wrapper { flex: 1; text-align: center; }
+        canvas { border: 2px solid #ddd; background: white; }
+        .controls { margin: 20px 0; padding: 15px; background: #f8f9fa; }
+        .path-input { 
+            width: 100%; 
+            height: 60px; 
+            font-family: monospace; 
+            font-size: 12px; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            resize: vertical;
+        }
+        .example-paths {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 4px;
+        }
+        .example-btn {
+            margin: 5px;
+            padding: 5px 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .example-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>路径渲染 Demo</h1>
+    
+    <div class="controls">
+        <label>路径数据:</label><br>
+        <textarea id="pathInput" class="path-input" placeholder="输入路径数据，例如: M 10 10 L 20 20">M 10.07 5.54 B 10.07 3.04 8.04 1 5.53 1 B 3.03 1 1 3.04 1 5.54 B 1 8.04 3.03 10.08 5.53 10.08 B 8.04 10.08 10.07 8.04 10.07 5.54 M 2.3 2.3 L 8.7 8.7 M 2.3 8.7 L 8.7 2.3</textarea>
+        
+        <div class="example-paths">
+            <strong>示例路径:</strong><br>
+            <button class="example-btn" onclick="loadExample('circle')">圆形</button>
+            <button class="example-btn" onclick="loadExample('square')">正方形</button>
+            <button class="example-btn" onclick="loadExample('triangle')">三角形</button>
+            <button class="example-btn" onclick="loadExample('star')">星形</button>
+            <button class="example-btn" onclick="loadExample('original')">原始路径</button>
+            <button class="example-btn" onclick="loadExample('testPath')">测试路径</button>
+            <button class="example-btn" onclick="loadExample('simpleLine')">简单直线</button>
+            <button class="example-btn" onclick="loadExample('horizontalLine')">水平线</button>
+            <button class="example-btn" onclick="loadExample('verticalLine')">垂直线</button>
+        </div>
+        
+        <label>缩放: <input type="range" id="scale" min="0.1" max="5" step="0.1" value="1"></label>
+        <label>线宽: <input type="range" id="lineWidth" min="0.5" max="10" step="0.5" value="2"></label>
+        <button onclick="redraw()">重新绘制</button>
+    </div>
+
+    <div class="canvas-container">
+        <div class="canvas-wrapper">
+            <h3>原始比例</h3>
+            <canvas id="canvas1" width="300" height="300"></canvas>
+        </div>
+        <div class="canvas-wrapper">
+            <h3>放大视图</h3>
+            <canvas id="canvas2" width="300" height="300"></canvas>
+        </div>
+    </div>
+    
+    <div id="info"></div>
+
+    <script>
+        const examples = {
+            circle: "M 50 20 C 50 10 40 0 30 0 C 20 0 10 10 10 20 C 10 30 20 40 30 40 C 40 40 50 30 50 20",
+            square: "M 10 10 L 40 10 L 40 40 L 10 40 Z",
+            triangle: "M 25 10 L 40 40 L 10 40 Z",
+            star: "M 25 5 L 30 20 L 45 20 L 35 30 L 40 45 L 25 35 L 10 45 L 15 30 L 5 20 L 20 20 Z",
+            original: "M 10.07 5.54 B 10.07 3.04 8.04 1 5.53 1 B 3.03 1 1 3.04 1 5.54 B 1 8.04 3.03 10.08 5.53 10.08 B 8.04 10.08 10.07 8.04 10.07 5.54 M 2.3 2.3 L 8.7 8.7 M 2.3 8.7 L 8.7 2.3",
+            testPath: "S 0 0 L 156 0 C",
+            simpleLine: "M 10 10 L 100 100",
+            horizontalLine: "M 0 50 L 200 50",
+            verticalLine: "M 50 0 L 50 200"
+        };
+
+        function loadExample(type) {
+            document.getElementById('pathInput').value = examples[type];
+            redraw();
+        }
+
+        function parsePathData(data) {
+            const commands = data.split(' ');
+            const points = [];
+            let i = 0;
+            
+            while (i < commands.length) {
+                const command = commands[i];
+                
+                switch (command) {
+                    case 'M':
+                        points.push({
+                            type: 'M',
+                            x: parseFloat(commands[i + 1]),
+                            y: parseFloat(commands[i + 2])
+                        });
+                        i += 3;
+                        break;
+                    case 'L':
+                        points.push({
+                            type: 'L',
+                            x: parseFloat(commands[i + 1]),
+                            y: parseFloat(commands[i + 2])
+                        });
+                        i += 3;
+                        break;
+                    case 'S':
+                    case 's':
+                        // 检查是否有足够的参数用于贝塞尔曲线
+                        if (i + 4 < commands.length && !isNaN(parseFloat(commands[i + 3])) && !isNaN(parseFloat(commands[i + 4]))) {
+                            // 完整的S命令：S x2 y2 x y
+                            points.push({
+                                type: command,
+                                x2: parseFloat(commands[i + 1]),
+                                y2: parseFloat(commands[i + 2]),
+                                x: parseFloat(commands[i + 3]),
+                                y: parseFloat(commands[i + 4])
+                            });
+                            i += 5;
+                        } else {
+                            // 简化的S命令：S x y (只有终点坐标)
+                            points.push({
+                                type: command,
+                                x: parseFloat(commands[i + 1]),
+                                y: parseFloat(commands[i + 2])
+                            });
+                            i += 3;
+                        }
+                        break;
+                    case 'C':
+                        // 检查是否有足够的参数
+                        if (i + 6 < commands.length && !isNaN(parseFloat(commands[i + 1]))) {
+                            points.push({
+                                type: 'C',
+                                x1: parseFloat(commands[i + 1]),
+                                y1: parseFloat(commands[i + 2]),
+                                x2: parseFloat(commands[i + 3]),
+                                y2: parseFloat(commands[i + 4]),
+                                x: parseFloat(commands[i + 5]),
+                                y: parseFloat(commands[i + 6])
+                            });
+                            i += 7;
+                        } else {
+                            // 如果参数不足，可能是闭合命令
+                            points.push({
+                                type: 'Z'
+                            });
+                            i++;
+                        }
+                        break;
+                    case 'B':
+                        points.push({
+                            type: 'B',
+                            x1: parseFloat(commands[i + 1]),
+                            y1: parseFloat(commands[i + 2]),
+                            x2: parseFloat(commands[i + 3]),
+                            y2: parseFloat(commands[i + 4]),
+                            x: parseFloat(commands[i + 5]),
+                            y: parseFloat(commands[i + 6])
+                        });
+                        i += 7;
+                        break;
+                    case 'Z':
+                    case 'z':
+                        points.push({
+                            type: 'Z'
+                        });
+                        i += 1;
+                        break;
+                    default:
+                        i++;
+                        break;
+                }
+            }
+            
+            return points;
+        }
+
+        function drawPath(ctx, points, scale = 1, offsetX = 0, offsetY = 0) {
+            ctx.beginPath();
+            let currentX = 0, currentY = 0;
+
+            for (const point of points) {
+                switch (point.type) {
+                    case 'M':
+                        const moveX = (point.x * scale) + offsetX;
+                        const moveY = (point.y * scale) + offsetY;
+                        ctx.moveTo(moveX, moveY);
+                        currentX = moveX;
+                        currentY = moveY;
+                        break;
+                    case 'L':
+                        const lineX = (point.x * scale) + offsetX;
+                        const lineY = (point.y * scale) + offsetY;
+                        ctx.lineTo(lineX, lineY);
+                        currentX = lineX;
+                        currentY = lineY;
+                        break;
+                    case 'S':
+                    case 's':
+                        if ('x2' in point && 'y2' in point) {
+                            // 完整的S命令，有控制点
+                            const x2 = (point.x2 * scale) + offsetX;
+                            const y2 = (point.y2 * scale) + offsetY;
+                            const x = (point.x * scale) + offsetX;
+                            const y = (point.y * scale) + offsetY;
+                            ctx.bezierCurveTo(x2, y2, x2, y2, x, y);
+                            currentX = x;
+                            currentY = y;
+                        } else {
+                            // 简化的S命令，只有终点坐标，应该绘制为直线
+                            const x = (point.x * scale) + offsetX;
+                            const y = (point.y * scale) + offsetY;
+                            ctx.lineTo(x, y);
+                            currentX = x;
+                            currentY = y;
+                        }
+                        break;
+                    case 'C':
+                        const x1 = (point.x1 * scale) + offsetX;
+                        const y1 = (point.y1 * scale) + offsetY;
+                        const x2 = (point.x2 * scale) + offsetX;
+                        const y2 = (point.y2 * scale) + offsetY;
+                        const x = (point.x * scale) + offsetX;
+                        const y = (point.y * scale) + offsetY;
+                        ctx.bezierCurveTo(x1, y1, x2, y2, x, y);
+                        currentX = x;
+                        currentY = y;
+                        break;
+                    case 'B':
+                        const bx1 = (point.x1 * scale) + offsetX;
+                        const by1 = (point.y1 * scale) + offsetY;
+                        const bx2 = (point.x2 * scale) + offsetX;
+                        const by2 = (point.y2 * scale) + offsetY;
+                        const bx = (point.x * scale) + offsetX;
+                        const by = (point.y * scale) + offsetY;
+                        ctx.bezierCurveTo(bx1, by1, bx2, by2, bx, by);
+                        currentX = bx;
+                        currentY = by;
+                        break;
+                    case 'Z':
+                        ctx.closePath();
+                        break;
+                }
+            }
+        }
+
+        function redraw() {
+            const pathData = document.getElementById('pathInput').value.trim();
+            if (!pathData) {
+                document.getElementById('info').innerHTML = '<strong>错误：</strong>请输入路径数据';
+                return;
+            }
+
+            const scale = parseFloat(document.getElementById('scale').value);
+            const lineWidth = parseFloat(document.getElementById('lineWidth').value);
+            
+            try {
+                const points = parsePathData(pathData);
+                
+                document.getElementById('info').innerHTML = `
+                    <strong>解析结果：</strong><br>
+                    命令数量: ${points.length}<br>
+                    命令详情: ${JSON.stringify(points, null, 2)}
+                `;
+
+                const canvases = [
+                    { id: 'canvas1', scale: 1, offsetX: 50, offsetY: 50 },
+                    { id: 'canvas2', scale: scale, offsetX: 50, offsetY: 50 }
+                ];
+
+                canvases.forEach(({ id, scale: canvasScale, offsetX, offsetY }) => {
+                    const canvas = document.getElementById(id);
+                    const ctx = canvas.getContext('2d');
+                    
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = lineWidth;
+                    
+                    drawPath(ctx, points, canvasScale, offsetX, offsetY);
+                    ctx.stroke();
+                    
+                    // 绘制坐标轴
+                    ctx.strokeStyle = 'red';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, canvas.height / 2);
+                    ctx.lineTo(canvas.width, canvas.height / 2);
+                    ctx.moveTo(canvas.width / 2, 0);
+                    ctx.lineTo(canvas.width / 2, canvas.height);
+                    ctx.stroke();
+                });
+            } catch (error) {
+                document.getElementById('info').innerHTML = `<strong>错误：</strong>${error.message}`;
+            }
+        }
+
+        // 事件监听器
+        document.getElementById('scale').addEventListener('input', redraw);
+        document.getElementById('lineWidth').addEventListener('input', redraw);
+        document.getElementById('pathInput').addEventListener('input', redraw);
+
+        // 初始化
+        window.addEventListener('load', redraw);
+    </script>
+</body>
+</html> 

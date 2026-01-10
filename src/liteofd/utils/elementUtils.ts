@@ -1,6 +1,5 @@
 import * as parser from "../parser"
 import { AttributeKey, OFD_KEY } from "../attrType"
-import { convertToDpi, convertToDpiWithScale } from "./utils"
 import { XmlData } from "../ofdData"
 import { OfdDocument } from "../ofdDocument"
 
@@ -22,13 +21,14 @@ function decodeHTML(html) {
 
 /**
  * 将textcode字符串转换为待坐标也就是deltax和deltau的值的数组
+ * @param ofdDocument
  * @param textStr
  * @param deltaXList
  * @param deltaYList
  * @param originX
  * @param originY
  */
-const extractTextToCharArray = (textStr: string, deltaXList: any[], deltaYList: any[], originX: any, originY: any) => {
+export const extractTextToCharArray = (ofdDocument: OfdDocument, textStr: string, deltaXList: any[], deltaYList: any[], originX: any, originY: any): Array<{x: number, y: number, text: string, deltaX: number, deltaY: number}> => {
 	let textCodePointList = []
 	let lastXDeltaIndex = 0
 	let lastYDeltaIndex = 0
@@ -71,7 +71,7 @@ const extractTextToCharArray = (textStr: string, deltaXList: any[], deltaYList: 
 		}
 		let text = textStr.substring(i, i + 1)
 
-		let textCodePoint = { 'x': convertToDpi(x), 'y': convertToDpi(y), 'text': text, deltaX: tempDeltaX, deltaY: tempDeltaY  }
+		let textCodePoint = { 'x': ofdDocument.convertToDpi(x), 'y': ofdDocument.convertToDpi(y), 'text': text, deltaX: tempDeltaX, deltaY: tempDeltaY  }
 		textCodePointList.push(textCodePoint)
 	}
 	return textCodePointList
@@ -82,7 +82,7 @@ const extractTextToCharArray = (textStr: string, deltaXList: any[], deltaYList: 
  * @param text 包含HTML实体的文本
  * @return 转换后的文本
  */
-const decodeHtmlEntities = (text: string): string => {
+export const decodeHtmlEntities = (text: string): string => {
   const entities: { [key: string]: string } = {
     '&lt;': '<',
     '&gt;': '>',
@@ -92,7 +92,7 @@ const decodeHtmlEntities = (text: string): string => {
     '&#x20;': ' ',
     '&#x0020;': ' '
   };
-  
+
   return text.replace(/&[^;]+;/g, (entity) => {
     return entities[entity] || entity;
   });
@@ -101,11 +101,12 @@ const decodeHtmlEntities = (text: string): string => {
 
 /**
  * 根据textcode来创建显示字符串的tspan
+ * @param ofdDocument 文本工具
  * @param nodeData 文本的textCode标签
  * @param node 文本的textCode标签
  * @param textNode 文本的textCode标签
  */
-export const createTextSpan = (nodeData: XmlData, textCodeData: XmlData, textNode: Element) => {
+export const createTextSpan = (ofdDocument, nodeData: XmlData, textCodeData: XmlData, textNode: Element) => {
 	// 根据scale计算tspan的位置
 	let hScale = parser.findAttributeValueByKey(nodeData, AttributeKey.HScale)
 	let vScale = parser.findAttributeValueByKey(nodeData, AttributeKey.VScale)
@@ -117,14 +118,14 @@ export const createTextSpan = (nodeData: XmlData, textCodeData: XmlData, textNod
 	let y = parser.findAttributeValueByKey(textCodeData, AttributeKey.Y)
 
 	let textCode = parser.findValueByTagName(textCodeData, OFD_KEY.TextCode)
-	let textStr = textCode.value.toString()
+	let textStr = textCode?.value.toString()
 	textStr = decodeHtmlEntities(textStr)
 	// 根据node的deltax和deltay进行创建字符位置
-	let deltaX = getDeltaList(textCode, AttributeKey.DeltaX)
-	let deltaY = getDeltaList(textCode, AttributeKey.DeltaY)
+	let deltaX = getDeltaList(textStr, textCode, AttributeKey.DeltaX)
+	let deltaY = getDeltaList(textStr, textCode, AttributeKey.DeltaY)
 
 	// 将char分割，并且添加上x和y的值
-	let charList = extractTextToCharArray(textStr, deltaX, deltaY, x, y)
+	let charList = extractTextToCharArray(ofdDocument, textStr, deltaX, deltaY, x, y)
 	for (let i = 0; i < charList.length; i++) {
 		let charObj = charList[i]
 		let nodeEle = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
@@ -144,16 +145,15 @@ export const createTextSpan = (nodeData: XmlData, textCodeData: XmlData, textNod
 	}
 }
 
-
 /**
  * 获取字体的文字大小
+ * @param ofdDocument
  * @param textObj
  */
-export const getFontSize = (textObj: XmlData) => {
+export const getFontSize = (ofdDocument: OfdDocument, textObj: XmlData) => {
 	let originSize = parser.findAttributeValueByKey(textObj, AttributeKey.FontSize)
 	if (originSize) {
-		originSize = convertToDpi(originSize)
-		return originSize
+		return ofdDocument.convertToDpi(parseFloat(originSize))
 	} else {
 		return null
 	}
@@ -161,22 +161,32 @@ export const getFontSize = (textObj: XmlData) => {
 
 /**
  * 获取ctm，进行转换
+ * @param ofdDocument
  * @param obj
  */
-export const getCTM = (obj: XmlData) => {
+export const getCTM = (ofdDocument: OfdDocument, obj: XmlData | null | undefined) => {
 	let ctmStr = parser.findAttributeValueByKey(obj, AttributeKey.CTM)
 	if (ctmStr) {
 		let ctms = ctmStr.split(' ');
-		return `matrix(${ ctms[0] } ${ ctms[1] } ${ ctms[2] } ${ ctms[3] } ${ convertToDpi(ctms[4]) } ${ convertToDpi(ctms[5]) })`
+		return `matrix(${ ctms[0] } ${ ctms[1] } ${ ctms[2] } ${ ctms[3] } ${ ofdDocument.convertToDpi(ctms[4]) } ${ ofdDocument.convertToDpi(ctms[5]) })`
 	}
 
 	return null
 }
 
-export const getDeltaList = (obj: XmlData, key) => {
+export const getCTMByStr = (ofdDocument: OfdDocument, ctmStr: string) => {
+	if (ctmStr) {
+		let ctms = ctmStr.split(' ');
+		return `matrix(${ ctms[0] } ${ ctms[1] } ${ ctms[2] } ${ ctms[3] } ${ ofdDocument.convertToDpi(ctms[4]) } ${ ofdDocument.convertToDpi(ctms[5]) })`
+	}
+
+	return null
+}
+
+export const getDeltaList = (text: string, obj: XmlData, key) => {
 	let deltaStr = parser.findAttributeValueByKey(obj, key)
 	if (deltaStr) {
-		return deltaFormatter(deltaStr)
+		return deltaFormatter(text, deltaStr)
 		// 判断数组是否是纯数组还是带有数字的那种数组
 	} else {
 		return []
@@ -187,40 +197,71 @@ export const getDeltaList = (obj: XmlData, key) => {
  * 将textobject的字符的delta进行解析，比如如果是g数组那么解析成对应数字的数组，如果是单个字符那么需要解析称为多少个字符的位置数组每个位置一样
  * @param delta
  */
-export const deltaFormatter = function (delta) {
+export const deltaFormatter = function (text: string, delta) {
 	if (delta.indexOf("g") === -1) {
 		let floatList = [];
-		for (let f of delta.split(' ')) {
-			floatList.push(parseFloat(f));
+		const deltaArray = delta.split(' ').filter(f => f.trim().length > 0);
+
+		// 如果只有一个数字，则返回与text字符长度相同的数组
+		if (deltaArray.length === 1) {
+			const singleValue = parseFloat(deltaArray[0]);
+			for (let i = 0; i < text.length - 1; i++) {
+				floatList.push(singleValue);
+			}
+			return floatList;
+		} else {
+			// 多个数字的情况，按原来的逻辑处理
+			for (let f of deltaArray) {
+				floatList.push(parseFloat(f));
+			}
+			return floatList;
 		}
-		return floatList;
 	} else {
 		const array = delta.split(' ');
-		let gFlag = false;
-		let gProcessing = false;
-		let gItemCount = 0;
 		let floatList = [];
-		for (const s of array) {
+		let currentIndex = 0;
+		const totalIntervals = text.length - 1;
+
+		for (let i = 0; i < array.length; i++) {
+			const s = array[i];
+
+			if (!s || s.trim().length == 0) {
+				continue;
+			}
+
 			if ('g' === s) {
-				gFlag = true;
-			} else {
-				if (!s || s.trim().length == 0) {
-					continue;
-				}
-				if (gFlag) {
-					gItemCount = parseInt(s);
-					gProcessing = true;
-					gFlag = false;
-				} else if (gProcessing) {
-					for (let j = 0; j < gItemCount; j++) {
-						floatList.push(parseFloat(s));
+				// 处理g指令
+				if (i + 2 < array.length) {
+					const gItemCount = parseInt(array[i + 1]);
+					const gValue = parseFloat(array[i + 2]);
+
+					// 添加指定数量的gValue
+					for (let j = 0; j < gItemCount && currentIndex < totalIntervals; j++) {
+						floatList.push(gValue);
+						currentIndex++;
 					}
-					gProcessing = false;
-				} else {
+
+					// 跳过已处理的参数
+					i += 2;
+				}
+			} else {
+				// 处理非g指令的数字（作为剩余值）
+				if (currentIndex < totalIntervals) {
 					floatList.push(parseFloat(s));
+					currentIndex++;
 				}
 			}
 		}
+
+		// 如果生成的数组长度不够，用最后一个值填充
+		while (floatList.length < totalIntervals) {
+			if (floatList.length > 0) {
+				floatList.push(floatList[floatList.length - 1]);
+			} else {
+				floatList.push(0);
+			}
+		}
+
 		return floatList;
 	}
 }
@@ -284,13 +325,13 @@ export const rgbToHexWithAlpha = (r: number, g: number, b: number, alpha: number
 	g = Math.max(0, Math.min(255, g));
 	b = Math.max(0, Math.min(255, b));
 	alpha = Math.max(0, Math.min(255, alpha));
-	
+
 	// 转换为16进制并补零
 	const hexR = r.toString(16).padStart(2, '0');
 	const hexG = g.toString(16).padStart(2, '0');
 	const hexB = b.toString(16).padStart(2, '0');
 	const hexAlpha = alpha.toString(16).padStart(2, '0');
-	
+
 	// 返回带alpha的16进制颜色值
 	return `#${hexR}${hexG}${hexB}${hexAlpha}`;
 }
@@ -355,18 +396,46 @@ export const getOFDFilePath = (path: string) => {
 	 * 获取默认的缩放比例
 	 * @returns {number} 默认的缩放比例
 	 */
-	export const getDefaultScale = (ofdDocument: OfdDocument): number => {
-		let screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+	export const getDefaultScale = (ofdDocument: OfdDocument, minWidth: number | null): number => {
+		let screenWidth
+		if (minWidth && minWidth > 0) {
+			screenWidth = minWidth
+		} else {
+			screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+		}
 		let physicalBoxObj = parser.findValueByTagName(ofdDocument.documentData, OFD_KEY.PhysicalBox)
 		console.log("physicalBoxObj", physicalBoxObj);
 		if(physicalBoxObj){
 			let physicalBox = physicalBoxObj.value.split(" ")
 			let ofdWidth = parseFloat(physicalBox[2])
 
-			let newofdWidth = convertToDpiWithScale(ofdWidth, 1)
-			console.log("ofdWidth", ofdWidth, newofdWidth, screenWidth);
+			let newofdWidth = ofdDocument.convertToDpi(ofdWidth)
+			console.log("screen width and ofdWidth", screenWidth, ofdWidth, newofdWidth, screenWidth);
 			// 计算缩放比例
-			let scale = (screenWidth - 100) / ofdWidth   
+			let scale = (screenWidth) / ofdWidth
+			console.log("current page scale", scale)
+			return scale
+		}
+		// 如果物理盒不存在，则返回1
+		return 1
+	}
+
+	/**
+	 * 获取默认的缩放比例
+	 * @returns {number} 默认的缩放比例
+	 */
+	export const getCustomScale = (ofdDocument: OfdDocument, width: number, height: number): number => {
+		let physicalBoxObj = parser.findValueByTagName(ofdDocument.documentData, OFD_KEY.PhysicalBox)
+		console.log("physicalBoxObj", physicalBoxObj);
+		if(physicalBoxObj){
+			let physicalBox = physicalBoxObj.value.split(" ")
+			let ofdWidth = parseFloat(physicalBox[2])
+
+			let newofdWidth = ofdDocument.convertToDpi(ofdWidth)
+			console.log("screen width and ofdWidth", width, ofdWidth, newofdWidth, width);
+			// 计算缩放比例
+			let scale = width / ofdWidth
+			console.log("current custom page scale", scale)
 			return scale
 		}
 		// 如果物理盒不存在，则返回1

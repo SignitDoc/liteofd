@@ -7,6 +7,7 @@ import { PathSvg } from './liteofd/elements/PathSvg';
 import { OfdPageRender } from './liteofd/elements/ofdPageRender';
 import { SignatureElement } from './liteofd/elements/SignatureElement';
 import { TextSvg } from './liteofd/elements/TextSvg';
+import {TextElement} from "./liteofd/elements/TextElement"
 import { ImageSvg } from './liteofd/elements/ImageSvg';
 import { AnnotLayer } from './liteofd/annotLayer';
 import { ContentLayer } from './liteofd/contentLayer';
@@ -21,6 +22,7 @@ import {
 	getFontURL
 } from './liteofd/ofdFont';
 import type { FontURLGenerator } from './liteofd/ofdFont';
+import { rendererConfig } from './liteofd/rendererConfig';
 
 // 导出所有模块
 export {
@@ -32,6 +34,7 @@ export {
   OfdPageRender,
   SignatureElement,
   TextSvg,
+  TextElement,
   ImageSvg,
   AnnotLayer,
   ContentLayer,
@@ -46,7 +49,8 @@ export {
   setFontPreloadPath,
   getFontPreloadPath,
   setFontURLGenerator,
-  getFontURL
+  getFontURL,
+  rendererConfig
 };
 
 export type { FontURLGenerator };

@@ -2,7 +2,6 @@ import { BaseSvg } from "./BaseSvg"
 import { XmlData } from "../ofdData"
 import * as parser from "../parser"
 import { AttributeKey, OFD_KEY } from "../attrType"
-import { convertToBox, convertToDpi } from "../utils/utils"
 import { OfdDocument } from "../ofdDocument"
 import PromiseCapability from "../promiseCapability"
 
@@ -44,7 +43,7 @@ export class ImageSvg extends BaseSvg {
 	#addBoundary(node: XmlData) {
 		let boundaryStr = parser.findAttributeValueByKey(node, AttributeKey.Boundary)
 		if (boundaryStr) {
-			this.boundaryBox = convertToBox(boundaryStr)
+			this.boundaryBox = this.ofdDocument.convertToBox(boundaryStr)
 
 			let svgStyle = `left: ${this.boundaryBox.x}px;top: ${this.boundaryBox.y}px;
 	width: ${this.boundaryBox.width}px;height: ${this.boundaryBox.height}px;`
@@ -58,12 +57,12 @@ export class ImageSvg extends BaseSvg {
 		let ctms = ctmStr.split(" ")
 
 		if ( ctmStr ) {
-			ctms[0] = convertToDpi(ctms[0]) / this.boundaryBox.width
-			ctms[1] = convertToDpi(ctms[1]) / this.boundaryBox.width
-			ctms[2] = convertToDpi(ctms[2]) / this.boundaryBox.height
-			ctms[3] = convertToDpi(ctms[3]) / this.boundaryBox.height
-			ctms[4] = convertToDpi(ctms[4])
-			ctms[5] = convertToDpi(ctms[5])
+			ctms[0] = this.ofdDocument.convertToDpi(ctms[0]) / this.boundaryBox.width
+			ctms[1] = this.ofdDocument.convertToDpi(ctms[1]) / this.boundaryBox.width
+			ctms[2] = this.ofdDocument.convertToDpi(ctms[2]) / this.boundaryBox.height
+			ctms[3] = this.ofdDocument.convertToDpi(ctms[3]) / this.boundaryBox.height
+			ctms[4] = this.ofdDocument.convertToDpi(ctms[4])
+			ctms[5] = this.ofdDocument.convertToDpi(ctms[5])
 			eleSvg.setAttribute('transform', `matrix(${ctms[0]} ${ctms[1]} ${ctms[2]} ${ctms[3]} ${ctms[4]} ${ctms[5]})`)
 		}
 	}

@@ -2,11 +2,11 @@ import { BaseSvg } from "./BaseSvg"
 import { XmlData } from "../ofdData"
 import * as parser from "../parser"
 import { AttributeKey, OFD_KEY } from "../attrType"
-import { convertToBox, convertToDpi } from "../utils/utils"
 import { createTextSpan, getCTM, getFontSize, parseColor } from "../utils/elementUtils"
 import { OfdDocument } from "../ofdDocument"
 import { CommonFont } from "../utils/commonFont"
 import { convertNonStandardFont, normalizeFontName } from "../utils/ofdUtils"
+import { rendererConfig } from "../rendererConfig"
 
 /**
  * 文本组件
@@ -39,7 +39,7 @@ export class TextSvg extends BaseSvg {
 	#addBoundary(node: XmlData) {
 		let boundaryStr = parser.findAttributeValueByKey(node, AttributeKey.Boundary)
 		if (boundaryStr) {
-			this.boundaryBox = convertToBox(boundaryStr)
+			this.boundaryBox = this.ofdDocument.convertToBox(boundaryStr)
 
 			let svgStyle = `left: ${this.boundaryBox.x}px;top: ${this.boundaryBox.y}px;
 	width: ${this.boundaryBox.width}px;height: ${this.boundaryBox.height}px;`
@@ -55,13 +55,11 @@ export class TextSvg extends BaseSvg {
 			// let ofdFontList = parser.findValueByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
 			let allFontList = parser.findAllNodesByTagName(this.ofdDocument.publicRes, OFD_KEY.Font)
 			// console.log("find public res ofd list", ofdFontList)
-			console.log("find public res allFontList", allFontList)
 			// 根据字体id查找对应publicres的font数据
 			// let findedFont = parser.findNodeByAttributeKeyValue(fontID, AttributeKey.ID, ofdFontList!!)
 			// 从字体列表中查找字体
 			let findedFont = parser.findNodeByAttributeKeyValueInList(fontID, AttributeKey.ID, allFontList!!)
 			parser.findNodeByAttributeKeyValueWithTagName(fontID, AttributeKey.ID, this.ofdDocument.publicRes, OFD_KEY.Font)
-			console.log("find text font ", findedFont)
 			if (findedFont) {
 				// 添加字体内容
 				let fontName = parser.findAttributeValueByKey(findedFont, AttributeKey.FontName)
@@ -93,7 +91,6 @@ export class TextSvg extends BaseSvg {
 				}
 				// 添加字体斜体
 				let fontItalic = parser.findAttributeValueByKey(findedFont, AttributeKey.Italic)
-				console.log("font italic:", fontID, findedFont, fontItalic, node)
 				if (fontItalic) {
 					this.textStyle += `font-style: italic;`
 				}
@@ -103,7 +100,7 @@ export class TextSvg extends BaseSvg {
 
 	// 给pathsvg添加ctm矩阵
 	#addCTM(nodeData: XmlData, eleSvg: SVGTextElement) {
-		let tempCtm = getCTM(nodeData)
+		let tempCtm = getCTM(this.ofdDocument, nodeData)
 		tempCtm && eleSvg.setAttribute("transform", tempCtm)
 	}
 
@@ -111,7 +108,7 @@ export class TextSvg extends BaseSvg {
 	// 给pathsvg添加ctm矩阵
 	#addTextStyle(nodeData: XmlData) {
 		// 设置字体大小
-		let fontSize = getFontSize(nodeData)
+		let fontSize = getFontSize(this.ofdDocument, nodeData)
 		this.textStyle = `font-size: ${fontSize}px;`
 		// 设置font-weight
 		let fontWeight = parser.findAttributeValueByKey(nodeData, AttributeKey.Weight)
@@ -132,7 +129,7 @@ export class TextSvg extends BaseSvg {
 		let lineWidth = parser.findAttributeValueByKey(nodeData, AttributeKey.LineWidth)
 		if (lineWidth) {
 			let lineWidthValue = parseFloat(lineWidth)
-			this.textStyle += `stroke-width: ${convertToDpi(lineWidthValue)}px;`
+			this.textStyle += `stroke-width: ${this.ofdDocument.convertToDpi(lineWidthValue)}px;`
 		} else {
 			this.textStyle += `stroke-width: 0;`
 		}
@@ -141,25 +138,34 @@ export class TextSvg extends BaseSvg {
 	#addStrokeColor(nodeData: XmlData) {
 		let strokeColorObj = parser.findValueByTagName(nodeData, OFD_KEY.StrokeColor)
 		let strokeColorStr = strokeColorObj && parser.findAttributeValueByKey(strokeColorObj, AttributeKey.Value)
-		if (strokeColorStr) {
-			let strokeColor = parseColor(strokeColorStr)
-			this.textStyle += `stroke: ${strokeColor};`
+
+		if (rendererConfig.isCanvasRender()) {
+			this.textStyle += `stroke: transparent;`
+		} else {
+			if (strokeColorStr) {
+				let strokeColor = parseColor(strokeColorStr)
+				this.textStyle += `stroke: ${strokeColor};`
+			}
 		}
 	}
 
 	#addFillColor(nodeData: XmlData) {
 		let fillColorObj = parser.findValueByTagName(nodeData, OFD_KEY.FillColor)
 		let fillColorStr = fillColorObj && parser.findAttributeValueByKey(fillColorObj, AttributeKey.Value)
-		if (fillColorStr) {
-			let fillColor = parseColor(fillColorStr)
-			this.textStyle += `fill: ${fillColor};`
+		if (rendererConfig.isCanvasRender()) {
+			this.textStyle += `fill: transparent;`
+		} else {
+			if (fillColorStr) {
+				let fillColor = parseColor(fillColorStr)
+				this.textStyle += `fill: ${fillColor};`
+			}
 		}
 	}
 
 	// 给pathsvg添加ctm矩阵
 	#addTextTSpan(nodeData: XmlData, eleSvg: SVGTextElement) {
 		let textCode = parser.findValueByTagName(nodeData, OFD_KEY.TextCode)
-		createTextSpan(nodeData, textCode, eleSvg)
+		createTextSpan(this.ofdDocument, nodeData, textCode, eleSvg)
 	}
 
 	#addTextSvg(nodeData: XmlData) {
@@ -212,7 +218,6 @@ export class TextSvg extends BaseSvg {
 	// 字体文件中暂时去掉drawParam的渲染
 	#addDrawParam(nodeData: XmlData) {
 		let drawParamID = parser.findAttributeValueByKey(nodeData, AttributeKey.DrawParam)
-		console.log("add text draw params", drawParamID)
 		if (drawParamID) {
 			let drawParamNode = parser.findNodeByAttributeKeyValue(drawParamID, AttributeKey.ID, this.ofdDocument.publicRes)
 			if (drawParamNode) {
@@ -220,7 +225,6 @@ export class TextSvg extends BaseSvg {
 				this.#addFillColor(drawParamNode)
 				// 添加线宽度和线条颜色
 				this.#addStrokeColor(drawParamNode)
-				console.log("textsvg drawParamNode", drawParamNode)
 				// 添加字体粗细
 				let fontWeight = parser.findAttributeValueByKey(drawParamNode, AttributeKey.Weight)
 				if (fontWeight) {

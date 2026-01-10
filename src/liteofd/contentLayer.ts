@@ -9,15 +9,19 @@ import { XmlData } from "./ofdData"
 import { PathSvg } from "./elements/PathSvg"
 import { TextSvg } from "./elements/TextSvg"
 import { ImageSvg } from "./elements/ImageSvg"
+import { rendererConfig } from "./rendererConfig"
+import { TextElement } from "./elements/TextElement"
 
 export class ContentLayer extends Layer {
 	private ofdDocument: OfdDocument
+	private textLayer: HTMLDivElement
 	private setDefaultZOrder = false // 是否使用默认的zorder的值设置zindex
 	private defaultZorderValue = -1 // 默认的zindex的值
 
-	constructor(ofdDocument: OfdDocument) {
+	constructor(ofdDocument: OfdDocument, pageContainer: HTMLDivElement) {
 		super()
 		this.ofdDocument = ofdDocument
+		this.textLayer = pageContainer
 		this.#initPageContainer()
 	}
 
@@ -35,10 +39,10 @@ export class ContentLayer extends Layer {
 	render(pageData: XmlData, pageContainer: Element) {
 		try {
 			let contentData = parser.findValueByTagName(pageData, OFD_KEY.Content)
-			if(contentData) {	
+			if(contentData) {
 				// 渲染内容层
 				this.#initPageContainer()
-				this.#renderPageContent(contentData, pageContainer)	
+				this.#renderPageContent(contentData, this.textLayer)
 			}
 		} catch (e) {
 			console.log("render page content error", e, pageData)
@@ -60,19 +64,30 @@ export class ContentLayer extends Layer {
 	}
 
 	#renderLayerDataObject(dataObj: XmlData, pageContainer: Element) {
-		switch (dataObj.tagName) {
-			case OFD_KEY.TextObject:
-				this.#renderTextObject(dataObj, pageContainer)
-				break
-			case OFD_KEY.PathObject:
-				this.#renderPathObject(dataObj, pageContainer)
-				break
-			case OFD_KEY.ImageObject:
-				this.#renderImageObject(dataObj, pageContainer)
-				break
-			case OFD_KEY.PageBlock:
-				this.#renderPageBlock(dataObj, pageContainer)
-				break
+		if (rendererConfig.isCanvasRender()) {
+			switch (dataObj.tagName) {
+				case OFD_KEY.TextObject:
+					this.#renderTextObject(dataObj, pageContainer)
+					break
+				case OFD_KEY.PageBlock:
+					this.#renderPageBlock(dataObj, pageContainer)
+					break
+			}
+		} else {
+			switch (dataObj.tagName) {
+				case OFD_KEY.TextObject:
+					this.#renderTextObject(dataObj, pageContainer)
+					break
+				case OFD_KEY.PathObject:
+					this.#renderPathObject(dataObj, pageContainer)
+					break
+				case OFD_KEY.ImageObject:
+					this.#renderImageObject(dataObj, pageContainer)
+					break
+				case OFD_KEY.PageBlock:
+					this.#renderPageBlock(dataObj, pageContainer)
+					break
+			}
 		}
 	}
 
@@ -131,7 +146,7 @@ export class ContentLayer extends Layer {
 
 	#renderSingleTextObject(nodeData: XmlData, pageContainer: Element) {
 		// path的路径的绘制的对象
-		let svgEle = new TextSvg(this.ofdDocument, nodeData)
+		let svgEle = new TextElement(this.ofdDocument, nodeData)
 		let nodeEle = svgEle.getContainerSvg()
 
 

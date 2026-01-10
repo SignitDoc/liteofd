@@ -1,7 +1,9 @@
 
 
 // 将box的字符串转成数据对象
-export const convertToBox = (valueStr: string) => {
+import { OfdDocument } from "../ofdDocument"
+
+export const convertToBox = (ofdDocument: OfdDocument, valueStr: string) => {
 	let size = valueStr.split(" ")
 	let x = parseFloat(size[0])
 	let y = parseFloat(size[1])
@@ -9,37 +11,11 @@ export const convertToBox = (valueStr: string) => {
 	let height = parseFloat(size[3])
 
 	return {
-		x: convertToDpi(x),
-		y: convertToDpi(y),
-		width: convertToDpi(width),
-		height: convertToDpi(height),
+		x: ofdDocument.convertToDpi(x),
+		y: ofdDocument.convertToDpi(y),
+		width: ofdDocument.convertToDpi(width),
+		height: ofdDocument.convertToDpi(height),
 	}
-}
-
-let MaxScale = 10;
-
-let Scale = 10;
-
-export const setMaxPageScale = function (scale: number) {
-	MaxScale = scale > 10 ? 10 : scale;
-}
-
-export const setPageScal = function (scale: number) {
-	Scale = scale > 1 ? scale : 1;
-	Scale = Scale > MaxScale ? MaxScale : Scale;
-}
-
-export const convertToDpiWithScale = function (width: number, currentScale: number) {
-	return millimetersToPixel(width, currentScale * 25.4);
-}
-
-export const convertToDpi = function (width: number) {
-	return millimetersToPixel(width, Scale * 25.4);
-}
-
-const millimetersToPixel = function (mm: number, dpi: number) {
-	//毫米转像素：mm * dpi / 25.4
-	return ((mm * dpi / 25.4));
 }
 
 export const convertPathAbbreviatedDatatoPoint = (abbreviatedData: string) => {
@@ -98,14 +74,27 @@ export const convertPathAbbreviatedDatatoPoint = (abbreviatedData: string) => {
 		  break;
 		case 'S':
 		case 's':
-			pointList.push({
-				'type': command,
-				'x': parseFloat(array[i + 1]),
-				'y': parseFloat(array[i + 2]),
-			  });
-		  console.log("command s is #2", command, pointList)
-		  i += 3;
-		  break;
+			// 检查是否有足够的参数用于贝塞尔曲线
+			if (i + 4 < array.length && !isNaN(parseFloat(array[i + 3])) && !isNaN(parseFloat(array[i + 4]))) {
+				// 完整的S命令：S x2 y2 x y
+				pointList.push({
+					'type': command,
+					'x2': parseFloat(array[i + 1]),
+					'y2': parseFloat(array[i + 2]),
+					'x': parseFloat(array[i + 3]),
+					'y': parseFloat(array[i + 4])
+				});
+				i += 5;
+			} else {
+				// 简化的S命令：S x y (只有终点坐标)
+				pointList.push({
+					'type': command,
+					'x': parseFloat(array[i + 1]),
+					'y': parseFloat(array[i + 2])
+				});
+				i += 3;
+			}
+			break;
 		case 'Q':
 		case 'q':
 		  pointList.push({
@@ -218,85 +207,85 @@ export const convertPathAbbreviatedDatatoPoint2 = (abbreviatedData: string) => {
 	return pointList;
 }
 
-export const calPathPoint = function (abbreviatedPoint: any) {
+export const calPathPoint = function (ofdDocument: OfdDocument, abbreviatedPoint: any) {
 	let pointList = [];
 	let currentX = 0, currentY = 0;
-  
+
 	for (let i = 0; i < abbreviatedPoint.length; i++) {
 	  let point = abbreviatedPoint[i];
 	  switch (point.type) {
 		case 'M':
 		case 'L':
-		  point.x = convertToDpi(point.x);
-		  point.y = convertToDpi(point.y);
+		  point.x = ofdDocument.convertToDpi(point.x);
+		  point.y = ofdDocument.convertToDpi(point.y);
 		  currentX = point.x;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'm':
 		case 'l':
-		  point.x = convertToDpi(point.x) + currentX;
-		  point.y = convertToDpi(point.y) + currentY;
+		  point.x = ofdDocument.convertToDpi(point.x) + currentX;
+		  point.y = ofdDocument.convertToDpi(point.y) + currentY;
 		  currentX = point.x;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'H':
-		  point.x = convertToDpi(point.x);
+		  point.x = ofdDocument.convertToDpi(point.x);
 		  point.y = currentY;
 		  currentX = point.x;
 		  pointList.push(point);
 		  break;
 		case 'h':
-		  point.x = convertToDpi(point.x) + currentX;
+		  point.x = ofdDocument.convertToDpi(point.x) + currentX;
 		  point.y = currentY;
 		  currentX = point.x;
 		  pointList.push(point);
 		  break;
 		case 'V':
 		  point.x = currentX;
-		  point.y = convertToDpi(point.y);
+		  point.y = ofdDocument.convertToDpi(point.y);
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'v':
 		  point.x = currentX;
-		  point.y = convertToDpi(point.y) + currentY;
+		  point.y = ofdDocument.convertToDpi(point.y) + currentY;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'C':
-		  point.x1 = convertToDpi(point.x1);
-		  point.y1 = convertToDpi(point.y1);
-		  point.x2 = convertToDpi(point.x2);
-		  point.y2 = convertToDpi(point.y2);
-		  point.x = convertToDpi(point.x);
-		  point.y = convertToDpi(point.y);
+		  point.x1 = ofdDocument.convertToDpi(point.x1);
+		  point.y1 = ofdDocument.convertToDpi(point.y1);
+		  point.x2 = ofdDocument.convertToDpi(point.x2);
+		  point.y2 = ofdDocument.convertToDpi(point.y2);
+		  point.x = ofdDocument.convertToDpi(point.x);
+		  point.y = ofdDocument.convertToDpi(point.y);
 		  currentX = point.x;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'c':
-		  point.x1 = convertToDpi(point.x1) + currentX;
-		  point.y1 = convertToDpi(point.y1) + currentY;
-		  point.x2 = convertToDpi(point.x2) + currentX;
-		  point.y2 = convertToDpi(point.y2) + currentY;
-		  point.x = convertToDpi(point.x) + currentX;
-		  point.y = convertToDpi(point.y) + currentY;
+		  point.x1 = ofdDocument.convertToDpi(point.x1) + currentX;
+		  point.y1 = ofdDocument.convertToDpi(point.y1) + currentY;
+		  point.x2 = ofdDocument.convertToDpi(point.x2) + currentX;
+		  point.y2 = ofdDocument.convertToDpi(point.y2) + currentY;
+		  point.x = ofdDocument.convertToDpi(point.x) + currentX;
+		  point.y = ofdDocument.convertToDpi(point.y) + currentY;
 		  currentX = point.x;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		  case 'S':
 			if ('x2' in point && 'y2' in point) {
-			  point.x2 = convertToDpi(point.x2);
-			  point.y2 = convertToDpi(point.y2);
-			  point.x = convertToDpi(point.x);
-			  point.y = convertToDpi(point.y);
+			  point.x2 = ofdDocument.convertToDpi(point.x2);
+			  point.y2 = ofdDocument.convertToDpi(point.y2);
+			  point.x = ofdDocument.convertToDpi(point.x);
+			  point.y = ofdDocument.convertToDpi(point.y);
 			} else {
 			  // 处理只有2个坐标的情况
-			  point.x = convertToDpi(point.x);
-			  point.y = convertToDpi(point.y);
+			  point.x = ofdDocument.convertToDpi(point.x);
+			  point.y = ofdDocument.convertToDpi(point.y);
 			}
 			currentX = point.x;
 			currentY = point.y;
@@ -304,78 +293,78 @@ export const calPathPoint = function (abbreviatedPoint: any) {
 			break;
 		  case 's':
 			if ('x2' in point && 'y2' in point) {
-			  point.x2 = convertToDpi(point.x2) + currentX;
-			  point.y2 = convertToDpi(point.y2) + currentY;
-			  point.x = convertToDpi(point.x) + currentX;
-			  point.y = convertToDpi(point.y) + currentY;
+			  point.x2 = ofdDocument.convertToDpi(point.x2) + currentX;
+			  point.y2 = ofdDocument.convertToDpi(point.y2) + currentY;
+			  point.x = ofdDocument.convertToDpi(point.x) + currentX;
+			  point.y = ofdDocument.convertToDpi(point.y) + currentY;
 			} else {
 			  // 处理只有2个坐标的情况
-			  point.x = convertToDpi(point.x) + currentX;
-			  point.y = convertToDpi(point.y) + currentY;
+			  point.x = ofdDocument.convertToDpi(point.x) + currentX;
+			  point.y = ofdDocument.convertToDpi(point.y) + currentY;
 			}
 			currentX = point.x;
 			currentY = point.y;
 			pointList.push(point);
 			break;
 		case 'Q':
-		  point.x1 = convertToDpi(point.x1);
-		  point.y1 = convertToDpi(point.y1);
-		  point.x = convertToDpi(point.x);
-		  point.y = convertToDpi(point.y);
+		  point.x1 = ofdDocument.convertToDpi(point.x1);
+		  point.y1 = ofdDocument.convertToDpi(point.y1);
+		  point.x = ofdDocument.convertToDpi(point.x);
+		  point.y = ofdDocument.convertToDpi(point.y);
 		  currentX = point.x;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'q':
-		  point.x1 = convertToDpi(point.x1) + currentX;
-		  point.y1 = convertToDpi(point.y1) + currentY;
-		  point.x = convertToDpi(point.x) + currentX;
-		  point.y = convertToDpi(point.y) + currentY;
+		  point.x1 = ofdDocument.convertToDpi(point.x1) + currentX;
+		  point.y1 = ofdDocument.convertToDpi(point.y1) + currentY;
+		  point.x = ofdDocument.convertToDpi(point.x) + currentX;
+		  point.y = ofdDocument.convertToDpi(point.y) + currentY;
 		  currentX = point.x;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'T':
-		  point.x = convertToDpi(point.x);
-		  point.y = convertToDpi(point.y);
+		  point.x = ofdDocument.convertToDpi(point.x);
+		  point.y = ofdDocument.convertToDpi(point.y);
 		  currentX = point.x;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 't':
-		  point.x = convertToDpi(point.x) + currentX;
-		  point.y = convertToDpi(point.y) + currentY;
+		  point.x = ofdDocument.convertToDpi(point.x) + currentX;
+		  point.y = ofdDocument.convertToDpi(point.y) + currentY;
 		  currentX = point.x;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'A':
-		  point.rx = convertToDpi(point.rx);
-		  point.ry = convertToDpi(point.ry);
-		  point.x = convertToDpi(point.x);
-		  point.y = convertToDpi(point.y);
+		  point.rx = ofdDocument.convertToDpi(point.rx);
+		  point.ry = ofdDocument.convertToDpi(point.ry);
+		  point.x = ofdDocument.convertToDpi(point.x);
+		  point.y = ofdDocument.convertToDpi(point.y);
 		  currentX = point.x;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'a':
-		  point.rx = convertToDpi(point.rx);
-		  point.ry = convertToDpi(point.ry);
-		  point.x = convertToDpi(point.x) + currentX;
-		  point.y = convertToDpi(point.y) + currentY;
+		  point.rx = ofdDocument.convertToDpi(point.rx);
+		  point.ry = ofdDocument.convertToDpi(point.ry);
+		  point.x = ofdDocument.convertToDpi(point.x) + currentX;
+		  point.y = ofdDocument.convertToDpi(point.y) + currentY;
 		  currentX = point.x;
 		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'B':
-		  point.x1 = convertToDpi(point.x1);
-		  point.y1 = convertToDpi(point.y1);
-		  point.x2 = convertToDpi(point.x2);
-		  point.y2 = convertToDpi(point.y2);
-		  point.x3 = convertToDpi(point.x3);
-		  point.y3 = convertToDpi(point.y3);
-		  currentX = point.x3;
-		  currentY = point.y3;
+		  point.x1 = ofdDocument.convertToDpi(point.x1);
+		  point.y1 = ofdDocument.convertToDpi(point.y1);
+		  point.x2 = ofdDocument.convertToDpi(point.x2);
+		  point.y2 = ofdDocument.convertToDpi(point.y2);
+		  point.x = ofdDocument.convertToDpi(point.x3);
+		  point.y = ofdDocument.convertToDpi(point.y3);
+		  currentX = point.x;
+		  currentY = point.y;
 		  pointList.push(point);
 		  break;
 		case 'Z':
@@ -387,7 +376,7 @@ export const calPathPoint = function (abbreviatedPoint: any) {
 	return pointList;
   }
 
-export const calPathPoint2 = function (abbreviatedPoint: any) {
+export const calPathPoint2 = function (ofdDocument: OfdDocument, abbreviatedPoint: any) {
 	let pointList = [];
 
 	for (let i = 0; i < abbreviatedPoint.length; i++) {
@@ -396,17 +385,17 @@ export const calPathPoint2 = function (abbreviatedPoint: any) {
 			let x = 0, y = 0;
 			x = point.x;
 			y = point.y;
-			point.x = convertToDpi(x);
-			point.y = convertToDpi(y);
+			point.x = ofdDocument.convertToDpi(x);
+			point.y = ofdDocument.convertToDpi(y);
 			pointList.push(point);
 		} else if (point.type === 'B') {
 			let x1 = point.x1, y1 = point.y1;
 			let x2 = point.x2, y2 = point.y2;
 			let x3 = point.x3, y3 = point.y3;
 			let realPoint = {
-				'type': 'B', 'x1': convertToDpi(x1), 'y1': convertToDpi(y1),
-				'x2': convertToDpi(x2), 'y2': convertToDpi(y2),
-				'x3': convertToDpi(x3), 'y3': convertToDpi(y3)
+				'type': 'B', 'x1': ofdDocument.convertToDpi(x1), 'y1': ofdDocument.convertToDpi(y1),
+				'x2': ofdDocument.convertToDpi(x2), 'y2': ofdDocument.convertToDpi(y2),
+				'x3': ofdDocument.convertToDpi(x3), 'y3': ofdDocument.convertToDpi(y3)
 			}
 			pointList.push(realPoint);
 		}

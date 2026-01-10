@@ -20,10 +20,12 @@ const executeClickAction = (liteOfd: LiteOfd, action: XmlData) => {
     console.log("执行点击行动")
     let actionDest = parser.findValueByTagName(action, OFD_KEY.Goto)
     if(actionDest) {
-        console.log("执行跳转行动", actionDest)
         let pageNum = parser.findAttributeValueByKey(action, AttributeKey.PageNum)
+        let topPosition = parser.findAttributeValueByKey(action, AttributeKey.Top)
+        let topPos = liteOfd.getOfdDocument().convertToDpi(parseFloat(topPosition))
+        console.log("执行跳转行动", actionDest, topPosition, topPos)
         if(pageNum) {
-            liteOfd.scrollToPage(parseInt(pageNum))
+            liteOfd.goToPage(parseInt(pageNum))
         }
     }
 }

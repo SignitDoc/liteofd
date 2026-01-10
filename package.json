@@ -1,7 +1,7 @@
 {
   "name": "liteofd",
   "private": false,
-  "version": "0.2.6",
+  "version": "0.4.0",
   "description": "A lightweight OFD parsing and rendering library",
   "keywords": [
     "liteofd.js",
@@ -26,7 +26,9 @@
       "require": "./dist/index.js",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    }
+    },
+    "./main.css": "./dist/assets/main.css",
+    "./base.css": "./dist/assets/base.css"
   },
   "repository": {
     "type": "git",

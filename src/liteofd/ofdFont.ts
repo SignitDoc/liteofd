@@ -14,9 +14,14 @@ import { normalizeFontName } from "./utils/ofdUtils"
 import { fontCache } from "./font/font_cache"
 import { tryLoadSystemFont, isFontLoaded } from "./font/system_font_loader"
 import { getChineseFontSubstitution, isChineseFont } from "./font/chinese_font_substitutions"
+import opentype from '../opentype/index.js'
 
 // 全局变量，表示已经加载的字体（向后兼容）
 export const loadedFonts = new Map()
+// ofd文件中的字体文件数据进行加载，加载出来的数据
+export const opentypeFonts = new Map()
+// 字体的id和字体名字的对应值
+export const fontIdWithName = new Map()
 
 // 字体预加载路径配置
 let fontPreloadPath = '/liteofd/assets/fonts/'
@@ -436,22 +441,47 @@ export const loadLocalDefaultFonts = async () => {
 	loadedFonts.clear();
 }
 
-const defaultFonts = [
-	'Times-Roman',
-	'Times-Bold',
-	'Times-Italic',
-	'Times-BoldItalic',
-	'Helvetica',
-	'Helvetica-Bold',
-	'Helvetica-Oblique',
-	'Helvetica-BoldOblique',
-	'Courier',
-	'Courier-Bold',
-	'Courier-Oblique',
-	'Courier-BoldOblique',
-	'Symbol',
-	'ZapfDingbats'
-];
+/**
+ * 默认字体映射，字体名称到字体文件名的映射
+ * 基于 fonts 目录中的实际字体文件
+ */
+const defaultFontsMap = new Map([
+	['KaiTi_GB2312', 'KaiTi_GB2312.ttf'],
+	['FangSong_GB2312', 'FangSong_GB2312.otf'],
+	['Times-Roman', 'Times-Roman.otf'],
+	['Times-Bold', 'Times-Bold.otf'],
+	['Times-Italic', 'Times-Italic.otf'],
+	['Times-BoldItalic', 'Times-BoldItalic.otf'],
+	['Helvetica', 'Helvetica.otf'],
+	['Helvetica-Bold', 'Helvetica-Bold.otf'],
+	['Helvetica-Oblique', 'Helvetica-Oblique.otf'],
+	['Helvetica-BoldOblique', 'Helvetica-BoldOblique.ttf'],
+	['Courier', 'Courier.otf'],
+	['Courier-Bold', 'Courier-Bold.otf'],
+	['Courier-Oblique', 'Courier-Oblique.otf'],
+	['Courier-BoldOblique', 'Courier-BoldOblique.otf'],
+	['ZapfDingbats', 'ZapfDingbats.otf'],
+	['SimSun', 'simsun.ttf'],
+	['NSimSun', 'Nsimsun.ttf'],
+	['SimHei', 'simhei.ttf'],
+	['SimKai', 'simkai.ttf'],
+	['SimFang', 'SIMFANG.TTF'],
+	['xbst', 'xbst.ttf'],
+	['ArialMT', 'ArialMT.ttf']
+]);
+
+/**
+ * 默认字体列表，用于兼容性
+ */
+const defaultFonts = Array.from(defaultFontsMap.keys());
+
+/**
+ * 获取默认字体映射
+ * @returns 字体名称到文件名的映射
+ */
+export const getDefaultFontsMap = () => {
+	return defaultFontsMap;
+}
 
 export const isDefaultFont = (fontName) => {
     return defaultFonts.includes(fontName);
@@ -461,7 +491,19 @@ export const loadDefaultFont = async (fontName) => {
 	if(!isDefaultFont(fontName)) {
 		return;
 	}
-	await loadStandardFont(fontName);
+	try {
+		// 从字体映射中获取对应的文件名
+		const fileName = defaultFontsMap.get(fontName);
+		if (!fileName) {
+			console.error(`未找到字体 ${fontName} 对应的文件`);
+			return;
+		}
+		const fontPath = getFontURL(fileName, fileName.endsWith('.ttf') ? 'ttf' : 'otf');
+		await loadOTFFont(fontName, fontPath)
+	} catch (error) {
+		console.error(`加载字体 ${fontName} 时出错:`, error);
+		throw error;
+	}
 }
 
 export const loadLocalDefaultFont = async (fontName, fontPath) => {
@@ -496,6 +538,10 @@ export async function loadOTFFont(fontName, fontPath) {
 		fontFace: font
 	  };
 	  fontCache.set(fontName, entry);
+
+	  // 使用opentype进行加载完成的字体对象，这个对象要用来进行绘制字体字形灯内容
+	  let opentypeFontData = opentype.parse(fontData, null)
+	  opentypeFonts.set(fontName, opentypeFontData)
 	} catch (error) {
 	  console.error(`加载字体 ${fontName} 时出错:`, error);
 	  throw error;

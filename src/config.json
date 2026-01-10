@@ -1,0 +1,29 @@
+{
+  "renderPages": [],
+  "debug": {
+    "drawTextBoundaryBox": false,
+    "drawPathBoundaryBox": false,
+    "drawImageBoundaryBox": false,
+    "logCTMTransform": false,
+    "logTextRendering": false,
+    "logFontLoading": false,
+    "showFPS": false
+  },
+  "rendering": {
+    "enableAntialiasing": true,
+    "textRenderingOptimization": true,
+    "fontCacheSize": 100,
+    "maxCanvasSize": 8192
+  },
+  "performance": {
+    "enableLazyLoading": true,
+    "enablePageCaching": true,
+    "maxCachedPages": 3
+  },
+  "features": {
+    "enableZoom": true,
+    "enablePan": true,
+    "enableTextSelection": true,
+    "enableAnnotation": false
+  }
+}

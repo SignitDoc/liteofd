@@ -21,7 +21,7 @@ body { margin: 0; }
   transform-origin: 0 0;
   align-content: end;
 
-:is(span, br) {
+:is(span, br, div) {
   color: transparent;
   white-space: pre;
   cursor: text;
@@ -66,5 +66,9 @@ body { margin: 0; }
   color: transparent;
 }
 
-.page-container {
+.pages-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }

@@ -4,7 +4,7 @@ import { getOFDFilePath } from "./elementUtils"
 import { RootDocPath } from "../parser"
 import { OfdDocument } from "../ofdDocument"
 import { XmlData } from "../ofdData"
-import { isDefaultFont, loadDefaultFont, loadedFonts, loadSingleFont } from "../ofdFont"
+import { fontIdWithName, isDefaultFont, loadDefaultFont, loadedFonts, loadSingleFont, opentypeFonts } from "../ofdFont"
 
 const fontDefaultDir = "/Doc_0/Res"
 /**
@@ -18,7 +18,11 @@ const loadOFDFonts = async (files: any, fonts: XmlData) => {
 			let fontData = fonts.children[i]
 			let fontName = parser.findAttributeValueByKey(fontData, AttributeKey.FontName)
 			let familyName = parser.findAttributeValueByKey(fontData, AttributeKey.FamilyName)
+			let fontId = parser.findAttributeValueByKey(fontData, AttributeKey.ID)
 			let fontFile = parser.findValueByTagName(fontData, OFD_KEY.FontFile)
+			// 将字体的id和name进行匹配
+			fontIdWithName.set(fontId, fontName)
+			console.log("load font res 11", fontIdWithName, fontFile)
 			if (fontFile && fontFile.value) {
 				let fileName = fontFile.value
 				let fontFilePath = fontDefaultDir + "/" + fileName
@@ -26,14 +30,14 @@ const loadOFDFonts = async (files: any, fonts: XmlData) => {
 				let nativeFontFile = files[realFilePath]
 				if (nativeFontFile) {
 					let fontRes = await loadSingleFont(nativeFontFile, fontData)
-					// console.log("font res", fontRes)
 				}
 			} else {
 				let realFontName = fontName || familyName
 				realFontName = convertNonStandardFont(realFontName)
-				console.log("realFontName", realFontName)
+				console.log("realFontName fontName", realFontName)
 				if(realFontName && isDefaultFont(realFontName)) {
-					// await loadDefaultFont(realFontName)
+					// 通过默认字体加载，加载opentype.js加载本地的默认字体文件
+					await loadDefaultFont(realFontName)
 				}
 			}
 		}
@@ -201,7 +205,6 @@ const loadAnnots = async (ofdFiles: any, ofdDocument: OfdDocument, annoteRes: Xm
  */
 export const convertNonStandardFont = (fontName: string): string => {
 	// 处理带有前缀的字体名称
-	console.log("convert fontName", fontName, loadedFonts)
 	if(loadedFonts.has(fontName)) {
 		return fontName
 	}
@@ -221,17 +224,17 @@ export const convertNonStandardFont = (fontName: string): string => {
 		// 'ArialUnicodeMS-BoldItalic': 'Helvetica-BoldOblique',
 		// 'ArialUnicodeMS Italic': 'Helvetica-Oblique',
 		// 'ArialUnicodeMS-Italic': 'Helvetica-Oblique'
-		'KaiTi_GB2312': 'KaiTi',
-		'KaiTi_GB2312-Bold': 'KaiTi-Bold',
-		'KaiTi_GB2312-BoldItalic': 'KaiTi-BoldItalic',
-		'KaiTi_GB2312-Italic': 'KaiTi-Italic'
+		// 'KaiTi_GB2312': 'KaiTi',
+		// 'KaiTi_GB2312-Bold': 'KaiTi-Bold',
+		// 'KaiTi_GB2312-BoldItalic': 'KaiTi-BoldItalic',
+		// 'KaiTi_GB2312-Italic': 'KaiTi-Italic'
 	};
 
 	// 将非标准字体转换为标准字体
 	if (fontMapping[fontName]) {
 		fontName = fontMapping[fontName];
 	}
-	
+
 
 	// 循环检查fontMapping中的key，查找包含fontName的匹配项
 	for (const key in fontMapping) {
@@ -240,12 +243,12 @@ export const convertNonStandardFont = (fontName: string): string => {
 		if (pattern.test(key)) {
 			return fontMapping[key];
 		}
-		
+
 		// 也检查fontName是否包含key（反向匹配）
 		if (fontName.includes(key)) {
 			return fontMapping[key];
 		}
-	}	
+	}
 	return fontName;
 }
 

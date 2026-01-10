@@ -36,11 +36,14 @@ export const AttributeKey = {
 	Clip: "Clip", // 裁剪
 	Title: "Title", // 大纲的标题
 	PageNum: "PageNum", // 大纲的页面位置
+	Top: "Top", // actions的top位置
 	Event: "Event", // 点击事件，比如大纲中的action的事件Click
-	PageID: "PageID", // 
-	Type: "Type", // 
+	PageID: "PageID", //
+	Type: "Type", //
 	Subtype: "Subtype", // 注释的子类型
-	DashPattern: "DashPattern", // 
+	DashPattern: "DashPattern", //
+	BitsPerComponent: "BitsPerComponent", // 颜色空间每个分量的位数
+	Rule: "Rule", // 路径填充规则
 }
 
 // ofd的xml标签中的标签名tagName
@@ -85,6 +88,8 @@ export const OFD_KEY = {
 	MediaFile: "ofd:MediaFile",
 	Font: "ofd:Font",
 	Fonts: "ofd:Fonts",
+	ColorSpaces: "ofd:ColorSpaces",
+	ColorSpace: "ofd:ColorSpace",
 	CustomDatas: "ofd:CustomDatas",
 	DocInfo: "ofd:DocInfo",
 	PageArea: "ofd:PageArea",
@@ -156,12 +161,12 @@ export const ANNOT_TYPE = {
 		value: "Path",
 		subType: {
 			Watercolor: "Watercolor", // 水印，需要在文本层上面
-			Fluorescent: "Fluorescent", // 荧光笔，在文本层上面 
+			Fluorescent: "Fluorescent", // 荧光笔，在文本层上面
 			Pen: "Pen", // 笔触，在文本层上面
 			Strikeout: "Strikeout", // 删除线，要在文本层的index上面
 			Squiggly: "Squiggly", // 下划线的弯弯曲曲类型，放在文本底部的，要在文本下面把
 		}
-	}, 
+	},
 	Stamp: {
 		value: "Stamp",
 		subType: {
@@ -169,5 +174,5 @@ export const ANNOT_TYPE = {
 			SignatureInFile: "SignatureInFile", // 印章
 		}
 	}
-	
+
 }
