@@ -19,7 +19,7 @@ import { getChineseFontSubstitution, isChineseFont } from "./font/chinese_font_s
 export const loadedFonts = new Map()
 
 // 字体预加载路径配置
-let fontPreloadPath = '/fonts/'
+let fontPreloadPath = '/liteofd/assets/fonts/'
 
 // 字体 URL 生成函数
 export type FontURLGenerator = (fontName: string, extension?: string) => string

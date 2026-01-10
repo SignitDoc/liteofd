@@ -55,7 +55,7 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: 'public/assets', to: 'assets' },
-        { from: 'fonts', to: 'fonts' },
+        // { from: 'fonts', to: 'fonts' },
         // 复制src/index.d.ts到dist目录
         { from: 'src/index.d.ts', to: 'index.d.ts' }
       ],
