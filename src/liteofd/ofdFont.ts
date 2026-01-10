@@ -21,6 +21,10 @@ export const loadedFonts = new Map()
 // 字体预加载路径配置
 let fontPreloadPath = '/assets/fonts/'
 
+// 字体 URL 生成函数
+export type FontURLGenerator = (fontName: string, extension?: string) => string
+let fontURLGenerator: FontURLGenerator | null = null
+
 /**
  * 设置字体预加载路径
  * @param path 字体文件的基础路径，例如 '/assets/fonts/' 或 'https://cdn.example.com/fonts/'
@@ -39,6 +43,50 @@ export const setFontPreloadPath = (path: string) => {
  */
 export const getFontPreloadPath = () => {
 	return fontPreloadPath
+}
+
+/**
+ * 设置字体 URL 生成函数
+ * @param generator 字体 URL 生成函数，参数为字体名称和扩展名，返回字体文件的完整 URL
+ *
+ * @example
+ * // 使用 CDN 地址
+ * setFontURLGenerator((fontName, extension) =>
+ *   `https://cdn.example.com/fonts/${fontName}.${extension || 'otf'}`
+ * )
+ *
+ * @example
+ * // 根据字体名称返回不同的路径
+ * setFontURLGenerator((fontName) => {
+ *   if (fontName.startsWith('Times')) {
+ *     return `/static/times/${fontName}.ttf`
+ *   }
+ *   return `/assets/fonts/${fontName}.otf`
+ * })
+ *
+ * @example
+ * // 重置为默认行为
+ * setFontURLGenerator(null)
+ */
+export const setFontURLGenerator = (generator: FontURLGenerator | null) => {
+	fontURLGenerator = generator
+	if (generator) {
+		console.log('[FontLoader] Font URL generator set')
+	} else {
+		console.log('[FontLoader] Font URL generator reset to default')
+	}
+}
+
+/**
+ * 获取字体文件的 URL
+ * @param fontName 字体名称
+ * @param extension 字体文件扩展名，默认为 'otf'
+ */
+export const getFontURL = (fontName: string, extension = 'otf'): string => {
+	if (fontURLGenerator) {
+		return fontURLGenerator(fontName, extension)
+	}
+	return `${fontPreloadPath}${fontName}.${extension}`
 }
 
 /**
@@ -221,7 +269,7 @@ const loadStandardFont = async (fontName) => {
 		return;
 	}
 
-	const fontPath = `${fontPreloadPath}${fontName}.otf`;
+	const fontPath = getFontURL(fontName, 'otf');
 	try {
 		const response = await fetch(fontPath);
 		if (!response.ok) {
