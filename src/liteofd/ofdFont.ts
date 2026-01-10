@@ -19,7 +19,7 @@ import { getChineseFontSubstitution, isChineseFont } from "./font/chinese_font_s
 export const loadedFonts = new Map()
 
 // 字体预加载路径配置
-let fontPreloadPath = '/assets/fonts/'
+let fontPreloadPath = '/fonts/'
 
 // 字体 URL 生成函数
 export type FontURLGenerator = (fontName: string, extension?: string) => string
@@ -27,7 +27,7 @@ let fontURLGenerator: FontURLGenerator | null = null
 
 /**
  * 设置字体预加载路径
- * @param path 字体文件的基础路径，例如 '/assets/fonts/' 或 'https://cdn.example.com/fonts/'
+ * @param path 字体文件的基础路径，例如 '/fonts/' 或 'https://cdn.example.com/fonts/'
  */
 export const setFontPreloadPath = (path: string) => {
 	if (!path) {
@@ -61,7 +61,7 @@ export const getFontPreloadPath = () => {
  *   if (fontName.startsWith('Times')) {
  *     return `/static/times/${fontName}.ttf`
  *   }
- *   return `/assets/fonts/${fontName}.otf`
+ *   return `/fonts/${fontName}.otf`
  * })
  *
  * @example
