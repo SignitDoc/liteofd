@@ -14,6 +14,7 @@ import Layer from './liteofd/layer';
 import * as parser from './liteofd/parser';
 import { AttributeKey, OFD_KEY, OFD_ACTION, ANNOT_TYPE, MultiChildTagName } from './liteofd/attrType';
 import * as ofdFont from './liteofd/ofdFont';
+import { setFontPreloadPath, getFontPreloadPath } from './liteofd/ofdFont';
 
 // 导出所有模块
 export {
@@ -35,5 +36,7 @@ export {
   OFD_ACTION,
   ANNOT_TYPE,
   MultiChildTagName,
-  ofdFont
+  ofdFont,
+  setFontPreloadPath,
+  getFontPreloadPath
 };

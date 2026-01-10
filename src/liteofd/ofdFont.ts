@@ -18,6 +18,29 @@ import { getChineseFontSubstitution, isChineseFont } from "./font/chinese_font_s
 // 全局变量，表示已经加载的字体（向后兼容）
 export const loadedFonts = new Map()
 
+// 字体预加载路径配置
+let fontPreloadPath = '/assets/fonts/'
+
+/**
+ * 设置字体预加载路径
+ * @param path 字体文件的基础路径，例如 '/assets/fonts/' 或 'https://cdn.example.com/fonts/'
+ */
+export const setFontPreloadPath = (path: string) => {
+	if (!path) {
+		console.warn('[FontLoader] Font preload path is empty, using default')
+		return
+	}
+	fontPreloadPath = path.endsWith('/') ? path : path + '/'
+	console.log(`[FontLoader] Font preload path set to: ${fontPreloadPath}`)
+}
+
+/**
+ * 获取当前字体预加载路径
+ */
+export const getFontPreloadPath = () => {
+	return fontPreloadPath
+}
+
 /**
  * 加载内置文件的字体
  * @param fontName 字体名称
@@ -198,7 +221,7 @@ const loadStandardFont = async (fontName) => {
 		return;
 	}
 
-	const fontPath = `/assets/fonts/${fontName}.otf`;
+	const fontPath = `${fontPreloadPath}${fontName}.otf`;
 	try {
 		const response = await fetch(fontPath);
 		if (!response.ok) {
@@ -412,13 +435,13 @@ export async function loadOTFFont(fontName, fontPath) {
 		console.error(`无法加载字体文件: ${fontName}`)
 		return;
 	  }
-  
+
 	  const fontData = await response.arrayBuffer();
 	  const font = new FontFace(fontName, fontData);
 	  let loadRes = await font.load();
 	  console.log("load font res", fontName, loadRes)
 	  document.fonts.add(font);
-	  
+
 	  const entry = {
 		type: 'standard',
 		name: fontName,
