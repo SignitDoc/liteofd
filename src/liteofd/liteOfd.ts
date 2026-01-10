@@ -4,10 +4,8 @@ import * as parser from "./parser"
 import { OfdWriter } from "./ofdWriter"
 import { XmlData } from "./ofdData"
 import * as ofdActions from "./ofdActions"
-import { loadLocalDefaultFonts } from "./ofdFont"
 import { ConfigUI } from "../config/configUI"
 import { ConfigManager } from "../config/configManager"
-import { numberToString } from "./font/core_utils"
 
 /**
  * LiteOfd 类是一个用于处理 OFD 文件的轻量级库。
@@ -196,8 +194,6 @@ export default class LiteOfd {
    */
   async parse(file: string | File | ArrayBuffer): Promise<OfdDocument> {
     try {
-      // 添加本地的simSun等字体
-      // await loadLocalDefaultFonts()
       this.ofdDocument = await parser.parseOFDFile(file).promise
       this.ofdDocument.renderTextLayer = this.renderTextLayer
       return this.ofdDocument

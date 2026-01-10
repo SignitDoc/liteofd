@@ -19,7 +19,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    "suppressImplicitAnyIndexErrors": true,
+
     "ignoreDeprecations":"5.0",
     "noImplicitAny": false,
 

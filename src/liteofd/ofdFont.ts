@@ -1,32 +1,353 @@
-import { getSerifFonts, getStdFontMap, getSymbolsFonts } from "./font/standard_fonts.js"
+import { getSerifFonts, getStdFontMap, getSymbolsFonts } from "./font/standard_fonts"
 import { getMetrics } from "./font/metrics"
-import { FontFlags } from "./font/fonts_utils.js"
-import { IdentityToUnicodeMap, ToUnicodeMap } from "./font/to_unicode_map.js"
-import { defaultEncoding, differences, glyphsWidths, toUnicodeMap } from "./font/differences.js"
-import { TranslatedFont } from "./font/translatedFont.js"
-import { FontFaceObject, FontLoader } from "./font/font_loader.js"
-import { ChunkedStream } from "./font/chunked_stream.js"
-import { Font } from "./font/fonts.js"
+import { FontFlags } from "./font/fonts_utils"
+import { IdentityToUnicodeMap, ToUnicodeMap } from "./font/to_unicode_map"
+import { defaultEncoding, differences, glyphsWidths, toUnicodeMap } from "./font/differences"
+import { TranslatedFont } from "./font/translatedFont"
+import { FontFaceObject, FontLoader } from "./font/font_loader"
+import { ChunkedStream } from "./font/chunked_stream"
+import { Font } from "./font/fonts"
 import { XmlData } from "./ofdData"
 import * as parser from "./parser"
 import { AttributeKey } from "./attrType"
 import { normalizeFontName } from "./utils/ofdUtils"
+import { fontCache } from "./font/font_cache"
+import { tryLoadSystemFont, isFontLoaded } from "./font/system_font_loader"
+import { getChineseFontSubstitution, isChineseFont } from "./font/chinese_font_substitutions"
 import opentype from '../opentype/index.js'
 
-// 全局变量，表示已经加载的字体
+// 全局变量，表示已经加载的字体（向后兼容）
 export const loadedFonts = new Map()
 // ofd文件中的字体文件数据进行加载，加载出来的数据
 export const opentypeFonts = new Map()
 // 字体的id和字体名字的对应值
 export const fontIdWithName = new Map()
 
+// 字体预加载路径配置
+let fontPreloadPath = '/liteofd/assets/fonts/'
+
+// 字体 URL 生成函数
+export type FontURLGenerator = (fontName: string, extension?: string) => string
+let fontURLGenerator: FontURLGenerator | null = null
+
+/**
+ * 设置字体预加载路径
+ * @param path 字体文件的基础路径，例如 '/fonts/' 或 'https://cdn.example.com/fonts/'
+ */
+export const setFontPreloadPath = (path: string) => {
+	if (!path) {
+		console.warn('[FontLoader] Font preload path is empty, using default')
+		return
+	}
+	fontPreloadPath = path.endsWith('/') ? path : path + '/'
+	console.log(`[FontLoader] Font preload path set to: ${fontPreloadPath}`)
+}
+
+/**
+ * 获取当前字体预加载路径
+ */
+export const getFontPreloadPath = () => {
+	return fontPreloadPath
+}
+
+/**
+ * 设置字体 URL 生成函数
+ * @param generator 字体 URL 生成函数，参数为字体名称和扩展名，返回字体文件的完整 URL
+ *
+ * @example
+ * // 使用 CDN 地址
+ * setFontURLGenerator((fontName, extension) =>
+ *   `https://cdn.example.com/fonts/${fontName}.${extension || 'otf'}`
+ * )
+ *
+ * @example
+ * // 根据字体名称返回不同的路径
+ * setFontURLGenerator((fontName) => {
+ *   if (fontName.startsWith('Times')) {
+ *     return `/static/times/${fontName}.ttf`
+ *   }
+ *   return `/fonts/${fontName}.otf`
+ * })
+ *
+ * @example
+ * // 重置为默认行为
+ * setFontURLGenerator(null)
+ */
+export const setFontURLGenerator = (generator: FontURLGenerator | null) => {
+	fontURLGenerator = generator
+	if (generator) {
+		console.log('[FontLoader] Font URL generator set')
+	} else {
+		console.log('[FontLoader] Font URL generator reset to default')
+	}
+}
+
+/**
+ * 获取字体文件的 URL
+ * @param fontName 字体名称
+ * @param extension 字体文件扩展名，默认为 'otf'
+ */
+export const getFontURL = (fontName: string, extension = 'otf'): string => {
+	if (fontURLGenerator) {
+		return fontURLGenerator(fontName, extension)
+	}
+	return `${fontPreloadPath}${fontName}.${extension}`
+}
+
+/**
+ * 加载内置文件的字体
+ * @param fontName 字体名称
+ * @param fontBytes 字体文件
+ */
+const loadFontByArrayBuffer = async (fontName, fontBytes) => {
+	let fontType = getFontType(fontBytes)
+	let baseFontName = fontName
+
+	const metrics = getBaseFontMetrics(baseFontName)
+	const fontNameWoStyle = baseFontName.split("-", 1)[0]
+	const flags =
+		(isSerifFont(fontNameWoStyle) ? FontFlags.Serif : 0) |
+		(metrics.monospace ? FontFlags.FixedPitch : 0) |
+		(getSymbolsFonts()[fontNameWoStyle]
+			? FontFlags.Symbolic
+			: FontFlags.Nonsymbolic);
+	const composite = fontType === "Type0"
+	const firstChar =  0,
+		lastChar = (composite ? 0xffff : 0xff);
+	const properties = getFontProperties(fontType, baseFontName, firstChar, lastChar, fontName)
+	properties.defaultEncoding = defaultEncoding
+	properties.differences = differences(); 
+	properties.widths = glyphsWidths
+	properties.defaultWidth = metrics.defaultWidth
+	properties.defaultVMetrics = null;
+
+	let fontStream = new ChunkedStream(fontBytes, fontBytes.length)
+	let font = new Font(baseFontName, fontStream, properties)
+	let fontFileData = font.data;
+
+	let options = {
+		"maxImageSize": -1,
+		"disableFontFace": false,
+		"ignoreErrors": true,
+		"isEvalSupported": true,
+		"isOffscreenCanvasSupported": true,
+		"canvasMaxAreaInBytes": -1,
+		"fontExtraProperties": false,
+		"useSystemFonts": true,
+		"cMapUrl": "../external/bcmaps/",
+		"standardFontDataUrl": "../external/standard_fonts/"
+	}
+	let obj = {"Type": { "name": "Font" }, "Subtype": { "name": "Type1" }, "Encoding": { "num": 976, "gen": 0 }, "FirstChar": 45, "LastChar": 122, "Widths": { "num": 993, "gen": 0 }, "BaseFont": { "name": "TACTGM+NimbusRomNo9L-Medi" }, "FontDescriptor": { "num": 4, "gen": 0 } }
+	let dict = new Map(Object.entries(obj))
+	let translatedFont = new TranslatedFont({
+		loadedName: font.loadedName,
+		font: font,
+		dict: dict,
+		evaluatorOptions: options,
+	});
+	const fontFaceObj = new FontFaceObject(translatedFont.font, {
+		isEvalSupported: true,
+		disableFontFace: false,
+		ignoreErrors: true,
+		inspectFont: null,
+	});
+	let fontLoader = new FontLoader({
+		loadedName: fontName
+	});
+	let loadRes = await fontLoader.bind(fontFaceObj)
+	console.log("load font res", loadRes)
+}
+
+/**
+ * 按需加载单个字体
+ * @param fontFile 字体文件
+ * @param fontData 字体数据
+ */
+export const loadSingleFont = async (fontFile, fontData) => {
+	try {
+		let fontName = parser.findAttributeValueByKey(fontData, AttributeKey.FontName);
+		fontName = normalizeFontName(fontName);
+		console.log("加载字体:", fontName);
+
+		await loadFontOnDemand(fontName, fontFile, fontData);
+		
+		// 向后兼容：设置 loadedFonts
+		loadedFonts.set(fontName, true);
+	} catch (e) {
+		console.error("加载字体出错", e);
+	}
+}
+
+/**
+ * 按需加载字体（主要入口函数）
+ * @param fontName 字体名称
+ * @param fontFile 字体文件（OFD 文档中嵌入）
+ * @param fontData 字体数据
+ */
+export const loadFontOnDemand = async (
+	fontName,
+	fontFile,
+	fontData
+) => {
+	const normalizedName = normalizeFontName(fontName);
+	console.log(`[FontLoader] Loading font on demand: ${normalizedName}`);
+
+	if (fontCache.has(normalizedName)) {
+		fontCache.markUsed(normalizedName);
+		console.log(`[FontLoader] Font loaded from cache: ${normalizedName}`);
+		return;
+	}
+
+	if (isFontLoaded(normalizedName)) {
+		const entry = {
+			type: 'system',
+			name: normalizedName
+		};
+		fontCache.set(normalizedName, entry);
+		console.log(`[FontLoader] Font already loaded: ${normalizedName}`);
+		return;
+	}
+
+	if (await tryLoadSystemFont(normalizedName)) {
+		console.log(`[FontLoader] System font loaded: ${normalizedName}`);
+		return;
+	}
+
+	if (fontFile) {
+		try {
+			const fontBytes = await fontFile.async("uint8array");
+			await loadEmbeddedFont(normalizedName, fontBytes);
+			console.log(`[FontLoader] Embedded font loaded: ${normalizedName}`);
+			return;
+		} catch (e) {
+			console.warn(`[FontLoader] Failed to load embedded font: ${normalizedName}`, e);
+		}
+	}
+
+	if (isDefaultFont(normalizedName)) {
+		try {
+			await loadStandardFont(normalizedName);
+			console.log(`[FontLoader] Standard font loaded: ${normalizedName}`);
+			return;
+		} catch (e) {
+			console.warn(`[FontLoader] Failed to load standard font: ${normalizedName}`, e);
+		}
+	}
+
+	console.warn(`[FontLoader] Font not found, using fallback: ${normalizedName}`);
+	await loadFallbackFont(normalizedName);
+};
+
+/**
+ * 加载嵌入字体
+ * @param fontName 字体名称
+ * @param fontBytes 字体字节数组
+ */
+const loadEmbeddedFont = async (fontName, fontBytes) => {
+	try {
+		const fontFace = new FontFace(fontName, fontBytes);
+		await fontFace.load();
+		document.fonts.add(fontFace);
+
+		const entry = {
+			type: 'embedded',
+			name: fontName,
+			fontFace: fontFace
+		};
+		fontCache.set(fontName, entry);
+	} catch (e) {
+		await loadFontByArrayBuffer(fontName, fontBytes);
+		fontCache.set(fontName, { type: 'embedded', name: fontName });
+	}
+}
+
+/**
+ * 加载标准字体
+ * @param fontName 字体名称
+ */
+const loadStandardFont = async (fontName) => {
+	if (!isDefaultFont(fontName)) {
+		return;
+	}
+
+	if (await tryLoadSystemFont(fontName)) {
+		return;
+	}
+
+	const fontPath = getFontURL(fontName, 'otf');
+	try {
+		const response = await fetch(fontPath);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch font: ${fontName}`);
+		}
+
+		const fontData = await response.arrayBuffer();
+		const font = new FontFace(fontName, fontData);
+		await font.load();
+		document.fonts.add(font);
+
+		const entry = {
+			type: 'standard',
+			name: fontName,
+			fontFace: font
+		};
+		fontCache.set(fontName, entry);
+	} catch (e) {
+		console.warn(`Failed to load standard font ${fontName}:`, e);
+		await loadFallbackFont(fontName);
+	}
+}
+
+/**
+ * 加载回退字体
+ * @param fontName 字体名称
+ */
+const loadFallbackFont = async (fontName) => {
+	const chineseSubstitution = getChineseFontSubstitution(fontName);
+	let fallbackFontName = "SimSun";
+
+	if (chineseSubstitution) {
+		if (chineseSubstitution.fallback) {
+			fallbackFontName = chineseSubstitution.fallback;
+		} else if (chineseSubstitution.ultimate) {
+			fallbackFontName = chineseSubstitution.ultimate;
+		}
+	}
+
+	if (isChineseFont(fontName)) {
+		if (fallbackFontName === "serif") {
+			fallbackFontName = "SimSun";
+		} else if (fallbackFontName === "sans-serif") {
+			fallbackFontName = "SimHei";
+		}
+	}
+
+	console.log(`[FontLoader] Using fallback font: ${fontName} -> ${fallbackFontName}`);
+
+	const entry = {
+		type: 'fallback',
+		name: fontName,
+		substitutedName: fallbackFontName
+	};
+	fontCache.set(fontName, entry);
+
+	if (await tryLoadSystemFont(fallbackFontName)) {
+		return;
+	}
+
+	if (isDefaultFont(fallbackFontName)) {
+		try {
+			await loadStandardFont(fallbackFontName);
+		} catch (e) {
+			console.error(`Failed to load fallback font ${fallbackFontName}:`, e);
+		}
+	}
+}
+
 /**
  * 判断是否为衬线字体
- * @param baseFontName 字体名称
- * @returns 是否为衬线字体
  */
-const isSerifFont = (baseFontName: string) => {
-	// Simulating descriptor flags attribute
+const isSerifFont = (baseFontName) => {
 	const fontNameWoStyle = baseFontName.split("-", 1)[0];
 	return (
 		fontNameWoStyle in getSerifFonts() || /serif/gi.test(fontNameWoStyle)
@@ -35,10 +356,8 @@ const isSerifFont = (baseFontName: string) => {
 
 /**
  * 获取字体度量
- * @param name 字体名称
- * @returns 字体度量
  */
-const getBaseFontMetrics = (name: string) => {
+const getBaseFontMetrics = (name) => {
 	let defaultWidth = 0;
 	let widths = Object.create({});
 	let monospace = false;
@@ -47,8 +366,6 @@ const getBaseFontMetrics = (name: string) => {
 	const Metrics = getMetrics();
 
 	if (!(lookupName in Metrics)) {
-		// Use default fonts for looking up font metrics if the passed
-		// font is not a base font
 		lookupName = isSerifFont(name) ? "Times-Roman" : "Helvetica";
 	}
 	const glyphWidths = Metrics[lookupName];
@@ -57,7 +374,7 @@ const getBaseFontMetrics = (name: string) => {
 		defaultWidth = glyphWidths;
 		monospace = true;
 	} else {
-		widths = glyphWidths(); // expand lazy widths array
+		widths = glyphWidths();
 	}
 
 	return {
@@ -69,22 +386,15 @@ const getBaseFontMetrics = (name: string) => {
 
 /**
  * 获取字体类型
- * @param fontData 字体数据
- * @returns 字体类型，目前固定返回 "Type1"
  */
-const getFontType = (fontData: any) => {
+const getFontType = (fontData) => {
 	return "Type1"
 }
 
 /**
  * 获取字体属性
- * @param fontType 字体类型
- * @param baseFontName 字体名称
- * @param firstChar 第一个字符
- * @param lastChar 最后一个字符
- * @param loadedName 加载名称
  */
-const getFontProperties = (fontType: string, baseFontName: string, firstChar: number, lastChar: number, loadedName: string) => {
+const getFontProperties = (fontType, baseFontName, firstChar, lastChar, loadedName) => {
 	const properties = {
 		baseEncodingName: null,
 		ascent: 690,
@@ -94,7 +404,7 @@ const getFontProperties = (fontType: string, baseFontName: string, firstChar: nu
 		name: baseFontName,
 		systemFontInfo: null,
 		isSimulatedFlags: true,
-		flags: 4, // 这里先默认填写这个
+		flags: 4,
 		italicAngle: 0,
 		firstChar: firstChar,
 		lastChar: lastChar,
@@ -122,244 +432,18 @@ const getFontProperties = (fontType: string, baseFontName: string, firstChar: nu
 }
 
 /**
- * 加载内置文件的字体
- * @param fontName 字体名称
- * @param fontBytes 字体文件
- */
-const loadFontByArrayBuffer = async (fontName: string, fontBytes: any) => {
-	let fontType = getFontType(fontBytes)
-	let baseFontName = fontName
-
-	const metrics = getBaseFontMetrics(baseFontName)
-	const fontNameWoStyle = baseFontName.split("-", 1)[0]
-	const flags =
-		(isSerifFont(fontNameWoStyle) ? FontFlags.Serif : 0) |
-		(metrics.monospace ? FontFlags.FixedPitch : 0) |
-		(getSymbolsFonts()[fontNameWoStyle]
-			? FontFlags.Symbolic
-			: FontFlags.Nonsymbolic);
-	const composite = fontType === "Type0"
-	const firstChar =  0,
-		lastChar = (composite ? 0xffff : 0xff);
-	const properties = getFontProperties(fontType, baseFontName, firstChar, lastChar, fontName)
-	properties.defaultEncoding = defaultEncoding
-	properties.differences = differences(); // 这个再ofd中要根据文件里面取读取，有的文件为空，有的文件为标准编码，有的文件中包含有differences需要读取之后取值，再文件的header里面
-	properties.widths = glyphsWidths
-	properties.defaultWidth = metrics.defaultWidth
-	properties.defaultVMetrics = null;
-
-	let fontStream = new ChunkedStream(fontBytes, fontBytes.length)
-	let font = new Font(baseFontName, fontStream, properties)
-	let fontFileData = font.data;
-
-	let options = {
-		"maxImageSize": -1,
-		"disableFontFace": false,
-		"ignoreErrors": true,
-		"isEvalSupported": true,
-		"isOffscreenCanvasSupported": true,
-		"canvasMaxAreaInBytes": -1,
-		"fontExtraProperties": false,
-		"useSystemFonts": true,
-		"cMapUrl": "../external/bcmaps/",
-		"standardFontDataUrl": "../external/standard_fonts/"
-	}
-	let obj = {"Type": { "name": "Font" }, "Subtype": { "name": "Type1" }, "Encoding": { "num": 976, "gen": 0 }, "FirstChar": 45, "LastChar": 122, "Widths": { "num": 993, "gen": 0 }, "BaseFont": { "name": "TACTGM+NimbusRomNo9L-Medi" }, "FontDescriptor": { "num": 4, "gen": 0 } }
-	let dict = new Map(Object.entries(obj))
-	// 将加载的font对象转换为可以识别成FontFace的内容
-	let translatedFont = new TranslatedFont({
-		loadedName: font.loadedName,
-		font: font,
-		dict: dict,
-		evaluatorOptions: options,
-	});
-	const fontFaceObj = new FontFaceObject(translatedFont.font, {
-		isEvalSupported: true,
-		disableFontFace: false,
-		ignoreErrors: true,
-		inspectFont: null,
-	});
-	let fontLoader = new FontLoader({
-		loadedName: fontName
-	});
-	let loadRes = await fontLoader.bind(fontFaceObj)
-	console.log("load font res", loadRes)
-	// fontLoader
-	// 	.bind(fontFaceObj)
-	// 	.then(res => {
-	// 		console.log("load font res", res)
-	// 	})
-	// 	.catch((error) => {
-	// 		console.log("load font err", error)
-	// 	})
-	// 	.finally(() => {
-	// 		// 加载字体完成
-	// 		console.log("load font finish", fontName)
-	// 	});
-}
-
-
-/**
- * 加载单个字体
- * @param fontFile 字体文件
- * @param fontData 字体数据
- */
-export const loadSingleFont = async (fontFile: any, fontData: XmlData) => {
-	let fontName = parser.findAttributeValueByKey(fontData, AttributeKey.FontName);
-	try {
-		// 规整字体名称
-		// fontName = normalizeFontName(fontName);
-		console.log("规整后的字体名称", fontName);
-
-		if (isDefaultFont(fontName)) {
-			await loadDefaultFont(fontName);
-		} else {
-			let fontBytes = await fontFile.async("uint8array");
-			// 使用opentype进行加载完成的字体对象，这个对象要用来进行绘制字体字形灯内容
-			let fontData = opentype.parse(fontBytes.buffer, null)
-			opentypeFonts.set(fontName, fontData)
-			console.log("opentype load font", fontName, fontData)
-			// opentype.load(fontFile.name, (err, font) => {
-			// 	console.log("opentype load font", font, err)
-			// }, null)
-			await loadFontByArrayBuffer(fontName, fontBytes);
-			loadedFonts.set(fontName, true)
-			// fontIdWithName.set()
-		}
-	} catch (e) {
-		console.error("加载字体出错", fontName, e);
-	}
-}
-
-/**
- * 加载本地的默认字体，比如simSun等，加载到一个全局变量的map中表示已经加载
+ * 加载本地的默认字体（已废弃，使用按需加载）
+ * @deprecated 使用 loadFontOnDemand 替代
  */
 export const loadLocalDefaultFonts = async () => {
-	try {
-		loadedFonts.clear()
-		if(!loadedFonts.has("SimSun")) {
-			const fontPath = `./assets/fonts/simsun.ttf`;
-			await loadLocalDefaultFont("SimSun", fontPath)
-			loadedFonts.set("SimSun", true)
-		}
-		if(!loadedFonts.has("NSimSun")) {
-			const fontPath = `./assets/fonts/Nsimsun.ttf`;
-			await loadLocalDefaultFont("NSimSun", fontPath)
-			loadedFonts.set("NSimSun", true)
-		}
-		if(!loadedFonts.has("SimHei")) {
-			const fontPath = `/assets/fonts/simhei.ttf`;
-			await loadLocalDefaultFont("SimHei", fontPath)
-			loadedFonts.set("SimHei", true)
-		}
-		if(!loadedFonts.has("SimKai")) {
-			const fontPath = `/assets/fonts/simkai.ttf`;
-			await loadLocalDefaultFont("SimKai", fontPath)
-			loadedFonts.set("SimKai", true)
-		}
-		if(!loadedFonts.has("SimFang")) {
-			const fontPath = `/assets/fonts/SimFang.ttf`;
-			await loadLocalDefaultFont("SimFang", fontPath)
-			loadedFonts.set("SimFang", true)
-		}
-		if(!loadedFonts.has("Courier")) {
-			const fontPath = `/assets/fonts/Courier.otf`;
-			await loadLocalDefaultFont("Courier", fontPath)
-			loadedFonts.set("Courier", true)
-		}
-		if(!loadedFonts.has("Courier-Bold")) {
-			const fontPath = `/assets/fonts/Courier-Bold.otf`;
-			await loadLocalDefaultFont("Courier-Bold", fontPath)
-			loadedFonts.set("Courier-Bold", true)
-		}
-		if(!loadedFonts.has("Courier-BoldOblique")) {
-			const fontPath = `/assets/fonts/Courier-BoldOblique.otf`;
-			await loadLocalDefaultFont("Courier-BoldOblique", fontPath)
-			loadedFonts.set("Courier-BoldOblique", true)
-		}
-		if(!loadedFonts.has("FangSong_GB2312")) {
-			const fontPath = `/assets/fonts/FangSong_GB2312.otf`;
-			await loadLocalDefaultFont("FangSong_GB2312", fontPath)
-			loadedFonts.set("FangSong_GB2312", true)
-		}
-		if(!loadedFonts.has("KaiTi_GB2312")) {
-			const fontPath = `/assets/fonts/KaiTi_GB2312.ttf`;
-			await loadLocalDefaultFont("KaiTi_GB2312", fontPath)
-			loadedFonts.set("KaiTi_GB2312", true)
-		}
-		if(!loadedFonts.has("Helvetica-Bold")) {
-			const fontPath = `/assets/fonts/Helvetica-Bold.otf`;
-			await loadLocalDefaultFont("Helvetica-Bold", fontPath)
-			loadedFonts.set("Helvetica-Bold", true)
-		}
-		if(!loadedFonts.has("Helvetica")) {
-			const fontPath = `/assets/fonts/Helvetica.otf`;
-			await loadLocalDefaultFont("Helvetica", fontPath)
-			loadedFonts.set("Helvetica", true)
-		}
-		if(!loadedFonts.has("Helvetica-Oblique")) {
-			const fontPath = `/assets/fonts/Helvetica-Oblique.otf`;
-			await loadLocalDefaultFont("Helvetica-Oblique", fontPath)
-			loadedFonts.set("Helvetica-Oblique", true)
-		}
-		if(!loadedFonts.has("Helvetica-BoldOblique")) {
-			const fontPath = `/assets/fonts/Helvetica-BoldOblique.ttf`;
-			await loadLocalDefaultFont("Helvetica-BoldOblique", fontPath)
-			loadedFonts.set("Helvetica-BoldOblique", true)
-		}
-		if(!loadedFonts.has("Times-Roman")) {
-			const fontPath = `/assets/fonts/Times-Roman.otf`;
-			await loadLocalDefaultFont("Times-Roman", fontPath)
-			loadedFonts.set("Times-Roman", true)
-		}
-		if(!loadedFonts.has("Times-Bold")) {
-			const fontPath = `/assets/fonts/Times-Bold.otf`;
-			await loadLocalDefaultFont("Times-Bold", fontPath)
-			loadedFonts.set("Times-Bold", true)
-		}
-		if(!loadedFonts.has("Times-Italic")) {
-			const fontPath = `/assets/fonts/Times-Italic.otf`;
-			await loadLocalDefaultFont("Times-Italic", fontPath)
-			loadedFonts.set("Times-Italic", true)
-		}
-		if(!loadedFonts.has("Times-BoldItalic")) {
-			const fontPath = `/assets/fonts/Times-BoldItalic.otf`;
-			await loadLocalDefaultFont("Times-BoldItalic", fontPath)
-			loadedFonts.set("Times-BoldItalic", true)
-		}
-		if(!loadedFonts.has("ZapfDingbats")) {
-			const fontPath = `/assets/fonts/ZapfDingbats.otf`;
-			await loadLocalDefaultFont("ZapfDingbats", fontPath)
-			loadedFonts.set("ZapfDingbats", true)
-		}
-		if(!loadedFonts.has("xbst")) {
-			const fontPath = `/assets/fonts/xbst.ttf`;
-			await loadLocalDefaultFont("xbst", fontPath)
-			loadedFonts.set("xbst", true)
-		}
-		if(!loadedFonts.has("ArialMT")) {
-			const fontPath = `/assets/fonts/ArialMT.ttf`;
-			await loadLocalDefaultFont("ArialMT", fontPath)
-			loadedFonts.set("ArialMT", true)
-		}
-		if(!loadedFonts.has("小标宋体")) {
-			const fontPath = `/assets/fonts/xiaobiaosongti.ttf`;
-			await loadLocalDefaultFont("小标宋体", fontPath)
-			loadedFonts.set("小标宋体", true)
-		}
-		if(!loadedFonts.has("仿宋")) {
-			const fontPath = `/assets/fonts/xiaobiaosongti.otf`;
-			await loadLocalDefaultFont("仿宋", fontPath)
-			loadedFonts.set("仿宋", true)
-		}
-	} catch (e) {
-		console.error("加载本地字体出错", e);
-	}
+	console.warn("loadLocalDefaultFonts is deprecated. Using on-demand font loading instead.");
+	fontCache.clear();
+	loadedFonts.clear();
 }
 
 /**
  * 默认字体映射，字体名称到字体文件名的映射
- * 基于 public/assets/fonts 目录中的实际字体文件
+ * 基于 fonts 目录中的实际字体文件
  */
 const defaultFontsMap = new Map([
 	['KaiTi_GB2312', 'KaiTi_GB2312.ttf'],
@@ -399,20 +483,11 @@ export const getDefaultFontsMap = () => {
 	return defaultFontsMap;
 }
 
-/**
- * 判断是否为默认字体
- * @param fontName 字体名称
- * @returns 是否为默认字体
- */
-export const isDefaultFont = (fontName: string): boolean => {
+export const isDefaultFont = (fontName) => {
     return defaultFonts.includes(fontName);
 }
 
-/**
- * 加载默认字体
- * @param fontName 字体名称
- */
-export const loadDefaultFont = async (fontName: string) => {
+export const loadDefaultFont = async (fontName) => {
 	if(!isDefaultFont(fontName)) {
 		return;
 	}
@@ -423,7 +498,7 @@ export const loadDefaultFont = async (fontName: string) => {
 			console.error(`未找到字体 ${fontName} 对应的文件`);
 			return;
 		}
-		const fontPath = `/assets/fonts/${fileName}`;
+		const fontPath = getFontURL(fileName, fileName.endsWith('.ttf') ? 'ttf' : 'otf');
 		await loadOTFFont(fontName, fontPath)
 	} catch (error) {
 		console.error(`加载字体 ${fontName} 时出错:`, error);
@@ -431,36 +506,44 @@ export const loadDefaultFont = async (fontName: string) => {
 	}
 }
 
-export const loadLocalDefaultFont = async (fontName: string, fontPath: string) => {
+export const loadLocalDefaultFont = async (fontName, fontPath) => {
 	try {
+		console.log('load local font', fontName, fontPath)
 		await loadOTFFont(fontName, fontPath)
 	} catch (error) {
 		console.error(`加载字体 ${fontName} 时出错:`, error);
 	}
 }
 
-/**
- * 加载 OTF 字体并添加到 @font-face
- * @param {string} fontName 字体名称
- * @param {string} fontPath 字体文件路径
- * @returns {Promise<void>}
- */
-export async function loadOTFFont(fontName: string, fontPath: string) {
+export async function loadOTFFont(fontName, fontPath) {
 	try {
-	  	// 加载字体文件
-	  	const response = await fetch(fontPath);
-	  	if (!response.ok) {
-			console.error(`无法加载字体文件: ${fontName}`)
-			return;
-	  	}
+	  if (document.fonts.check(`1em ${fontName}`)) {
+	        return;
+	  }
+	  const response = await fetch(fontPath);
+	  if (!response.ok) {
+		console.error(`无法加载字体文件: ${fontName}`)
+		return;
+	  }
 
-	  	// 获取字体文件的 ArrayBuffer
-	  	const fontBuffer = await response.arrayBuffer();
-	  	let fontData = opentype.parse(fontBuffer, null)
-		opentypeFonts.set(fontName, fontData)
+	  const fontData = await response.arrayBuffer();
+	  const font = new FontFace(fontName, fontData);
+	  let loadRes = await font.load();
+	  console.log("load font res", fontName, loadRes)
+	  document.fonts.add(font);
+
+	  const entry = {
+		type: 'standard',
+		name: fontName,
+		fontFace: font
+	  };
+	  fontCache.set(fontName, entry);
+
+	  // 使用opentype进行加载完成的字体对象，这个对象要用来进行绘制字体字形灯内容
+	  let opentypeFontData = opentype.parse(fontData, null)
+	  opentypeFonts.set(fontName, opentypeFontData)
 	} catch (error) {
 	  console.error(`加载字体 ${fontName} 时出错:`, error);
 	  throw error;
 	}
   }
-

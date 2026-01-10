@@ -46,7 +46,7 @@ export default defineConfig({
         },
         assetFileNames: (assetInfo) => {
           if (assetInfo.name && (assetInfo.name.endsWith('.ttf') || assetInfo.name.endsWith('.otf'))) {
-            return 'assets/fonts/[name][extname]';
+            return 'fonts/[name][extname]';
           }
           return 'assets/[name]-[hash][extname]';
         },
